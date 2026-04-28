@@ -1,0 +1,58 @@
+config:
+  target: "http://localhost:3001"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "Normal Load (Hospital Morning)"
+    - duration: 60
+      arrivalRate: 20
+      name: "Medium Load (Shift Change)"
+    - duration: 60
+      arrivalRate: 40
+      name: "Peak Stress (System Audit/Emergency)"
+  payload:
+    path: "users.csv"
+    fields:
+      - "identifier"
+      - "password"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "Standard Staff Workflow"
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            identifier: "{{ identifier }}"
+            password: "{{ password }}"
+          capture:
+            - json: "$.accessToken"
+              as: "token"
+      - get:
+          url: "/api/analytics/dashboard-summary"
+          headers:
+            Authorization: "Bearer {{ token }}"
+      - get:
+          url: "/api/tickets?page=1&limit=15"
+          headers:
+            Authorization: "Bearer {{ token }}"
+      - think: 2
+      - get:
+          url: "/api/notifications"
+          headers:
+            Authorization: "Bearer {{ token }}"
+      - post:
+          url: "/api/tickets"
+          headers:
+            Authorization: "Bearer {{ token }}"
+          json:
+            subject: "Load Test Ticket - {{ identifier }}"
+            description: "Automated stress test ticket for performance validation."
+            priority: "normal"
+            departmentId: 1
+            ticketTypeId: 1
+            buildingId: 1
+            floorId: 1
+          ifTrue: "faker.number.int({min: 0, max: 10}) > 8" # Only create ticket 20% of the time to avoid over-filling

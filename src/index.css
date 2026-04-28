@@ -1,0 +1,195 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  /* ABC Hospital Refined Medical Palette */
+  --color-sidebar-bg: #0F172A;
+  --color-primary-blue: #0284C7;
+  --color-success-green: #0D9488;
+  --color-warning-amber: #F59E0B;
+  --color-danger-red: #E11D48;
+  
+  /* Medical Accents */
+  --color-medical-teal: #14B8A6;
+  --color-medical-blue: #3B82F6;
+
+  /* Enabling selector-based dark mode for Tailwind v4 */
+  --variant-dark: .dark &;
+}
+
+:root {
+  /* Semantic Tokens - Light */
+  --bg-main: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --text-main: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --border-dim: #F1F5F9;
+  --border-main: #E2E8F0;
+  --border-strong: #CBD5E1;
+}
+
+.dark {
+  /* Semantic Tokens - Dark Override */
+  --bg-main: #0F172A;
+  --bg-surface: #1E293B;
+  --bg-elevated: #334155;
+  --text-main: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --border-dim: #334155;
+  --border-main: #475569;
+  --border-strong: #64748B;
+  
+  /* Stronger, glowing accents for dark mode readability */
+  --color-primary-blue: #38BDF8;
+  --color-success-green: #2DD4BF;
+  --color-warning-amber: #FBBF24;
+  --color-danger-red: #FB7185;
+}
+
+@layer base {
+  html {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+  }
+  
+  body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+  }
+}
+
+@layer components {
+  /* === CORE CARD SYSTEM === */
+  /* Used throughout entire app — do NOT remove */
+  .premium-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-main);
+    border-radius: 1.5rem;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .premium-card:hover {
+    box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.06);
+  }
+
+  /* === LEGACY ALIAS — same as premium-card === */
+  .glass-surface {
+    background-color: var(--bg-surface);
+    backdrop-filter: blur(12px);
+    background-opacity: 0.8;
+    border: 1px solid var(--border-main);
+  }
+
+  .kpi-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-main);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .kpi-card:hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+
+  /* === INPUT SYSTEM === */
+  /* .input-surface = the standard rounded input style used across all forms */
+  .input-surface {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-main);
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.875rem;
+    color: var(--text-main);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .input-surface:focus {
+    border-color: var(--color-primary-blue);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-blue) 15%, transparent);
+  }
+
+  .input-surface::placeholder {
+    color: var(--text-muted);
+  }
+
+  /* === BUTTONS === */
+  .btn-primary {
+    background-color: var(--color-primary-blue);
+    color: white;
+    font-weight: 700;
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.75rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.2), 0 4px 6px -4px rgba(14, 165, 233, 0.2);
+  }
+
+  .btn-primary:hover {
+    filter: brightness(1.1);
+  }
+
+  .btn-primary:active {
+    transform: scale(0.95);
+  }
+
+  /* === LEGACY input-field === */
+  .input-field {
+    width: 100%;
+    padding: 0.625rem 1rem;
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-main);
+    border-radius: 0.75rem;
+    outline: 2px solid transparent;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .input-field:focus {
+    box-shadow: 0 0 0 2px var(--color-primary-blue);
+  }
+}
+
+/* Custom Scrollbar - Using standard CSS to avoid @apply issues with pseudo-elements in v4 build */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #E2E8F0;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #CBD5E1;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #334155;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: #475569;
+}

@@ -1,0 +1,48 @@
+2026-04-11 07:21:49.133 EET [26688] LOG:  starting PostgreSQL 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit
+2026-04-11 07:21:49.135 EET [26688] LOG:  listening on IPv4 address "127.0.0.1", port 5433
+2026-04-11 07:21:49.139 EET [26688] LOG:  listening on Unix socket "./.s.PGSQL.5433"
+2026-04-11 07:21:49.156 EET [26692] LOG:  database system was interrupted; last known up at 2026-04-10 16:41:19 EET
+2026-04-11 07:21:49.251 EET [26692] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-04-11 07:21:49.260 EET [26692] LOG:  redo starts at 0/223E978
+2026-04-11 07:21:49.260 EET [26692] LOG:  invalid record length at 0/223EA60: expected at least 24, got 0
+2026-04-11 07:21:49.261 EET [26692] LOG:  redo done at 0/223EA28 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2026-04-11 07:21:49.264 EET [26690] LOG:  checkpoint starting: end-of-recovery immediate wait
+2026-04-11 07:21:49.272 EET [26690] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.004 s, sync=0.002 s, total=0.010 s; sync files=2, longest=0.002 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/223EA60, redo lsn=0/223EA60
+2026-04-11 07:21:49.277 EET [26688] LOG:  database system is ready to accept connections
+2026-04-11 07:22:15.340 EET [26765] ERROR:  column "badgeNumber" does not exist at character 12
+2026-04-11 07:22:15.340 EET [26765] HINT:  Perhaps you meant to reference the column "users.badge_number".
+2026-04-11 07:22:15.340 EET [26765] STATEMENT:  SELECT id, "badgeNumber", "fullNameEn" FROM users WHERE "badgeNumber" = '235241';
+2026-04-11 07:26:49.372 EET [26690] LOG:  checkpoint starting: time
+2026-04-11 07:26:53.198 EET [26690] LOG:  checkpoint complete: wrote 39 buffers (0.2%); 0 WAL file(s) added, 0 removed, 0 recycled; write=3.814 s, sync=0.004 s, total=3.827 s; sync files=16, longest=0.003 s, average=0.001 s; distance=233 kB, estimate=233 kB; lsn=0/2278F20, redo lsn=0/2278EE8
+2026-04-11 07:36:49.392 EET [26690] LOG:  checkpoint starting: time
+2026-04-11 07:36:49.505 EET [26690] LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.103 s, sync=0.002 s, total=0.114 s; sync files=2, longest=0.001 s, average=0.001 s; distance=8 kB, estimate=210 kB; lsn=0/227AFD8, redo lsn=0/227AFA0
+2026-04-11 07:46:49.705 EET [26690] LOG:  checkpoint starting: time
+2026-04-11 07:46:50.621 EET [26690] LOG:  checkpoint complete: wrote 10 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.904 s, sync=0.003 s, total=0.917 s; sync files=8, longest=0.003 s, average=0.001 s; distance=67 kB, estimate=196 kB; lsn=0/228BDC8, redo lsn=0/228BD90
+2026-04-11 07:51:49.721 EET [26690] LOG:  checkpoint starting: time
+2026-04-11 07:51:50.033 EET [26690] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.303 s, sync=0.003 s, total=0.312 s; sync files=1, longest=0.003 s, average=0.003 s; distance=15 kB, estimate=178 kB; lsn=0/228FC00, redo lsn=0/228FBC8
+2026-04-11 08:31:49.839 EET [26690] LOG:  checkpoint starting: time
+2026-04-11 08:31:50.631 EET [26690] LOG:  checkpoint complete: wrote 8 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.764 s, sync=0.004 s, total=0.794 s; sync files=6, longest=0.003 s, average=0.001 s; distance=20 kB, estimate=162 kB; lsn=0/2294E70, redo lsn=0/2294E38
+2026-04-11 08:36:49.732 EET [26690] LOG:  checkpoint starting: time
+2026-04-11 08:36:50.482 EET [26690] LOG:  checkpoint complete: wrote 8 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.719 s, sync=0.009 s, total=0.750 s; sync files=6, longest=0.005 s, average=0.002 s; distance=29 kB, estimate=149 kB; lsn=0/229C5F8, redo lsn=0/229C5C0
+2026-04-11 08:41:49.582 EET [26690] LOG:  checkpoint starting: time
+2026-04-11 08:41:49.696 EET [26690] LOG:  checkpoint complete: wrote 1 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.102 s, sync=0.005 s, total=0.115 s; sync files=1, longest=0.005 s, average=0.005 s; distance=7 kB, estimate=135 kB; lsn=0/229E4F8, redo lsn=0/229E4C0
+2026-04-11 08:51:49.896 EET [26690] LOG:  checkpoint starting: time
+2026-04-11 08:52:18.717 EET [40120] ERROR:  relation "_prisma_migrations" does not exist at character 126
+2026-04-11 08:52:18.717 EET [40120] STATEMENT:  SELECT "id", "checksum", "finished_at", "migration_name", "logs", "rolled_back_at", "started_at", "applied_steps_count" FROM "_prisma_migrations" ORDER BY "started_at" ASC
+2026-04-11 08:52:18.956 EET [40121] FATAL:  terminating connection due to administrator command
+2026-04-11 08:52:19.151 EET [26690] LOG:  checkpoint complete: wrote 4092 buffers (25.0%); 0 WAL file(s) added, 0 removed, 3 recycled; write=29.232 s, sync=0.009 s, total=29.256 s; sync files=33, longest=0.003 s, average=0.001 s; distance=53284 kB, estimate=53284 kB; lsn=0/5BB6300, redo lsn=0/56A74E8
+2026-04-11 08:52:19.152 EET [26690] LOG:  checkpoint starting: immediate force wait
+2026-04-11 08:52:19.170 EET [26690] LOG:  checkpoint complete: wrote 174 buffers (1.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.009 s, sync=0.004 s, total=0.018 s; sync files=23, longest=0.002 s, average=0.001 s; distance=5179 kB, estimate=48473 kB; lsn=0/5BB63B0, redo lsn=0/5BB6378
+2026-04-11 08:52:19.667 EET [40124] FATAL:  terminating connection due to administrator command
+2026-04-11 08:52:19.768 EET [26690] LOG:  checkpoint starting: immediate force wait
+2026-04-11 08:52:19.801 EET [26690] LOG:  checkpoint complete: wrote 12 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.007 s, sync=0.007 s, total=0.033 s; sync files=7, longest=0.005 s, average=0.001 s; distance=4335 kB, estimate=44059 kB; lsn=0/5FF21C0, redo lsn=0/5FF2188
+2026-04-11 08:57:19.901 EET [26690] LOG:  checkpoint starting: time
+2026-04-11 08:57:23.458 EET [26690] LOG:  checkpoint complete: wrote 35 buffers (0.2%); 0 WAL file(s) added, 0 removed, 1 recycled; write=3.489 s, sync=0.022 s, total=3.558 s; sync files=35, longest=0.006 s, average=0.001 s; distance=6311 kB, estimate=40284 kB; lsn=0/661C0A0, redo lsn=0/661C068
+2026-04-11 09:02:19.542 EET [26690] LOG:  checkpoint starting: time
+2026-04-11 09:02:23.277 EET [26690] LOG:  checkpoint complete: wrote 38 buffers (0.2%); 0 WAL file(s) added, 0 removed, 0 recycled; write=3.723 s, sync=0.005 s, total=3.735 s; sync files=24, longest=0.003 s, average=0.001 s; distance=173 kB, estimate=36273 kB; lsn=0/6655170, redo lsn=0/66474D8
+2026-04-11 09:07:19.377 EET [26690] LOG:  checkpoint starting: time
+2026-04-11 09:07:22.017 EET [26690] LOG:  checkpoint complete: wrote 27 buffers (0.2%); 0 WAL file(s) added, 0 removed, 0 recycled; write=2.620 s, sync=0.007 s, total=2.641 s; sync files=22, longest=0.006 s, average=0.001 s; distance=141 kB, estimate=32660 kB; lsn=0/666A980, redo lsn=0/666A948
+2026-04-11 09:32:19.519 EET [26690] LOG:  checkpoint starting: time
+2026-04-11 09:32:46.251 EET [26690] LOG:  checkpoint complete: wrote 259 buffers (1.6%); 0 WAL file(s) added, 0 removed, 0 recycled; write=26.530 s, sync=0.071 s, total=26.733 s; sync files=43, longest=0.013 s, average=0.002 s; distance=2000 kB, estimate=29594 kB; lsn=0/6860AD8, redo lsn=0/685EAC8
+2026-04-11 09:37:19.352 EET [26690] LOG:  checkpoint starting: time
+2026-04-11 09:37:40.293 EET [26690] LOG:  checkpoint complete: wrote 210 buffers (1.3%); 0 WAL file(s) added, 0 removed, 0 recycled; write=20.914 s, sync=0.008 s, total=20.942 s; sync files=26, longest=0.003 s, average=0.001 s; distance=1534 kB, estimate=26788 kB; lsn=0/69DE600, redo lsn=0/69DE5C8
