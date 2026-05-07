@@ -180,7 +180,12 @@ router.get('/my', async (req: AuthRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
 
   const { page = '1', limit = '20', status, search } = req.query;
-  const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+  
+  // SECURITY FIX: Enforce maximum pagination limit to prevent DoS
+  const MAX_PAGE_SIZE = 100;
+  const pageNum = Math.max(1, parseInt(page as string) || 1);
+  const limitNum = Math.min(parseInt(limit as string) || 20, MAX_PAGE_SIZE);
+  const skip = (pageNum - 1) * limitNum;
 
   const where: any = { createdById: req.user.id, isArchived: false };
   if (status && status !== 'all') where.status = status;
@@ -203,7 +208,7 @@ router.get('/my', async (req: AuthRequest, res: Response) => {
         },
         orderBy: { createdAt: 'desc' },
         skip,
-        take: parseInt(limit as string)
+        take: limitNum
       }),
       prisma.ticket.count({ where })
     ]);
@@ -212,9 +217,9 @@ router.get('/my', async (req: AuthRequest, res: Response) => {
       tickets,
       pagination: {
         total,
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-        pages: Math.ceil(total / parseInt(limit as string))
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum)
       }
     });
   } catch (error) {
@@ -225,7 +230,6 @@ router.get('/my', async (req: AuthRequest, res: Response) => {
 
 // --- LIST DEPARTMENT TICKETS ---
 router.get('/department', async (req: AuthRequest, res: Response) => {
-  console.log('GET /api/tickets/department hit', req.query);
   if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
   if (!req.user.departmentId && req.user.role !== 'super_admin') {
     return res.status(403).json({ message: 'User not assigned to any department' });
@@ -244,7 +248,11 @@ router.get('/department', async (req: AuthRequest, res: Response) => {
     agentId
   } = req.query;
 
-  const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+  // SECURITY FIX: Enforce maximum pagination limit to prevent DoS
+  const MAX_PAGE_SIZE = 100;
+  const pageNum = Math.max(1, parseInt(page as string) || 1);
+  const limitNum = Math.min(parseInt(limit as string) || 50, MAX_PAGE_SIZE);
+  const skip = (pageNum - 1) * limitNum;
 
   const where: any = {
     departmentId: req.user.role === 'super_admin' ? undefined : req.user.departmentId,
@@ -322,9 +330,24 @@ router.get('/department', async (req: AuthRequest, res: Response) => {
         },
         orderBy: { createdAt: 'desc' },
         skip,
-        take: parseInt(limit as string)
+        take: limitNum
       }),
       prisma.ticket.count({ where })
+    ]);
+
+    res.json({
+      tickets,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching department tickets:', error);
+    res.status(500).json({ message: 'Error fetching department tickets' });
+  }
     ]);
 
     res.json({

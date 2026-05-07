@@ -41,7 +41,7 @@ const app = express();
 // Global
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'test' ? 1000000 : 2000, 
+  max: process.env.NODE_ENV === 'production' ? 2000 : 1000000, 
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many requests, please try again later.' }
@@ -50,7 +50,7 @@ const globalLimiter = rateLimit({
 // Auth
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'test' ? 1000000 : 50, 
+  max: process.env.NODE_ENV === 'production' ? 50 : 1000000, 
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many login attempts. Please try again in 15 minutes.' }
@@ -59,40 +59,50 @@ const loginLimiter = rateLimit({
 // Analytics
 const analyticsLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'test' ? 1000000 : 100,
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000000,
   message: { message: 'Analytics rate limit exceeded. Please wait a few minutes.' }
 });
 
 // Search
 const searchLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
-  max: process.env.NODE_ENV === 'test' ? 1000000 : 20,
+  max: process.env.NODE_ENV === 'production' ? 20 : 1000000,
   message: { message: 'Too many search requests. Please slow down.' }
 });
 
 // Uploads
 const uploadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: process.env.NODE_ENV === 'test' ? 1000000 : 30,
+  max: process.env.NODE_ENV === 'production' ? 30 : 1000000,
   message: { message: 'Upload limit reached. Please try again later.' }
 });
+
+// SECURITY FIX: Configure CORS to restrict to trusted origins
+const corsOrigins = process.env.NODE_ENV === 'production'
+  ? [process.env.FRONTEND_URL || 'https://yourdomain.com']
+  : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
 
 // Security & Middleware
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Needed for Vite/Motion
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "blob:", "https://*"], // allow external assets
-      connectSrc: ["'self'", "ws:", "wss:", "https://*"], // allow sockets and external apis
+      scriptSrc: ["'self'"], // Vite handles inline scripts with proper nonces
+      styleSrc: ["'self'", "'unsafe-inline'"], // Tailwind requires this
+      imgSrc: ["'self'", "data:", "blob:", "https://*"],
+      connectSrc: ["'self'", "ws:", "wss:", process.env.FRONTEND_URL || "https://yourdomain.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     },
   },
   crossOriginEmbedderPolicy: false,
 }));
-app.use(cors());
+app.use(cors({
+  origin: corsOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(cookieParser());

@@ -5,10 +5,16 @@ import { verifyAccessToken } from '../modules/auth/auth.utils.ts';
 let io: Server;
 
 export const initSocket = (server: HttpServer) => {
+  // SECURITY FIX: Restrict CORS origins to prevent unauthorized WebSocket connections
+  const corsOrigins = process.env.NODE_ENV === 'production'
+    ? [process.env.FRONTEND_URL || 'https://yourdomain.com']
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
+
   io = new Server(server, {
     cors: {
-      origin: '*',
-      methods: ['GET', 'POST']
+      origin: corsOrigins,
+      methods: ['GET', 'POST'],
+      credentials: true,
     }
   });
 
