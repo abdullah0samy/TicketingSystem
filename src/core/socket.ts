@@ -1,4 +1,14 @@
-import { Server } from 'socket.io';
+const corsOrigins = process.env.NODE_ENV === 'production'
+  ? [process.env.FRONTEND_URL || 'https://yourdomain.com']
+  : ['http://localhost:3000', 'http://localhost:5173', ...];
+
+io = new Server(server, {
+  cors: {
+    origin: corsOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  }
+});import { Server } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import { verifyAccessToken } from '../modules/auth/auth.utils.ts';
 

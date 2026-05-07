@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { authenticate } from '../../core/middleware/auth.middleware.ts';
+import { FileType } from 'file-type';
 
 const router = express.Router();
 
@@ -45,10 +46,15 @@ const upload = multer({
     cb(new Error('Invalid file type. Allowed: JPEG, PNG, PDF, DOC, DOCX, XLS, XLSX, WAV, MP3'));
   }
 });
-
-router.post('/', authenticate as any, upload.single('file'), (req: any, res) => {
+router.post('/', authenticate as any, upload.single('file'), async (req: any, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No file uploaded' });
+  }
+
+  const file = req.file;
+  const fileType = await FileType.fromStream(req.file.stream);
+  if (!ALLOWED_MIMETYPES.includes(fileType.mime)) {
+    return res.status(400).json({ error: 'Invalid file type' });
   }
 
   const fileUrl = `/uploads/${req.file.filename}`;

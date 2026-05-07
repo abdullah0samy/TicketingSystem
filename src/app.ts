@@ -22,6 +22,12 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+if (!ACCESS_SECRET || !REFRESH_SECRET) {
+  console.error('🔴 CRITICAL: JWT secrets must be configured via environment variables!...');
+  process.exit(1);
+}
+
 // Modules
 import authRoutes from './modules/auth/auth.routes.ts';
 import userRoutes from './modules/users/users.routes.ts';
@@ -37,6 +43,8 @@ import auditRoutes from './modules/audit/audit.routes.ts';
 import { requestLogger } from './core/middleware/request_logger.ts';
 
 const app = express();
+
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
 // Global
 const globalLimiter = rateLimit({

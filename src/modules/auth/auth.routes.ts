@@ -1,11 +1,28 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
-import prisma from '../../core/db.ts';
+import csrf from 'csurf';
+
+import { PrismaClient } from '@prisma/client';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from './auth.utils.ts';
 
-const router = express.Router();
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+      connectionLimit: 20,
+      poolTimeout: 30,
+      connectTimeout: 10
+    }
+  }
+});
 
-router.post('/login', async (req, res) => {
+const router = express.Router();
+const csrfProtection = csrf({ cookie: true });
+
+router.use((req, res, next) => {
+  res.cookie('XSRF-TOKEN', req.csrfToken());
+  next();
+router.post('/login', csrfProtection, async (req, res) => {
   const { identifier, password } = req.body;
 
   if (!identifier || !password) {
@@ -79,13 +96,10 @@ router.post('/login', async (req, res) => {
   }
 });
 
-
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', csrfProtection, async (req, res) => {
   // BUG FIX: Also accept refreshToken from httpOnly cookie
   const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
 
-  if (!refreshToken) {
-    return res.status(400).json({ message: 'Refresh token is required' });
   }
 
   try {
@@ -109,13 +123,12 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
-router.post('/logout', (req, res) => {
+router.post('/logout', csrfProtection, (req, res) => {
   res.clearCookie('refreshToken', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict'
   });
-  res.status(200).json({ message: 'Logged out successfully' });
 });
 
 export default router;

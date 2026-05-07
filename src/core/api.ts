@@ -41,10 +41,20 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
     if (!response.ok) {
       if (contentType && contentType.includes('application/json')) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'API request failed');
+        throw {
+          status: 'error',
+          code: errorData.code || 'UNKNOWN_ERROR',
+          message: errorData.message || 'API request failed',
+          timestamp: new Date().toISOString(),
+        };
       } else {
         const errorText = await response.text();
-        throw new Error(`API request failed with status ${response.status}: ${errorText.substring(0, 100)}`);
+        throw {
+          status: 'error',
+          code: 'UNKNOWN_ERROR',
+          message: `API request failed with status ${response.status}: ${errorText.substring(0, 100)}`,
+          timestamp: new Date().toISOString(),
+        };
       }
     }
 
@@ -55,6 +65,15 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
     return response;
   } catch (error) {
     console.error(`API Fetch Error (${url}):`, error);
+    if (error instanceof Error) {
+      throw {
+        status: 'error',
+        code: 'FETCH_ERROR',
+        message: error.message,
+        timestamp: new Date().toISOString(),
+      };
+    }
     throw error;
   }
 }
+
