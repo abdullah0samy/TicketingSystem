@@ -72,7 +72,7 @@ export default function Login() {
           <div className="relative z-10">
             <div className="flex flex-col items-center mb-10 text-center">
               <div className="w-24 h-24 mb-6 drop-shadow-2xl">
-                <img src="/logo.svg" alt="Logo" className="w-full h-full object-contain" />
+                <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mb-2 tracking-tight leading-tight">{t.loginTitle}</h1>
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-300">{t.loginSubTitle}</p>

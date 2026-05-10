@@ -418,6 +418,125 @@ router.get('/search', validateQuery(ticketSearchSchema), async (req: AuthRequest
   }
 });
 
+// --- LIST ARCHIVED TICKETS ---
+router.get('/archived', async (req: AuthRequest, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+  const { page = '1', limit = '20', search } = req.query;
+  const MAX_PAGE_SIZE = 100;
+  const pageNum = Math.max(1, parseInt(page as string) || 1);
+  const limitNum = Math.min(parseInt(limit as string) || 20, MAX_PAGE_SIZE);
+  const skip = (pageNum - 1) * limitNum;
+
+  const where: any = { isArchived: true };
+
+  if (req.user.role !== 'super_admin') {
+    where.departmentId = req.user.departmentId;
+  }
+
+  if (search) {
+    const searchStr = search as string;
+    where.AND = [
+      { OR: [
+        { ticketNumber: { contains: searchStr } },
+        { subject: { contains: searchStr } },
+        { creatorName: { contains: searchStr } }
+      ]}
+    ];
+  }
+
+  try {
+    const [tickets, total] = await Promise.all([
+      prisma.ticket.findMany({
+        where,
+        include: {
+          department: true,
+          ticketType: true,
+          createdBy: { select: { fullNameEn: true, fullNameAr: true, avatarUrl: true } },
+          assignedTo: { select: { fullNameEn: true, fullNameAr: true, avatarUrl: true } }
+        },
+        orderBy: { archivedAt: 'desc' },
+        skip,
+        take: limitNum
+      }),
+      prisma.ticket.count({ where })
+    ]);
+
+    res.json({
+      tickets,
+      pagination: { total, page: pageNum, limit: limitNum, pages: Math.ceil(total / limitNum) }
+    });
+  } catch (error) {
+    console.error('Error fetching archived tickets:', error);
+    res.status(500).json({ message: 'Error fetching archived tickets' });
+  }
+});
+
+// --- LIST TRANSFERRED TICKETS (tickets transferred TO the current user's department) ---
+router.get('/transferred', async (req: AuthRequest, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+  const { page = '1', limit = '20', search } = req.query;
+  const MAX_PAGE_SIZE = 100;
+  const pageNum = Math.max(1, parseInt(page as string) || 1);
+  const limitNum = Math.min(parseInt(limit as string) || 20, MAX_PAGE_SIZE);
+  const skip = (pageNum - 1) * limitNum;
+
+  const where: any = {
+    transfers: {
+      some: {
+        toDepartmentId: req.user.role === 'super_admin' ? undefined : req.user.departmentId
+      }
+    }
+  };
+
+  if (search) {
+    const searchStr = search as string;
+    where.AND = [
+      { OR: [
+        { ticketNumber: { contains: searchStr } },
+        { subject: { contains: searchStr } },
+        { creatorName: { contains: searchStr } }
+      ]}
+    ];
+  }
+
+  try {
+    const [tickets, total] = await Promise.all([
+      prisma.ticket.findMany({
+        where,
+        include: {
+          department: true,
+          ticketType: true,
+          createdBy: { select: { fullNameEn: true, fullNameAr: true, avatarUrl: true } },
+          assignedTo: { select: { fullNameEn: true, fullNameAr: true, avatarUrl: true } },
+          transfers: {
+            include: {
+              fromDepartment: true,
+              toDepartment: true,
+              transferredBy: { select: { fullNameEn: true, fullNameAr: true } }
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 1
+          }
+        },
+        orderBy: { updatedAt: 'desc' },
+        skip,
+        take: limitNum
+      }),
+      prisma.ticket.count({ where })
+    ]);
+
+    res.json({
+      tickets,
+      pagination: { total, page: pageNum, limit: limitNum, pages: Math.ceil(total / limitNum) }
+    });
+  } catch (error) {
+    console.error('Error fetching transferred tickets:', error);
+    res.status(500).json({ message: 'Error fetching transferred tickets' });
+  }
+});
+
 // --- GET TICKET DETAILS ---
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ message: 'Unauthorized' });

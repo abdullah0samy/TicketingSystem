@@ -20,6 +20,8 @@ import DashboardPage from './pages/DashboardPage.tsx';
 import TicketDetailsPage from './pages/tickets/TicketDetailsPage.tsx';
 import TeamFeedPage from './pages/TeamFeedPage.tsx';
 import AuditLogPage from './pages/AuditLogPage.tsx';
+import TransferredPage from './pages/tickets/TransferredPage.tsx';
+import ArchivePage from './pages/tickets/ArchivePage.tsx';
 import { NotificationProvider, useNotifications } from './core/NotificationProvider.tsx';
 import { GlobalSearch } from './components/GlobalSearch.tsx';
 import { 
@@ -173,6 +175,8 @@ function AppContent() {
       case '/admin/audit': return <AuditLogPage />;
       case '/inbox': return <InboxPage />;
       case '/my-tickets': return <MyTicketsPage />;
+      case '/transferred': return <TransferredPage />;
+      case '/archive': return <ArchivePage />;
       default: return <DashboardPage />;
     }
   };
@@ -183,7 +187,7 @@ function AppContent() {
       <aside className="w-64 bg-white dark:bg-sidebar-bg border-r border-slate-200 dark:border-slate-800 flex flex-col transition-colors duration-300">
         <div className="p-6 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800">
           <div className="w-10 h-10 flex items-center justify-center shrink-0">
-            <img src="/logo.svg" alt="Logo" className="w-full h-full object-contain" />
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-lg font-extrabold text-slate-900 dark:text-white leading-tight">{t.appName}</h1>
