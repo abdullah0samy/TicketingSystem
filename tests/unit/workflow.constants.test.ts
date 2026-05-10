@@ -39,9 +39,9 @@ describe('Workflow Constants', () => {
       expect(ALLOWED_TRANSITIONS.in_progress).toContain('closed');
     });
 
-    it('should allow resolved -> closed (confirmation) and in_progress (reopen)', () => {
-      expect(ALLOWED_TRANSITIONS.resolved).toContain('closed');
+    it('should allow resolved -> in_progress (reopen) only; closed requires /confirm endpoint', () => {
       expect(ALLOWED_TRANSITIONS.resolved).toContain('in_progress');
+      expect(ALLOWED_TRANSITIONS.resolved).not.toContain('closed');
     });
 
     it('should allow closed -> in_progress (reopen only)', () => {

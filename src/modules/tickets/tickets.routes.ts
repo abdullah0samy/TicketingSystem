@@ -348,21 +348,6 @@ router.get('/department', async (req: AuthRequest, res: Response) => {
     console.error('Error fetching department tickets:', error);
     res.status(500).json({ message: 'Error fetching department tickets' });
   }
-    ]);
-
-    res.json({
-      tickets,
-      pagination: {
-        total,
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-        pages: Math.ceil(total / parseInt(limit as string))
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching department tickets:', error);
-    res.status(500).json({ message: 'Error fetching department tickets' });
-  }
 });
 
 // --- GLOBAL SEARCH ---

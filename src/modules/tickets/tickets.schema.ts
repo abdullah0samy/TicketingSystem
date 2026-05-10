@@ -11,7 +11,7 @@ export const createTicketSchema = z.object({
   assetId: z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]).optional().nullable(),
   roomExtension: z.string().max(50).optional().nullable(),
   creatorPhone: z.string().max(50).optional().nullable(),
-  creatorExtension: z.string().min(1, "Extension is required").max(50),
+  creatorExtension: z.string().max(50).optional().nullable(),
   attachments: z.array(z.object({
     fileName: z.string(),
     fileUrl: z.string(),

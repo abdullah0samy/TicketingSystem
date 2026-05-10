@@ -23,6 +23,7 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 if (!ACCESS_SECRET || !REFRESH_SECRET) {
   console.error('🔴 CRITICAL: JWT secrets must be configured via environment variables!...');
   process.exit(1);
@@ -43,8 +44,6 @@ import auditRoutes from './modules/audit/audit.routes.ts';
 import { requestLogger } from './core/middleware/request_logger.ts';
 
 const app = express();
-
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
 // Global
 const globalLimiter = rateLimit({
