@@ -48,16 +48,13 @@ jobs:
       - name: Prisma Generate
         run: npx prisma generate
 
-      - name: Prisma Push (Create DB tables)
-        run: npx prisma db push
-        env:
-          DATABASE_URL: postgresql://johndoe:randompassword@localhost:5433/abch_db?schema=public
-
       - name: TypeScript Check
         run: npm run lint
 
-      - name: Unit Tests
-        run: npm run test
+      - name: Test (push DB schema then run tests)
+        run: |
+          npx prisma db push
+          npm run test
         env:
           DATABASE_URL: postgresql://johndoe:randompassword@localhost:5433/abch_db?schema=public
           REDIS_URL: redis://localhost:6379
