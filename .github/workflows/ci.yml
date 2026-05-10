@@ -48,8 +48,8 @@ jobs:
       - name: Prisma Generate
         run: npx prisma generate
 
-      - name: Prisma Migrate (Test DB)
-        run: npx prisma migrate deploy
+      - name: Prisma Push (Create DB tables)
+        run: npx prisma db push
         env:
           DATABASE_URL: postgresql://johndoe:randompassword@localhost:5433/abch_db?schema=public
 
