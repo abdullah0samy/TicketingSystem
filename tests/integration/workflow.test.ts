@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../../src/app.ts';
 import prisma from '../../src/core/db.ts';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 describe('Workflow & Integration E2E', () => {
   let adminToken: string;

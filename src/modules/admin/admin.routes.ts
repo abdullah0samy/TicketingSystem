@@ -1,7 +1,7 @@
 import express from 'express';
 import prisma from '../../core/db.ts';
 import { authenticate, authorize } from '../../core/middleware/auth.middleware.ts';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const router = express.Router();
 

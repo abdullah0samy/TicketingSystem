@@ -1,5 +1,5 @@
 import express from 'express';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 import prisma from '../../core/db.ts';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from './auth.utils.ts';
@@ -74,9 +74,9 @@ router.post('/login', async (req, res) => {
         department: user.department
       }
     });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+  } catch (error: any) {
+    console.error('🔴 Login error:', error?.message || error, error?.stack ? error.stack.slice(0, 500) : '');
+    res.status(500).json({ message: 'Internal server error', detail: process.env.NODE_ENV !== 'production' ? error?.message : undefined });
   }
 });
 
