@@ -4,14 +4,14 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - DATABASE_URL=postgresql://johndoe:randompassword@db:5432/abch_db?schema=public
       - REDIS_URL=redis://redis:6379
       - JWT_ACCESS_SECRET=change-this-in-production
       - JWT_REFRESH_SECRET=change-this-refresh-secret
       - NODE_ENV=production
-      - FRONTEND_URL=http://localhost:3000
+      - FRONTEND_URL=http://localhost:3001
     depends_on:
       - db
       - redis
@@ -34,7 +34,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
     restart: always
