@@ -27,16 +27,6 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              // Group React and core framework utilities together to prevent circular dependency cycles
-              if (
-                id.includes('react') || 
-                id.includes('react-dom') || 
-                id.includes('react-router-dom') ||
-                id.includes('scheduler') ||
-                id.includes('prop-types')
-              ) {
-                return 'vendor-framework';
-              }
               if (id.includes('lucide-react')) {
                 return 'vendor-icons';
               }
@@ -46,7 +36,8 @@ export default defineConfig(({ mode }) => {
               if (id.includes('recharts') || id.includes('d3')) {
                 return 'vendor-charts';
               }
-              return 'vendor-utils';
+              // Everything else including React goes into one chunk to prevent circular deps
+              return 'vendor-core';
             }
           }
         }
