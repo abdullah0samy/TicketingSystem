@@ -126,13 +126,13 @@ export default function TransferredPage() {
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                 <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('ticketNumber')}>
-                  <span className="flex items-center gap-1">{t.ticketNumber} <ArrowUpDown size={14} /></span>
+                  <span className="flex items-center gap-1">{language === 'ar' ? 'رقم التذكرة' : 'Ticket #'} <ArrowUpDown size={14} /></span>
                 </th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('subject')}>
                   <span className="flex items-center gap-1">{t.subject} <ArrowUpDown size={14} /></span>
                 </th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.fromDept || (language === 'ar' ? 'من قسم' : 'From Dept')}</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.status}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{language === 'ar' ? 'من قسم' : 'From Dept'}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{language === 'ar' ? 'الحالة' : 'Status'}</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.priority}</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{language === 'ar' ? 'تاريخ التحويل' : 'Transferred At'}</th>
               </tr>
