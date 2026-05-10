@@ -125,6 +125,7 @@ export default function NewTicketPage() {
       });
 
       setSuccess(language === 'ar' ? `تم إنشاء التذكرة بنجاح: ${data.ticketNumber}` : `Ticket created successfully: ${data.ticketNumber}`);
+      setTimeout(() => window.dispatchEvent(new CustomEvent('navigate', { detail: '/inbox' })), 1500);
       setAttachments([]);
       setFormData({
         subject: '',

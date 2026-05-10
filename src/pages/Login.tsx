@@ -33,6 +33,7 @@ export default function Login() {
       }
 
       setAuth(data.user, data.accessToken);
+      window.dispatchEvent(new CustomEvent('navigate', { detail: '/dashboard' }));
     } catch (err: any) {
       setError(err.message);
     } finally {
