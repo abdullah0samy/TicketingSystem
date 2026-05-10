@@ -11,7 +11,7 @@ services:
       - JWT_ACCESS_SECRET=change-this-in-production
       - JWT_REFRESH_SECRET=change-this-refresh-secret
       - NODE_ENV=production
-      - FRONTEND_URL=http://localhost:3001
+      - FRONTEND_URL=https://yourdomain.com
     depends_on:
       - db
       - redis

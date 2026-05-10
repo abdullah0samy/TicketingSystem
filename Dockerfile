@@ -28,5 +28,5 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Start the server
-CMD ["npx", "tsx", "server.ts"]
+# Push Prisma schema to DB on every start (idempotent), then start server
+CMD npx prisma db push --accept-data-loss && npx tsx server.ts
