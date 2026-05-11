@@ -23,6 +23,11 @@ prisma.$use(async (params, next) => {
   }
 });
 
+// Connection-level error handler (pool issues, network drops, etc.)
+(prisma as any).$on('error', (e: any) => {
+  console.error('🔴 [Prisma] Connection error:', e?.message ?? e);
+});
+
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 
