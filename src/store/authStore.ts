@@ -14,14 +14,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.setItem('accessToken', accessToken);
     set({ user, accessToken });
   },
-  logout: async () => {
-    try {
-      // Use standard fetch here or dynamic import to avoid circular dependency with apiFetch
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-    } catch(e) {}
+  logout: () => {
     localStorage.removeItem('accessToken');
-    // NOTE: We intentionally preserve 'abc-settings-storage' (theme, language) so
-    // dark mode and language preferences survive logout/login cycles.
     set({ user: null, accessToken: null });
+    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
   },
 }));

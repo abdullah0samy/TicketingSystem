@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuthStore } from './store/authStore.ts';
 import { useSettingsStore } from './store/settingsStore.ts';
 import { translations } from './core/translations.ts';
@@ -24,14 +24,14 @@ import TransferredPage from './pages/tickets/TransferredPage.tsx';
 import ArchivePage from './pages/tickets/ArchivePage.tsx';
 import { NotificationProvider, useNotifications } from './core/NotificationProvider.tsx';
 import { GlobalSearch } from './components/GlobalSearch.tsx';
-import { 
-  LayoutDashboard, 
-  PlusCircle, 
-  Inbox, 
-  Send, 
-  RefreshCw, 
-  Archive, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  PlusCircle,
+  Inbox,
+  Send,
+  RefreshCw,
+  Archive,
+  BarChart3,
   Settings,
   Bell,
   User,
@@ -53,7 +53,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   BookOpen,
-  Package
+  Package,
+  Menu,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -73,19 +74,26 @@ function AppContent() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const t = translations[language];
 
+  const navigate = useCallback((path: string) => {
+    setCurrentPath(path);
+    setSidebarOpen(false);
+    setShowNotifications(false);
+  }, []);
+
   useEffect(() => {
-    // Handle custom navigation events
     const handleNavigate = (e: any) => {
       setCurrentPath(e.detail);
+      setSidebarOpen(false);
+      setShowNotifications(false);
     };
     window.addEventListener('navigate', handleNavigate);
     return () => window.removeEventListener('navigate', handleNavigate);
   }, []);
 
   useEffect(() => {
-    // Apply theme to document
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -94,7 +102,6 @@ function AppContent() {
   }, [theme]);
 
   useEffect(() => {
-    // Check if user is already logged in via token
     if (accessToken && !user && !isFetching) {
       setIsFetching(true);
       fetch('/api/users/me', {
@@ -116,12 +123,19 @@ function AppContent() {
     } else if (!accessToken || user) {
       setIsReady(true);
     }
-    // STABILITY FIX: Removed setAuth, logout (stable zustand refs) and isFetching
-    // (guarded internally) from deps to prevent request flood loops.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, user]);
 
-  if (!isReady) return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">Loading...</div>;
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) setSidebarOpen(true);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  if (!isReady) return <div className="min-h-screen flex items-center justify-center bg-[var(--bg-main)] text-[var(--text-muted)] font-sans text-lg font-semibold">Loading...</div>;
   if (!user) return <Login />;
 
   const sidebarItems = [
@@ -149,12 +163,11 @@ function AppContent() {
   ];
 
   const renderContent = () => {
-    // Handle ticket details route with potential query params
     if (currentPath.startsWith('/tickets/')) {
       const pathParts = currentPath.split('?')[0].split('/');
       const idPart = pathParts[2];
       const id = parseInt(idPart);
-      
+
       if (idPart === 'new') return <NewTicketPage />;
       if (!isNaN(id)) return <TicketDetailsPage ticketId={id} />;
     }
@@ -181,125 +194,157 @@ function AppContent() {
     }
   };
 
-  return (
-    <div className={`flex h-screen bg-slate-50 dark:bg-slate-950 font-sans overflow-hidden ${language === 'ar' ? 'rtl' : 'ltr'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      {/* Sidebar */}
-      <aside className="w-64 bg-white dark:bg-sidebar-bg border-r border-slate-200 dark:border-slate-800 flex flex-col transition-colors duration-300">
-        <div className="p-6 flex items-center gap-3 border-b border-slate-100 dark:border-slate-800">
-          <div className="w-10 h-10 flex items-center justify-center shrink-0">
-            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
-          </div>
-          <div>
-            <h1 className="text-lg font-extrabold text-slate-900 dark:text-white leading-tight">{t.appName}</h1>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{t.appSubName}</p>
-          </div>
+  const sidebar = (
+    <aside className={`h-full bg-white dark:bg-sidebar-bg border-r border-[var(--border-main)] flex flex-col transition-colors duration-300`}>
+      <div className="p-5 flex items-center gap-3 border-b border-[var(--border-dim)]">
+        <div className="w-9 h-9 flex items-center justify-center shrink-0">
+          <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
         </div>
-        
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-4 mb-2">
-            {language === 'ar' ? 'القائمة الرئيسية' : 'Main Menu'}
-          </div>
-          {sidebarItems.map((item, idx) => (
-            <button
-              key={idx}
-              onClick={() => setCurrentPath(item.path)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
-                currentPath === item.path 
-                  ? 'bg-primary-blue text-white shadow-lg shadow-primary-blue/20' 
-                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-primary-blue dark:hover:text-white'
-              }`}
-            >
-              <item.icon size={20} />
-              <span>{item.label}</span>
-            </button>
-          ))}
+        <div>
+          <h1 className="text-base font-extrabold text-[var(--text-main)] leading-tight">{t.appName}</h1>
+          <p className="text-[9px] text-[var(--text-muted)] font-bold uppercase tracking-widest">{t.appSubName}</p>
+        </div>
+      </div>
 
-          {user.role === 'super_admin' && (
-            <div className="mt-8">
-              <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-4 mb-2">
-                {language === 'ar' ? 'الإدارة' : 'Management'}
-              </div>
-              {adminItems.map((item, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentPath(item.path)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
-                    currentPath === item.path 
-                      ? 'bg-primary-blue text-white shadow-lg shadow-primary-blue/20' 
-                      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-primary-blue dark:hover:text-white'
-                  }`}
-                >
-                  <item.icon size={20} />
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </nav>
-
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800">
-          <button 
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-danger-red hover:bg-danger-red/10 transition-all font-medium"
+      <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto">
+        <p className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest px-3 mb-2">
+          {language === 'ar' ? 'القائمة الرئيسية' : 'Main Menu'}
+        </p>
+        {sidebarItems.map((item, idx) => (
+          <button
+            key={idx}
+            onClick={() => navigate(item.path)}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm font-medium ${
+              currentPath === item.path
+                ? 'bg-primary-blue text-white shadow-md shadow-primary-blue/20'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--border-dim)] hover:text-[var(--text-main)]'
+            }`}
           >
-            <LogOut size={20} />
-            <span>{t.signOut}</span>
+            <item.icon size={18} />
+            <span>{item.label}</span>
           </button>
+        ))}
+
+        {user.role === 'super_admin' && (
+          <div className="mt-6">
+            <p className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest px-3 mb-2">
+              {language === 'ar' ? 'الإدارة' : 'Management'}
+            </p>
+            {adminItems.map((item, idx) => (
+              <button
+                key={idx}
+                onClick={() => navigate(item.path)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm font-medium ${
+                  currentPath === item.path
+                    ? 'bg-primary-blue text-white shadow-md shadow-primary-blue/20'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--border-dim)] hover:text-[var(--text-main)]'
+                }`}
+              >
+                <item.icon size={18} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </nav>
+
+      <div className="p-3 border-t border-[var(--border-dim)]">
+        <button
+          onClick={() => { logout(); }}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[var(--color-danger-red)] hover:bg-danger-red/10 transition-all text-sm font-medium"
+        >
+          <LogOut size={18} />
+          <span>{t.signOut}</span>
+        </button>
+      </div>
+    </aside>
+  );
+
+  return (
+    <div className={`flex h-screen bg-[var(--bg-main)] font-sans overflow-hidden ${language === 'ar' ? 'rtl' : 'ltr'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      {/* Mobile sidebar overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="sidebar-overlay lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Sidebar - Desktop */}
+      <div className="hidden lg:flex w-64 shrink-0">
+        {sidebar}
+      </div>
+
+      {/* Sidebar - Mobile */}
+      <div className={`lg:hidden fixed inset-0 z-50 pointer-events-none ${sidebarOpen ? '' : ''}`}>
+        <div className={`sidebar-mobile ${language === 'ar' ? 'rtl' : ''} ${sidebarOpen ? '' : 'closed'} pointer-events-auto`}>
+          {sidebar}
         </div>
-      </aside>
+      </div>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between z-10 transition-colors">
-          <div className="flex items-center gap-6 flex-1">
-            <GlobalSearch />
-            
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <header className="h-14 lg:h-16 bg-[var(--bg-surface)] border-b border-[var(--border-main)] px-3 sm:px-4 lg:px-6 flex items-center justify-between z-10 transition-colors shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden p-2 text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-all rounded-lg hover:bg-[var(--border-dim)]"
+            >
+              <Menu size={20} />
+            </button>
+            <div className="flex-1 min-w-0 max-w-md">
+              <GlobalSearch />
+            </div>
+
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-all"
+                className="relative p-2 text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-all rounded-lg hover:bg-[var(--border-dim)]"
               >
-                <Bell size={22} />
+                <Bell size={20} />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 bg-danger-red text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900 font-bold">
-                    {unreadCount}
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-[var(--color-danger-red)] text-white text-[9px] flex items-center justify-center rounded-full border-2 border-[var(--bg-surface)] font-bold">
+                    {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </button>
 
               {showNotifications && (
-                <div className="absolute top-12 left-0 w-80 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl z-50 overflow-hidden">
-                  <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                    <h3 className="font-bold text-slate-900 dark:text-white">{language === 'ar' ? 'التنبيهات' : 'Notifications'}</h3>
-                    <button 
+                <div className={`absolute top-12 ${language === 'ar' ? 'right-0' : 'left-0'} w-80 bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-main)] shadow-2xl z-50 overflow-hidden`}>
+                  <div className="p-3 border-b border-[var(--border-dim)] flex items-center justify-between">
+                    <h3 className="font-bold text-sm text-[var(--text-main)]">{language === 'ar' ? 'التنبيهات' : 'Notifications'}</h3>
+                    <button
                       onClick={markAllAsRead}
                       className="text-[10px] font-bold text-primary-blue uppercase tracking-widest hover:underline"
                     >
                       {language === 'ar' ? 'تحديد الكل كمقروء' : 'Mark all as read'}
                     </button>
                   </div>
-                  <div className="max-h-96 overflow-y-auto">
+                  <div className="max-h-80 overflow-y-auto">
                     {notifications.length > 0 ? (
                       notifications.map((n) => (
-                        <div 
-                          key={n.id} 
+                        <div
+                          key={n.id}
                           onClick={() => {
                             markAsRead(n.id);
                             if (n.link) {
-                              setCurrentPath(n.link);
-                              setShowNotifications(false);
+                              navigate(n.link);
                             }
                           }}
-                          className={`p-4 border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-all ${!n.read ? 'bg-primary-blue/5' : ''}`}
+                          className={`p-3 border-b border-[var(--border-dim)] hover:bg-[var(--border-dim)] cursor-pointer transition-all ${!n.read ? 'bg-primary-blue/[0.04]' : ''}`}
                         >
                           <div className="flex items-start gap-3">
                             <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.read ? 'bg-primary-blue' : 'bg-transparent'}`} />
-                            <div>
-                              <p className="text-sm font-bold text-slate-900 dark:text-white">{n.title}</p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{n.message}</p>
-                              <p className="text-[10px] text-slate-400 mt-2">{new Date(n.createdAt).toLocaleTimeString()}</p>
-                              
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-bold text-[var(--text-main)] truncate">{n.title}</p>
+                              <p className="text-xs text-[var(--text-secondary)] mt-0.5 line-clamp-2">{n.message}</p>
+                              <p className="text-[10px] text-[var(--text-muted)] mt-1.5">{new Date(n.createdAt).toLocaleTimeString()}</p>
+
                               {n.status === 'resolved' && (
                                 <button
                                   onClick={(e) => {
@@ -308,7 +353,7 @@ function AppContent() {
                                     window.dispatchEvent(new CustomEvent('navigate', { detail: `/tickets/${n.ticketId}?confirm=true` }));
                                     setShowNotifications(false);
                                   }}
-                                  className="mt-3 w-full py-2 bg-success-green text-white text-[10px] font-bold uppercase tracking-widest rounded-lg hover:bg-green-600 transition-all"
+                                  className="mt-2 w-full py-1.5 bg-[var(--color-success-green)] text-white text-[10px] font-bold uppercase tracking-widest rounded-lg hover:opacity-90 transition-all"
                                 >
                                   {t.confirmResolution}
                                 </button>
@@ -318,7 +363,7 @@ function AppContent() {
                         </div>
                       ))
                     ) : (
-                      <div className="p-8 text-center text-slate-400 text-sm">
+                      <div className="p-8 text-center text-[var(--text-muted)] text-sm">
                         {language === 'ar' ? 'لا توجد تنبيهات' : 'No notifications'}
                       </div>
                     )}
@@ -326,46 +371,48 @@ function AppContent() {
                 </div>
               )}
             </div>
-            
-            <div className="flex items-center gap-2 border-l dark:border-slate-800 pl-6">
-              <button 
+
+            <div className="flex items-center gap-1 sm:gap-2 border-l border-[var(--border-main)] pl-2 sm:pl-4">
+              <button
                 onClick={toggleTheme}
-                className="p-2 text-slate-400 hover:text-primary-blue transition-all"
+                className="p-2 text-[var(--text-secondary)] hover:text-primary-blue transition-all rounded-lg hover:bg-[var(--border-dim)]"
+                title={theme === 'light' ? 'Dark Mode' : 'Light Mode'}
               >
-                {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
               </button>
-              <button 
+              <button
                 onClick={toggleLanguage}
-                className="p-2 text-slate-400 hover:text-primary-blue transition-all flex items-center gap-1"
+                className="p-2 text-[var(--text-secondary)] hover:text-primary-blue transition-all rounded-lg hover:bg-[var(--border-dim)] flex items-center gap-1"
+                title={language === 'ar' ? 'English' : 'العربية'}
               >
-                <Globe size={20} />
-                <span className="text-xs font-bold uppercase">{language}</span>
+                <Globe size={18} />
+                <span className="text-[10px] font-bold uppercase hidden sm:inline">{language}</span>
               </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm font-bold text-slate-900 dark:text-white">{language === 'ar' ? user.fullNameAr : user.fullNameEn}</p>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{user.role.replace('_', ' ')} • {language === 'ar' ? user.department?.nameAr : user.department?.nameEn}</p>
+          <div className="flex items-center gap-2 sm:gap-3 ml-2 shrink-0">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-bold text-[var(--text-main)] leading-tight">{language === 'ar' ? user.fullNameAr : user.fullNameEn}</p>
+              <p className="text-[9px] text-[var(--text-muted)] font-bold uppercase tracking-widest">{user.role.replace('_', ' ')}</p>
             </div>
-            <div className="w-10 h-10 bg-blue-50 dark:bg-slate-800 rounded-full flex items-center justify-center border border-blue-100 dark:border-slate-700 overflow-hidden">
+            <div className="w-9 h-9 bg-blue-50 dark:bg-slate-800 rounded-full flex items-center justify-center border-2 border-[var(--border-dim)] overflow-hidden shrink-0">
               {user.avatarUrl ? (
                 <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
-                <User className="text-primary-blue" size={20} />
+                <User className="text-primary-blue" size={16} />
               )}
             </div>
           </div>
         </header>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50 dark:bg-slate-950/50">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 xl:p-8 bg-[var(--bg-main)]">
           {renderContent()}
         </div>
       </main>
+
       {/* Toast Container */}
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none">
+      <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
         <AnimatePresence>
           {toasts.map((toast) => (
             <motion.div
@@ -373,33 +420,33 @@ function AppContent() {
               initial={{ opacity: 0, x: 50, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 20, scale: 0.9 }}
-              className="pointer-events-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-2xl flex items-start gap-4 min-w-[300px] max-w-md cursor-pointer"
+              className="pointer-events-auto bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-2xl p-3 sm:p-4 shadow-2xl flex items-start gap-3 min-w-[280px] max-w-sm cursor-pointer"
               onClick={() => {
-                if (toast.link) setCurrentPath(toast.link);
+                if (toast.link) navigate(toast.link);
                 removeToast(toast.id);
               }}
             >
-              <div className={`p-2 rounded-xl flex-shrink-0 ${
+              <div className={`p-2 rounded-xl shrink-0 ${
                 toast.type === 'warning' ? 'bg-warning-amber/10 text-warning-amber' :
                 toast.type === 'error' ? 'bg-danger-red/10 text-danger-red' :
                 'bg-primary-blue/10 text-primary-blue'
               }`}>
-                {toast.type === 'warning' ? <AlertTriangle size={20} /> :
-                 toast.type === 'error' ? <AlertCircle size={20} /> :
-                 <Bell size={20} />}
+                {toast.type === 'warning' ? <AlertTriangle size={18} /> :
+                 toast.type === 'error' ? <AlertCircle size={18} /> :
+                 <Bell size={18} />}
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">{toast.title}</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{toast.message}</p>
+                <h4 className="text-sm font-bold text-[var(--text-main)] truncate">{toast.title}</h4>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5 line-clamp-2">{toast.message}</p>
               </div>
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   removeToast(toast.id);
                 }}
-                className="text-slate-300 hover:text-slate-500 transition-all"
+                className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all shrink-0"
               >
-                <X size={16} />
+                <X size={14} />
               </button>
             </motion.div>
           ))}
