@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
 import { translations } from '../../core/translations.ts';
@@ -33,6 +33,11 @@ export default function DepartmentsPage() {
   const { accessToken } = useAuthStore();
   const { language } = useSettingsStore();
   const t = translations[language];
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
 
   useEffect(() => {
     fetchDepartments();
@@ -44,11 +49,11 @@ export default function DepartmentsPage() {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
       const data = await res.json();
-      setDepartments(data);
+      if (isMounted.current) setDepartments(data);
     } catch (error) {
-      console.error('Error fetching departments:', error);
+      if (isMounted.current) console.error('Error fetching departments:', error);
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
   };
 
@@ -89,10 +94,10 @@ export default function DepartmentsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h2 className="text-2xl font-bold text-[var(--text-main)]">
             {language === 'ar' ? 'إدارة الأقسام' : 'Departments Management'}
           </h2>
-          <p className="text-slate-500 dark:text-slate-400">
+          <p className="text-[var(--text-secondary)]">
             {language === 'ar' ? 'إدارة أقسام المستشفى وصلاحياتها' : 'Manage hospital departments and their permissions'}
           </p>
         </div>
@@ -118,12 +123,12 @@ export default function DepartmentsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {loading ? (
-          <div className="col-span-full text-center py-12 text-slate-400">Loading...</div>
+          <div className="col-span-full text-center py-12 text-[var(--text-muted)]">Loading...</div>
         ) : departments.map((dept) => (
           <motion.div
             layout
             key={dept.id}
-            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md transition-all group"
+            className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-main)] p-6 shadow-sm hover:shadow-md transition-all group"
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-4">
@@ -131,10 +136,10 @@ export default function DepartmentsPage() {
                   <Users size={24} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-lg font-bold text-[var(--text-main)]">
                     {language === 'ar' ? dept.nameAr : dept.nameEn}
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-[var(--text-secondary)]">
                     {language === 'ar' ? dept.nameEn : dept.nameAr}
                   </p>
                 </div>
@@ -153,30 +158,30 @@ export default function DepartmentsPage() {
                     });
                     setIsModalOpen(true);
                   }}
-                  className="p-2 text-slate-400 hover:text-primary-blue transition-all"
+                  className="p-2 text-[var(--text-muted)] hover:text-primary-blue transition-all"
                 >
                   <Edit2 size={16} />
                 </button>
               </div>
             </div>
             
-            <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 line-clamp-2 min-h-[2.5rem]">
+            <p className="text-sm text-[var(--text-secondary)] mb-6 line-clamp-2 min-h-[2.5rem]">
               {language === 'ar' ? dept.descriptionAr : dept.descriptionEn}
             </p>
             
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between pt-4 border-t border-[var(--border-dim)]">
               <div className="flex gap-4">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
                   <Users size={14} />
                   {dept._count?.users || 0} {language === 'ar' ? 'موظف' : 'Users'}
                 </div>
-                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
                   <Shield size={14} />
                   {dept.deptType.replace('_', ' ')}
                 </div>
               </div>
               <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                dept.isActive ? 'bg-success-green/10 text-success-green' : 'bg-slate-100 text-slate-400'
+                dept.isActive ? 'bg-success-green/10 text-success-green' : 'bg-[var(--bg-elevated)] text-[var(--text-muted)]'
               }`}>
                 {dept.isActive ? (language === 'ar' ? 'نشط' : 'Active') : (language === 'ar' ? 'غير نشط' : 'Inactive')}
               </span>
@@ -191,13 +196,13 @@ export default function DepartmentsPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+            className="bg-[var(--bg-surface)] w-full max-w-2xl rounded-2xl shadow-2xl border border-[var(--border-main)] overflow-hidden"
           >
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+            <div className="p-6 border-b border-[var(--border-dim)] flex items-center justify-between">
+              <h3 className="text-xl font-bold text-[var(--text-main)]">
                 {editingDept ? (language === 'ar' ? 'تعديل قسم' : 'Edit Department') : (language === 'ar' ? 'إضافة قسم جديد' : 'Add New Department')}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+              <button onClick={() => setIsModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
                 <X size={24} />
               </button>
             </div>
@@ -205,26 +210,26 @@ export default function DepartmentsPage() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                     {language === 'ar' ? 'الاسم بالعربية' : 'Name (Arabic)'}
                   </label>
                   <input
                     type="text"
                     value={formData.nameAr}
                     onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue"
+                    className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                     {language === 'ar' ? 'الاسم بالإنجليزية' : 'Name (English)'}
                   </label>
                   <input
                     type="text"
                     value={formData.nameEn}
                     onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue"
+                    className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                     required
                   />
                 </div>
@@ -232,36 +237,36 @@ export default function DepartmentsPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                     {language === 'ar' ? 'الوصف بالعربية' : 'Description (Arabic)'}
                   </label>
                   <textarea
                     value={formData.descriptionAr}
                     onChange={(e) => setFormData({ ...formData, descriptionAr: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue min-h-[100px]"
+                    className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue min-h-[100px]"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                     {language === 'ar' ? 'الوصف بالإنجليزية' : 'Description (English)'}
                   </label>
                   <textarea
                     value={formData.descriptionEn}
                     onChange={(e) => setFormData({ ...formData, descriptionEn: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue min-h-[100px]"
+                    className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue min-h-[100px]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                     {language === 'ar' ? 'نوع القسم' : 'Department Type'}
                   </label>
                   <select
                     value={formData.deptType}
                     onChange={(e) => setFormData({ ...formData, deptType: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue"
+                    className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                   >
                     <option value="RECEIVER_ONLY">{language === 'ar' ? 'مستقبل فقط (مثال: IT)' : 'Receiver Only (e.g. IT)'}</option>
                     <option value="SENDER_ONLY">{language === 'ar' ? 'مرسل فقط (مثال: التمريض)' : 'Sender Only (e.g. Nursing)'}</option>
@@ -274,9 +279,9 @@ export default function DepartmentsPage() {
                     id="isActive"
                     checked={formData.isActive}
                     onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="w-5 h-5 rounded border-slate-300 text-primary-blue focus:ring-primary-blue"
+                    className="w-5 h-5 rounded border-[var(--border-main)] text-primary-blue focus:ring-primary-blue"
                   />
-                  <label htmlFor="isActive" className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                  <label htmlFor="isActive" className="text-sm font-bold text-[var(--text-secondary)]">
                     {language === 'ar' ? 'نشط' : 'Active'}
                   </label>
                 </div>
@@ -286,7 +291,7 @@ export default function DepartmentsPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                  className="flex-1 px-4 py-2 rounded-xl border border-[var(--border-main)] text-[var(--text-secondary)] font-bold hover:bg-[var(--border-dim)] transition-all"
                 >
                   {language === 'ar' ? 'إلغاء' : 'Cancel'}
                 </button>

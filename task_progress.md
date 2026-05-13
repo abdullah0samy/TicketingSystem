@@ -55,38 +55,14 @@
 - [ ] Ensure archived tickets are read-only and hidden from active views
 
 ### Assets & Analytics
-- [ ] Fix file download headers in asset module
+- [ ] Fix file download headers in asset , analysis and tickets modules
 - [ ] Fix process.cwd() path issues in file handling
 - [ ] Fix AHT (Average Handling Time) calculation
 - [ ] Fix SLA breach metrics calculation
 
-### Ticket IDs
-- [ ] Implement readable ID format (e.g., TKT-YYMMDD-XXX)
-- [ ] Update all references to use new ID format
-- [ ] Ensure ID uniqueness and proper generation
-
-## 🟪 PHASE 4: UI/UX, DARK MODE & BRANDING
-
-### Dark Mode Fix
-- [ ] Fix CSS variable mapping in theme system
-- [ ] Ensure ThemeProvider works correctly
-- [ ] Verify high contrast in both light and dark modes
-- [ ] Eliminate "white flashing" on page reload
-- [ ] Ensure theme persistence using LocalStorage
-
-### Branding
-- [ ] Replace all "Synrt" references with "ABCH Ticketing System"
-- [ ] Update tab titles throughout the application
-- [ ] Update logo references if needed
 
 ### Terminology
 - [ ] Replace awkward translations with professional hospital terms (Arabic)
 - [ ] Replace awkward translations with professional helpdesk terms (English)
 - [ ] Update UI text consistently across the application
-
-## FINAL VALIDATION CHECKLIST
-
-- [ ] Root cause analysis of "Request Flood" with proof of fix
-- [ ] Confirmation that RBAC Silos are un-bypassable
-- [ ] Verification that Dark Mode is 100% stable and persistent
-- [ ] Verification that all 13 modules are working correctly
+- [ ] Verification that all modules are working correctly

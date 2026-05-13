@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
 import { 
@@ -55,6 +55,11 @@ export default function AssetManagementPage() {
     purchaseDate: '',
     warrantyExpiry: ''
   });
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -68,14 +73,14 @@ export default function AssetManagementPage() {
         fetch('/api/admin/departments', { headers })
       ]);
       
-      if (assetsRes.ok && deptsRes.ok) {
+      if (isMounted.current && assetsRes.ok && deptsRes.ok) {
         setAssets(await assetsRes.json());
         setDepartments(await deptsRes.json());
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      if (isMounted.current) console.error('Error fetching data:', error);
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
   };
 
@@ -132,17 +137,17 @@ export default function AssetManagementPage() {
     a.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) return <div className="p-8 text-center text-slate-400">Loading assets...</div>;
+  if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">Loading assets...</div>;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-[var(--text-main)]">
             {language === 'ar' ? 'إدارة الأصول' : 'Asset Management'}
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-[var(--text-secondary)]">
             {language === 'ar' ? 'تتبع وإدارة المعدات الطبية والتقنية' : 'Track and manage medical and technical equipment'}
           </p>
         </div>
@@ -167,81 +172,81 @@ export default function AssetManagementPage() {
           { label: language === 'ar' ? 'إجمالي الأصول' : 'Total Assets', value: assets.length, icon: Package, color: 'text-blue-500', bg: 'bg-blue-500/10' },
           { label: language === 'ar' ? 'نشط' : 'Active', value: assets.filter(a => a.status === 'active').length, icon: ShieldCheck, color: 'text-green-500', bg: 'bg-green-500/10' },
           { label: language === 'ar' ? 'تحت الصيانة' : 'Maintenance', value: assets.filter(a => a.status === 'maintenance').length, icon: Calendar, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-          { label: language === 'ar' ? 'متقاعد' : 'Retired', value: assets.filter(a => a.status === 'retired').length, icon: Trash2, color: 'text-slate-500', bg: 'bg-slate-500/10' },
+          { label: language === 'ar' ? 'متقاعد' : 'Retired', value: assets.filter(a => a.status === 'retired').length, icon: Trash2, color: 'text-[var(--text-secondary)]', bg: 'bg-[var(--bg-main)]0/10' },
         ].map((stat, i) => (
-          <div key={i} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-4">
+          <div key={i} className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-main)] flex items-center gap-4">
             <div className={`w-12 h-12 rounded-xl ${stat.bg} flex items-center justify-center ${stat.color}`}>
               <stat.icon size={24} />
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
-              <p className="text-xl font-bold text-slate-900 dark:text-white">{stat.value}</p>
+              <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{stat.label}</p>
+              <p className="text-xl font-bold text-[var(--text-main)]">{stat.value}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* Toolbar */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-4">
+      <div className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-main)] flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
           <input 
             type="text"
             placeholder={language === 'ar' ? 'البحث عن أصل...' : 'Search assets...'}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm outline-none focus:ring-2 focus:ring-primary-blue"
+            className="w-full pl-10 pr-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] text-sm outline-none focus:ring-2 focus:ring-primary-blue"
           />
         </div>
         <div className="flex items-center gap-2">
-          <button className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800">
+          <button className="p-2 rounded-xl border border-[var(--border-main)] text-[var(--text-secondary)] hover:bg-[var(--border-dim)]">
             <Filter size={18} />
           </button>
-          <button className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800">
+          <button className="p-2 rounded-xl border border-[var(--border-main)] text-[var(--text-secondary)] hover:bg-[var(--border-dim)]">
             <Download size={18} />
           </button>
         </div>
       </div>
 
       {/* Assets Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-main)] overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'الأصل' : 'Asset'}</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'النوع' : 'Type'}</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'الموقع' : 'Location'}</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'القسم' : 'Department'}</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'الحالة' : 'Status'}</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"></th>
+              <tr className="bg-[var(--border-dim)]/50 border-b border-[var(--border-dim)]">
+                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الأصل' : 'Asset'}</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'النوع' : 'Type'}</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الموقع' : 'Location'}</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'القسم' : 'Department'}</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الحالة' : 'Status'}</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-[var(--border-dim)]">
               {filteredAssets.map((asset) => (
-                <tr key={asset.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group">
+                <tr key={asset.id} className="hover:bg-[var(--border-dim)] transition-all group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                      <div className="w-10 h-10 rounded-xl bg-[var(--bg-elevated)] flex items-center justify-center text-[var(--text-muted)]">
                         <Package size={20} />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white">{asset.name}</p>
-                        <p className="text-xs text-slate-500">{asset.serialNumber || 'No Serial'}</p>
+                        <p className="text-sm font-bold text-[var(--text-main)]">{asset.name}</p>
+                        <p className="text-xs text-[var(--text-secondary)]">{asset.serialNumber || 'No Serial'}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-xs text-slate-600 dark:text-slate-400">{asset.type}</span>
+                    <span className="text-xs text-[var(--text-secondary)]">{asset.type}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                       <MapPin size={14} />
                       {asset.location || 'N/A'}
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                       <Building2 size={14} />
                       {language === 'ar' ? asset.department?.nameAr : asset.department?.nameEn || 'N/A'}
                     </div>
@@ -250,7 +255,7 @@ export default function AssetManagementPage() {
                     <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${
                       asset.status === 'active' ? 'bg-green-100 text-green-600 dark:bg-green-900/30' :
                       asset.status === 'maintenance' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30' :
-                      'bg-slate-100 text-slate-600 dark:bg-slate-800'
+                      'bg-[var(--bg-elevated)] text-[var(--text-secondary)]'
                     }`}>
                       {asset.status}
                     </span>
@@ -290,39 +295,39 @@ export default function AssetManagementPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+              className="bg-[var(--bg-surface)] w-full max-w-2xl rounded-3xl shadow-2xl border border-[var(--border-main)] overflow-hidden"
             >
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              <div className="p-6 border-b border-[var(--border-dim)] flex items-center justify-between">
+                <h2 className="text-xl font-bold text-[var(--text-main)]">
                   {editingAsset ? (language === 'ar' ? 'تعديل أصل' : 'Edit Asset') : (language === 'ar' ? 'إضافة أصل جديد' : 'Add New Asset')}
                 </h2>
-                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">&times;</button>
+                <button onClick={() => setIsModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]">&times;</button>
               </div>
               <form onSubmit={handleSave} className="p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'اسم الأصل' : 'Asset Name'}</label>
+                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'اسم الأصل' : 'Asset Name'}</label>
                     <input 
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:ring-2 focus:ring-primary-blue"
+                      className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'الرقم التسلسلي' : 'Serial Number'}</label>
+                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الرقم التسلسلي' : 'Serial Number'}</label>
                     <input 
                       value={formData.serialNumber || ''}
                       onChange={(e) => setFormData({...formData, serialNumber: e.target.value})}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:ring-2 focus:ring-primary-blue"
+                      className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'النوع' : 'Type'}</label>
+                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'النوع' : 'Type'}</label>
                     <select 
                       value={formData.type}
                       onChange={(e) => setFormData({...formData, type: e.target.value})}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:ring-2 focus:ring-primary-blue"
+                      className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                     >
                       <option value="IT Hardware">IT Hardware</option>
                       <option value="Medical Device">Medical Device</option>
@@ -331,11 +336,11 @@ export default function AssetManagementPage() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'الحالة' : 'Status'}</label>
+                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الحالة' : 'Status'}</label>
                     <select 
                       value={formData.status}
                       onChange={(e) => setFormData({...formData, status: e.target.value})}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:ring-2 focus:ring-primary-blue"
+                      className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                     >
                       <option value="active">Active</option>
                       <option value="maintenance">Maintenance</option>
@@ -343,19 +348,19 @@ export default function AssetManagementPage() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'الموقع' : 'Location'}</label>
+                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الموقع' : 'Location'}</label>
                     <input 
                       value={formData.location || ''}
                       onChange={(e) => setFormData({...formData, location: e.target.value})}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:ring-2 focus:ring-primary-blue"
+                      className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'القسم' : 'Department'}</label>
+                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'القسم' : 'Department'}</label>
                     <select 
                       value={formData.departmentId || ''}
                       onChange={(e) => setFormData({...formData, departmentId: e.target.value ? parseInt(e.target.value) : null})}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:ring-2 focus:ring-primary-blue"
+                      className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                     >
                       <option value="">Select Department</option>
                       {departments.map(d => (
@@ -364,11 +369,11 @@ export default function AssetManagementPage() {
                     </select>
                   </div>
                 </div>
-                <div className="flex justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex justify-end gap-3 pt-6 border-t border-[var(--border-dim)]">
                   <button 
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-6 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                    className="px-6 py-2 rounded-xl border border-[var(--border-main)] text-[var(--text-secondary)] font-bold hover:bg-[var(--border-dim)] transition-all"
                   >
                     {language === 'ar' ? 'إلغاء' : 'Cancel'}
                   </button>

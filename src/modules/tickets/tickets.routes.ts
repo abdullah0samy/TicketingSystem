@@ -605,7 +605,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 router.put('/:id/status', async (req: AuthRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
   const { id } = req.params;
-  const { status, comment } = req.body;
+  const { status, comment, ticketTypeId, requiresExternalResource, externalResourceCost, externalResourceNote } = req.body;
 
   try {
     const ticket = await prisma.ticket.findUnique({ where: { id: parseInt(id) } });
@@ -660,7 +660,9 @@ router.put('/:id/status', async (req: AuthRequest, res: Response) => {
     }
 
     // MANDATORY: Issue Type (ticketTypeId) must be set before resolving or closing
-    if ((status === 'resolved' || status === 'closed') && !ticket.ticketTypeId) {
+    // Allow setting it inline via the status update payload
+    const effectiveTypeId = ticketTypeId || ticket.ticketTypeId;
+    if ((status === 'resolved' || status === 'closed') && !effectiveTypeId) {
       return res.status(400).json({ 
         message: 'Issue Type must be selected before resolving or closing the ticket',
         code: 'ISSUE_TYPE_REQUIRED'
@@ -671,13 +673,26 @@ router.put('/:id/status', async (req: AuthRequest, res: Response) => {
     const isReopen = (oldStatus === 'resolved' || oldStatus === 'closed') && status === 'in_progress';
 
     const updatedTicket = await prisma.$transaction(async (tx) => {
+      // If ticketTypeId provided inline and differs from current, recalculate SLA
+      let slaUpdate = {};
+      if (ticketTypeId && ticketTypeId !== ticket.ticketTypeId) {
+        const newType = await tx.ticketType.findUnique({ where: { id: parseInt(ticketTypeId) } });
+        const baseSlaHours = newType?.slaHours || 24;
+        slaUpdate = { slaDeadline: calculateSLADeadline(baseSlaHours, ticket.priority as any) };
+      }
+
       const t = await tx.ticket.update({
         where: { id: parseInt(id) },
         data: { 
           status: status as any,
+          ticketTypeId: effectiveTypeId || undefined,
+          requiresExternalResource: (status === 'resolved' || status === 'closed') && requiresExternalResource !== undefined ? requiresExternalResource : undefined,
+          externalResourceCost: (status === 'resolved' || status === 'closed') && externalResourceCost !== undefined ? parseFloat(externalResourceCost) : undefined,
+          externalResourceNote: (status === 'resolved' || status === 'closed') && externalResourceNote !== undefined ? externalResourceNote : undefined,
           // Set timestamps on resolve/close, nullify on reopen
           completedAt: isReopen ? null : (status === 'resolved' ? new Date() : ticket.completedAt),
-          closedAt: isReopen ? null : (status === 'closed' ? new Date() : ticket.closedAt)
+          closedAt: isReopen ? null : (status === 'closed' ? new Date() : ticket.closedAt),
+          ...slaUpdate
         }
       });
 
@@ -692,6 +707,10 @@ router.put('/:id/status', async (req: AuthRequest, res: Response) => {
           newData: { 
             to: status, 
             comment: comment || null,
+            ticketTypeId: effectiveTypeId || null,
+            requiresExternalResource: requiresExternalResource || false,
+            externalResourceCost: externalResourceCost || null,
+            externalResourceNote: externalResourceNote || null,
             performedBy: req.user!.fullNameEn,
             timestamp: new Date().toISOString()
           }

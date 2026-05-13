@@ -191,11 +191,11 @@ export const UserManagementPage: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-3">
             <Users className="text-primary-blue" />
             {language === 'ar' ? 'إدارة المستخدمين' : 'User Management'}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-[var(--text-secondary)] mt-1">
             {language === 'ar' ? 'إدارة حسابات الموظفين والأدوار والأقسام' : 'Manage employee accounts, roles, and departments'}
           </p>
         </div>
@@ -211,19 +211,19 @@ export const UserManagementPage: React.FC = () => {
         </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-4">
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-main)] overflow-hidden shadow-sm">
+        <div className="p-4 border-b border-[var(--border-dim)] flex items-center gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
             <input 
               type="text"
               placeholder={language === 'ar' ? 'بحث بالاسم أو رقم البصمة / التعريف...' : 'Search by name or Finger ID / Staff ID...'}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary-blue text-sm"
+              className="w-full pl-10 pr-4 py-2 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+          <button className="p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] rounded-lg transition-colors">
             <Filter size={20} />
           </button>
         </div>
@@ -231,7 +231,7 @@ export const UserManagementPage: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
+              <tr className="bg-[var(--border-dim)]/50 text-[var(--text-secondary)] text-xs uppercase tracking-wider">
                 <th className="px-6 py-4 font-semibold">{language === 'ar' ? 'المستخدم' : 'User'}</th>
                 <th className="px-6 py-4 font-semibold">{language === 'ar' ? 'رقم البصمة' : 'Finger ID'}</th>
                 <th className="px-6 py-4 font-semibold">{language === 'ar' ? 'الدور' : 'Role'}</th>
@@ -240,10 +240,10 @@ export const UserManagementPage: React.FC = () => {
                 <th className="px-6 py-4 font-semibold text-right">{language === 'ar' ? 'الإجراءات' : 'Actions'}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-[var(--border-dim)]">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={6} className="px-6 py-12 text-center text-[var(--text-muted)]">
                     <div className="flex flex-col items-center gap-2">
                       <div className="w-8 h-8 border-4 border-primary-blue border-t-transparent rounded-full animate-spin"></div>
                       <span>{language === 'ar' ? 'جاري التحميل...' : 'Loading users...'}</span>
@@ -252,27 +252,27 @@ export const UserManagementPage: React.FC = () => {
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={6} className="px-6 py-12 text-center text-[var(--text-muted)]">
                     {language === 'ar' ? 'لم يتم العثور على مستخدمين' : 'No users found'}
                   </td>
                 </tr>
               ) : (
                 filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                  <tr key={user.id} className="hover:bg-[var(--border-dim)]/50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary-blue font-bold">
+                        <div className="w-10 h-10 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-primary-blue font-bold">
                           {user.fullNameEn ? user.fullNameEn.charAt(0) : user.fullNameAr.charAt(0)}
                         </div>
                         <div>
-                          <div className="text-sm font-bold text-slate-900 dark:text-white">
+                          <div className="text-sm font-bold text-[var(--text-main)]">
                             {language === 'ar' ? user.fullNameAr : (user.fullNameEn || user.fullNameAr)}
                           </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400">@{user.username}</div>
+                          <div className="text-xs text-[var(--text-secondary)]">@{user.username}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 font-mono">
+                    <td className="px-6 py-4 text-sm text-[var(--text-secondary)] font-mono">
                       {user.badgeNumber}
                     </td>
                     <td className="px-6 py-4">
@@ -280,14 +280,14 @@ export const UserManagementPage: React.FC = () => {
                         user.role === 'super_admin' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' :
                         user.role === 'supervisor' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
                         user.role === 'agent' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
-                        'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                        'bg-[var(--bg-elevated)] text-[var(--text-secondary)]'
                       }`}>
                         {user.userRole?.name || user.role.replace('_', ' ')}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                        <Building2 size={14} className="text-slate-400" />
+                      <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                        <Building2 size={14} className="text-[var(--text-muted)]" />
                         {user.department ? (language === 'ar' ? user.department.nameAr : user.department.nameEn) : '—'}
                       </div>
                     </td>
@@ -311,7 +311,7 @@ export const UserManagementPage: React.FC = () => {
                             setCurrentUser(user);
                             setShowModal(true);
                           }}
-                          className="p-2 text-slate-400 hover:text-primary-blue hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"
+                          className="p-2 text-[var(--text-muted)] hover:text-primary-blue hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"
                           title={language === 'ar' ? 'تعديل' : 'Edit'}
                         >
                           <Edit2 size={16} />
@@ -321,13 +321,13 @@ export const UserManagementPage: React.FC = () => {
                             setCurrentUser(user);
                             setShowResetModal(true);
                           }}
-                          className="p-2 text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all"
+                          className="p-2 text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all"
                           title={language === 'ar' ? 'إعادة تعيين كلمة المرور' : 'Reset Password'}
                         >
                           <Key size={16} />
                         </button>
                         <button 
-                          className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all"
+                          className="p-2 text-[var(--text-muted)] hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all"
                           title={language === 'ar' ? 'حذف' : 'Delete'}
                         >
                           <Trash2 size={16} />
@@ -350,30 +350,30 @@ export const UserManagementPage: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden"
+              className="bg-[var(--bg-surface)] rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden"
             >
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <div className="p-6 border-b border-[var(--border-dim)] flex items-center justify-between">
+                <h2 className="text-xl font-bold text-[var(--text-main)] flex items-center gap-2">
                   {currentUser?.id ? <Edit2 className="text-primary-blue" /> : <UserPlus className="text-primary-blue" />}
                   {currentUser?.id 
                     ? (language === 'ar' ? 'تعديل مستخدم' : 'Edit User') 
                     : (language === 'ar' ? 'إضافة مستخدم جديد' : 'Add New User')}
                 </h2>
-                <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                  <XCircle size={24} className="text-slate-400" />
+                <button onClick={() => setShowModal(false)} className="p-2 hover:bg-[var(--bg-elevated)] rounded-full transition-colors">
+                  <XCircle size={24} className="text-[var(--text-muted)]" />
                 </button>
               </div>
 
-              <div className="flex border-b border-slate-100 dark:border-slate-800">
+              <div className="flex border-b border-[var(--border-dim)]">
                 <button 
                   onClick={() => setActiveTab('info')}
-                  className={`px-8 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'info' ? 'border-primary-blue text-primary-blue' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                  className={`px-8 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'info' ? 'border-primary-blue text-primary-blue' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                 >
                   {language === 'ar' ? 'المعلومات' : 'Basic Info'}
                 </button>
                 <button 
                   onClick={() => setActiveTab('permissions')}
-                  className={`px-8 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'permissions' ? 'border-primary-blue text-primary-blue' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                  className={`px-8 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'permissions' ? 'border-primary-blue text-primary-blue' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                 >
                   {language === 'ar' ? 'الصلاحيات' : 'Permissions Overrides'}
                 </button>
@@ -384,34 +384,34 @@ export const UserManagementPage: React.FC = () => {
                   {activeTab === 'info' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{language === 'ar' ? 'رقم البصمة / التعريف' : 'Finger ID / Staff ID'}</label>
-                        <input required type="text" placeholder="00000" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.badgeNumber || ''} onChange={e => setCurrentUser({...currentUser, badgeNumber: e.target.value})} />
+                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'رقم البصمة / التعريف' : 'Finger ID / Staff ID'}</label>
+                        <input required type="text" placeholder="00000" className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.badgeNumber || ''} onChange={e => setCurrentUser({...currentUser, badgeNumber: e.target.value})} />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{language === 'ar' ? 'معرف الدخول (رقمي)' : 'Numeric Login ID (Username)'}</label>
-                        <input required type="text" placeholder="00000" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.username || ''} onChange={e => setCurrentUser({...currentUser, username: e.target.value})} />
+                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'معرف الدخول (رقمي)' : 'Numeric Login ID (Username)'}</label>
+                        <input required type="text" placeholder="00000" className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.username || ''} onChange={e => setCurrentUser({...currentUser, username: e.target.value})} />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{language === 'ar' ? 'الاسم الكامل (عربي)' : 'Full Name (Arabic)'}</label>
-                        <input required type="text" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.fullNameAr || ''} onChange={e => setCurrentUser({...currentUser, fullNameAr: e.target.value})} />
+                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'الاسم الكامل (عربي)' : 'Full Name (Arabic)'}</label>
+                        <input required type="text" className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.fullNameAr || ''} onChange={e => setCurrentUser({...currentUser, fullNameAr: e.target.value})} />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{language === 'ar' ? 'الاسم الكامل (إنجليزي)' : 'Full Name (English)'}</label>
-                        <input type="text" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.fullNameEn || ''} onChange={e => setCurrentUser({...currentUser, fullNameEn: e.target.value})} />
+                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'الاسم الكامل (إنجليزي)' : 'Full Name (English)'}</label>
+                        <input type="text" className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.fullNameEn || ''} onChange={e => setCurrentUser({...currentUser, fullNameEn: e.target.value})} />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</label>
-                        <input type="email" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.email || ''} onChange={e => setCurrentUser({...currentUser, email: e.target.value})} />
+                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</label>
+                        <input type="email" className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.email || ''} onChange={e => setCurrentUser({...currentUser, email: e.target.value})} />
                       </div>
                       {!currentUser?.id && (
                         <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{language === 'ar' ? 'كلمة المرور' : 'Password'}</label>
-                          <input required type="password" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary-blue" onChange={e => setCurrentUser({...currentUser, password: e.target.value} as any)} />
+                          <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'كلمة المرور' : 'Password'}</label>
+                          <input required type="password" className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" onChange={e => setCurrentUser({...currentUser, password: e.target.value} as any)} />
                         </div>
                       )}
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{language === 'ar' ? 'الدور' : 'Role'}</label>
-                        <select className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.roleId || currentUser?.role || ''} onChange={e => {
+                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'الدور' : 'Role'}</label>
+                        <select className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.roleId || currentUser?.role || ''} onChange={e => {
                           const val = e.target.value;
                           if (!isNaN(parseInt(val))) {
                             setCurrentUser({...currentUser, roleId: parseInt(val), role: roles.find(r => r.id === parseInt(val))?.name.toLowerCase().replace(' ', '_') || 'end_user'});
@@ -429,8 +429,8 @@ export const UserManagementPage: React.FC = () => {
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{language === 'ar' ? 'القسم' : 'Department'}</label>
-                        <select className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.departmentId || ''} onChange={e => setCurrentUser({...currentUser, departmentId: e.target.value ? parseInt(e.target.value) : null})}>
+                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'القسم' : 'Department'}</label>
+                        <select className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.departmentId || ''} onChange={e => setCurrentUser({...currentUser, departmentId: e.target.value ? parseInt(e.target.value) : null})}>
                           <option value="">{language === 'ar' ? 'بدون قسم' : 'No Department'}</option>
                           {departments.map(d => (
                             <option key={d.id} value={d.id}>{language === 'ar' ? d.nameAr : d.nameEn}</option>
@@ -439,8 +439,8 @@ export const UserManagementPage: React.FC = () => {
                       </div>
                       <div className="md:col-span-2 pt-2">
                         <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" className="w-5 h-5 rounded-lg border-slate-300 text-primary-blue focus:ring-primary-blue" checked={currentUser?.isActive} onChange={e => setCurrentUser({...currentUser, isActive: e.target.checked})} />
-                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{language === 'ar' ? 'الحساب نشط' : 'Account Active'}</span>
+                          <input type="checkbox" className="w-5 h-5 rounded-lg border-[var(--border-main)] text-primary-blue focus:ring-primary-blue" checked={currentUser?.isActive} onChange={e => setCurrentUser({...currentUser, isActive: e.target.checked})} />
+                          <span className="text-sm font-medium text-[var(--text-secondary)]">{language === 'ar' ? 'الحساب نشط' : 'Account Active'}</span>
                         </label>
                       </div>
                     </div>
@@ -458,18 +458,18 @@ export const UserManagementPage: React.FC = () => {
                         {permissionKeys.map(p => {
                           const currentValue = currentUser?.permissionsOverride?.[p.key as keyof typeof currentUser.permissionsOverride];
                           return (
-                            <div key={p.key} className="flex flex-col gap-2 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
-                              <label className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                            <div key={p.key} className="flex flex-col gap-2 p-3 rounded-2xl border border-[var(--border-dim)] hover:bg-[var(--border-dim)]/30 transition-all">
+                              <label className="text-xs font-bold text-[var(--text-secondary)]">
                                 {language === 'ar' ? p.labelAr : p.labelEn}
                               </label>
-                              <div className="flex bg-slate-100 dark:bg-slate-950 p-1 rounded-xl">
+                              <div className="flex bg-[var(--bg-elevated)] p-1 rounded-xl">
                                 <button 
                                   type="button"
                                   onClick={() => setCurrentUser({
                                     ...currentUser, 
                                     permissionsOverride: { ...currentUser?.permissionsOverride as any, [p.key]: true } 
                                   })}
-                                  className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${currentValue === true ? 'bg-success-green text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                  className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${currentValue === true ? 'bg-success-green text-white shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                                 >
                                   {language === 'ar' ? 'مسموح' : 'Allow'}
                                 </button>
@@ -479,7 +479,7 @@ export const UserManagementPage: React.FC = () => {
                                     ...currentUser, 
                                     permissionsOverride: { ...currentUser?.permissionsOverride as any, [p.key]: false } 
                                   })}
-                                  className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${currentValue === false ? 'bg-danger-red text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                  className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${currentValue === false ? 'bg-danger-red text-white shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                                 >
                                   {language === 'ar' ? 'ممنوع' : 'Deny'}
                                 </button>
@@ -490,7 +490,7 @@ export const UserManagementPage: React.FC = () => {
                                     delete newOverride[p.key];
                                     setCurrentUser({ ...currentUser, permissionsOverride: newOverride });
                                   }}
-                                  className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${currentValue === undefined || currentValue === null ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                                  className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${currentValue === undefined || currentValue === null ? 'bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm' : 'text-[var(--text-muted)] hover:text-slate-200'}`}
                                 >
                                   {language === 'ar' ? 'تلقائي' : 'Default'}
                                 </button>
@@ -503,8 +503,8 @@ export const UserManagementPage: React.FC = () => {
                   )}
                 </div>
 
-                <div className="flex justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-                  <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">{language === 'ar' ? 'إلغاء' : 'Cancel'}</button>
+                <div className="flex justify-end gap-3 pt-6 border-t border-[var(--border-dim)] bg-[var(--bg-surface)]">
+                  <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] rounded-xl transition-colors">{language === 'ar' ? 'إلغاء' : 'Cancel'}</button>
                   <button disabled={isSubmitting} className="bg-primary-blue hover:bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50">
                     {isSubmitting ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (language === 'ar' ? 'حفظ' : 'Save User')}
                   </button>
@@ -523,15 +523,15 @@ export const UserManagementPage: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+              className="bg-[var(--bg-surface)] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
             >
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <div className="p-6 border-b border-[var(--border-dim)] flex items-center justify-between">
+                <h2 className="text-xl font-bold text-[var(--text-main)] flex items-center gap-2">
                   <Key className="text-amber-500" />
                   {language === 'ar' ? 'إعادة تعيين كلمة المرور' : 'Reset Password'}
                 </h2>
-                <button onClick={() => setShowResetModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                  <XCircle size={24} className="text-slate-400" />
+                <button onClick={() => setShowResetModal(false)} className="p-2 hover:bg-[var(--bg-elevated)] rounded-full transition-colors">
+                  <XCircle size={24} className="text-[var(--text-muted)]" />
                 </button>
               </div>
 
@@ -545,13 +545,13 @@ export const UserManagementPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                     {language === 'ar' ? 'كلمة المرور الجديدة' : 'New Password'}
                   </label>
                   <input 
                     required
                     type="password"
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-xl focus:ring-2 focus:ring-amber-500"
+                    className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-amber-500"
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
                   />
@@ -561,7 +561,7 @@ export const UserManagementPage: React.FC = () => {
                   <button 
                     type="button"
                     onClick={() => setShowResetModal(false)}
-                    className="px-6 py-2.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                    className="px-6 py-2.5 text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] rounded-xl transition-colors"
                   >
                     {language === 'ar' ? 'إلغاء' : 'Cancel'}
                   </button>

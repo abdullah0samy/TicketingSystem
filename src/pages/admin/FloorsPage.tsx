@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
 import { translations } from '../../core/translations.ts';
@@ -31,6 +31,11 @@ export default function FloorsPage() {
   const { accessToken } = useAuthStore();
   const { language } = useSettingsStore();
   const t = translations[language];
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -44,12 +49,12 @@ export default function FloorsPage() {
       ]);
       const floorsData = await floorsRes.json();
       const buildingsData = await buildingsRes.json();
-      setFloors(floorsData);
-      setBuildings(buildingsData);
+      if (isMounted.current) setFloors(floorsData);
+      if (isMounted.current) setBuildings(buildingsData);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      if (isMounted.current) console.error('Error fetching data:', error);
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
   };
 
@@ -96,10 +101,10 @@ export default function FloorsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h2 className="text-2xl font-bold text-[var(--text-main)]">
             {language === 'ar' ? 'إدارة الطوابق' : 'Floors Management'}
           </h2>
-          <p className="text-slate-500 dark:text-slate-400">
+          <p className="text-[var(--text-secondary)]">
             {language === 'ar' ? 'إدارة طوابق مباني المستشفى' : 'Manage floors for hospital buildings'}
           </p>
         </div>
@@ -116,52 +121,52 @@ export default function FloorsPage() {
         </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+      <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-main)] overflow-hidden shadow-sm">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+            <tr className="bg-[var(--border-dim)]/50 border-b border-[var(--border-main)]">
+              <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
                 {language === 'ar' ? 'الطابق' : 'Floor'}
               </th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+              <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
                 {language === 'ar' ? 'المبنى' : 'Building'}
               </th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+              <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
                 {language === 'ar' ? 'الحالة' : 'Status'}
               </th>
-              <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">
+              <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest text-right">
                 {language === 'ar' ? 'إجراءات' : 'Actions'}
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+          <tbody className="divide-y divide-[var(--border-dim)]">
             {loading ? (
-              <tr><td colSpan={4} className="px-6 py-12 text-center text-slate-400">Loading...</td></tr>
+              <tr><td colSpan={4} className="px-6 py-12 text-center text-[var(--text-muted)]">Loading...</td></tr>
             ) : floors.map((floor) => (
-              <tr key={floor.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">
+              <tr key={floor.id} className="hover:bg-[var(--border-dim)] transition-all">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center text-primary-blue">
                       <Layers size={16} />
                     </div>
                     <div>
-                      <p className="font-bold text-slate-900 dark:text-white">
+                      <p className="font-bold text-[var(--text-main)]">
                         {language === 'ar' ? floor.nameAr : floor.nameEn}
                       </p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-[var(--text-muted)]">
                         {language === 'ar' ? floor.nameEn : floor.nameAr}
                       </p>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                  <span className="text-sm font-medium text-[var(--text-secondary)]">
                     {language === 'ar' ? floor.building?.nameAr : floor.building?.nameEn}
                   </span>
                 </td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                    floor.isActive ? 'bg-success-green/10 text-success-green' : 'bg-slate-100 text-slate-400'
+                    floor.isActive ? 'bg-success-green/10 text-success-green' : 'bg-[var(--bg-elevated)] text-[var(--text-muted)]'
                   }`}>
                     {floor.isActive ? (language === 'ar' ? 'نشط' : 'Active') : (language === 'ar' ? 'غير نشط' : 'Inactive')}
                   </span>
@@ -179,13 +184,13 @@ export default function FloorsPage() {
                         });
                         setIsModalOpen(true);
                       }}
-                      className="p-2 text-slate-400 hover:text-primary-blue transition-all"
+                      className="p-2 text-[var(--text-muted)] hover:text-primary-blue transition-all"
                     >
                       <Edit2 size={16} />
                     </button>
                     <button
                       onClick={() => handleDelete(floor.id)}
-                      className="p-2 text-slate-400 hover:text-danger-red transition-all"
+                      className="p-2 text-[var(--text-muted)] hover:text-danger-red transition-all"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -203,26 +208,26 @@ export default function FloorsPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+            className="bg-[var(--bg-surface)] w-full max-w-md rounded-2xl shadow-2xl border border-[var(--border-main)] overflow-hidden"
           >
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+            <div className="p-6 border-b border-[var(--border-dim)] flex items-center justify-between">
+              <h3 className="text-xl font-bold text-[var(--text-main)]">
                 {editingFloor ? (language === 'ar' ? 'تعديل طابق' : 'Edit Floor') : (language === 'ar' ? 'إضافة طابق جديد' : 'Add New Floor')}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+              <button onClick={() => setIsModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
                 <X size={24} />
               </button>
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                   {language === 'ar' ? 'المبنى' : 'Building'}
                 </label>
                 <select
                   value={formData.buildingId}
                   onChange={(e) => setFormData({ ...formData, buildingId: e.target.value })}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue"
+                  className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                   required
                 >
                   <option value="">{language === 'ar' ? 'اختر المبنى' : 'Select Building'}</option>
@@ -232,26 +237,26 @@ export default function FloorsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                   {language === 'ar' ? 'الاسم بالعربية' : 'Name (Arabic)'}
                 </label>
                 <input
                   type="text"
                   value={formData.nameAr}
                   onChange={(e) => setFormData({ ...formData, nameAr: e.target.value })}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue"
+                  className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                   {language === 'ar' ? 'الاسم بالإنجليزية' : 'Name (English)'}
                 </label>
                 <input
                   type="text"
                   value={formData.nameEn}
                   onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue"
+                  className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                   required
                 />
               </div>
@@ -261,9 +266,9 @@ export default function FloorsPage() {
                   id="isActive"
                   checked={formData.isActive}
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="w-5 h-5 rounded border-slate-300 text-primary-blue focus:ring-primary-blue"
+                  className="w-5 h-5 rounded border-[var(--border-main)] text-primary-blue focus:ring-primary-blue"
                 />
-                <label htmlFor="isActive" className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                <label htmlFor="isActive" className="text-sm font-bold text-[var(--text-secondary)]">
                   {language === 'ar' ? 'نشط' : 'Active'}
                 </label>
               </div>
@@ -272,7 +277,7 @@ export default function FloorsPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                  className="flex-1 px-4 py-2 rounded-xl border border-[var(--border-main)] text-[var(--text-secondary)] font-bold hover:bg-[var(--border-dim)] transition-all"
                 >
                   {language === 'ar' ? 'إلغاء' : 'Cancel'}
                 </button>

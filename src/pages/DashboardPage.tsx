@@ -48,7 +48,10 @@ interface Stats {
   resolved: number;
   open: number;
   overdue: number;
+  slaBreaches: number;
   avgResolutionTimeHours: number;
+  resolvedInternal: number;
+  resolvedExternal: number;
 }
 
 interface Distribution {
@@ -174,17 +177,17 @@ export default function DashboardPage() {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
-  if (loading) return <div className="p-8 text-center text-slate-400">Loading dashboard data...</div>;
+  if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">Loading dashboard data...</div>;
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-[var(--text-main)] mb-2">
             {t.welcome}, {user?.fullNameEn || user?.fullNameAr} 👋
           </h1>
-          <p className="text-slate-500 dark:text-slate-400">
+          <p className="text-[var(--text-secondary)]">
             {language === 'ar' ? 'إليك نظرة سريعة على نشاط اليوم' : "Here's a quick look at today's activity"}
           </p>
         </div>
@@ -192,13 +195,13 @@ export default function DashboardPage() {
           <div className="flex premium-card p-1 shadow-sm">
             <button 
               onClick={() => setActiveTab('overview')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'overview' ? 'bg-primary-blue text-white shadow-md' : 'text-slate-500 hover:text-primary-blue'}`}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'overview' ? 'bg-primary-blue text-white shadow-md' : 'text-[var(--text-secondary)] hover:text-primary-blue'}`}
             >
               {language === 'ar' ? 'نظرة عامة' : 'Overview'}
             </button>
             <button 
               onClick={() => setActiveTab('exports')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'exports' ? 'bg-primary-blue text-white shadow-md' : 'text-slate-500 hover:text-primary-blue'}`}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'exports' ? 'bg-primary-blue text-white shadow-md' : 'text-[var(--text-secondary)] hover:text-primary-blue'}`}
             >
               {language === 'ar' ? 'سجل التصدير' : 'Export History'}
             </button>
@@ -208,8 +211,8 @@ export default function DashboardPage() {
               <Activity size={20} />
             </div>
             <div className="pr-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'الحالة' : 'System Status'}</p>
-              <p className="text-sm font-bold text-success-green">{language === 'ar' ? 'يعمل بشكل جيد' : 'Operational'}</p>
+              <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الحالة' : 'System Status'}</p>
+              <p className="text-sm font-bold text-[var(--color-success-green)]">{language === 'ar' ? 'يعمل بشكل جيد' : 'Operational'}</p>
             </div>
           </div>
         </div>
@@ -263,8 +266,8 @@ export default function DashboardPage() {
                     <span>12%</span>
                   </div>
                 </div>
-                <p className="text-sm font-bold text-slate-400 dark:text-slate-300 uppercase tracking-widest mb-1">{kpi.label}</p>
-                <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{kpi.value}</h3>
+                <p className="text-sm font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">{kpi.label}</p>
+                <h3 className="text-3xl font-bold text-[var(--text-main)]">{kpi.value}</h3>
               </motion.div>
             ))}
           </div>
@@ -280,8 +283,8 @@ export default function DashboardPage() {
                   <PlusCircle size={24} />
                 </div>
               </div>
-              <div className="text-lg font-bold text-slate-900 dark:text-white">{language === 'ar' ? 'تذكرة جديدة' : 'New Ticket'}</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{language === 'ar' ? 'افتح تذكرة دعم جديدة' : 'Open a new support ticket'}</div>
+              <div className="text-lg font-bold text-[var(--text-main)]">{language === 'ar' ? 'تذكرة جديدة' : 'New Ticket'}</div>
+              <div className="text-xs text-[var(--text-secondary)] mt-1">{language === 'ar' ? 'افتح تذكرة دعم جديدة' : 'Open a new support ticket'}</div>
             </div>
 
             <div 
@@ -293,8 +296,8 @@ export default function DashboardPage() {
                   <Users size={24} />
                 </div>
               </div>
-              <div className="text-lg font-bold text-slate-900 dark:text-white">{language === 'ar' ? 'ساحة الفريق' : 'Team Feed'}</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{language === 'ar' ? 'تواصل مع زملائك وشارك المعرفة' : 'Connect with colleagues and share knowledge'}</div>
+              <div className="text-lg font-bold text-[var(--text-main)]">{language === 'ar' ? 'ساحة الفريق' : 'Team Feed'}</div>
+              <div className="text-xs text-[var(--text-secondary)] mt-1">{language === 'ar' ? 'تواصل مع زملائك وشارك المعرفة' : 'Connect with colleagues and share knowledge'}</div>
             </div>
 
             <div 
@@ -306,8 +309,8 @@ export default function DashboardPage() {
                   <BookOpen size={24} />
                 </div>
               </div>
-              <div className="text-lg font-bold text-slate-900 dark:text-white">{language === 'ar' ? 'قاعدة المعرفة' : 'Knowledge Base'}</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{language === 'ar' ? 'ابحث عن حلول وأدلة' : 'Search for solutions and guides'}</div>
+              <div className="text-lg font-bold text-[var(--text-main)]">{language === 'ar' ? 'قاعدة المعرفة' : 'Knowledge Base'}</div>
+              <div className="text-xs text-[var(--text-secondary)] mt-1">{language === 'ar' ? 'ابحث عن حلول وأدلة' : 'Search for solutions and guides'}</div>
             </div>
           </div>
 
@@ -316,11 +319,11 @@ export default function DashboardPage() {
             {/* Status Distribution */}
             <div className="lg:col-span-2 premium-card p-6">
               <div className="flex items-center justify-between mb-8">
-                <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2">
                   <Activity size={18} className="text-primary-blue" />
                   {language === 'ar' ? 'توزيع الحالات' : 'Status Distribution'}
                 </h3>
-                <select className="text-xs font-bold text-slate-400 dark:text-slate-400 bg-transparent outline-none">
+                <select className="text-xs font-bold text-[var(--text-muted)] bg-transparent outline-none">
                   <option>Last 7 Days</option>
                   <option>Last 30 Days</option>
                 </select>
@@ -359,7 +362,7 @@ export default function DashboardPage() {
 
             {/* Priority Pie Chart */}
             <div className="premium-card p-6">
-              <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-8">
+              <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2 mb-8">
                 <AlertCircle size={18} className="text-danger-red" />
                 {language === 'ar' ? 'الأولوية' : 'Priority Breakdown'}
               </h3>
@@ -392,8 +395,8 @@ export default function DashboardPage() {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-2xl font-bold text-slate-900 dark:text-white">{stats?.total}</span>
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Total</span>
+                  <span className="text-2xl font-bold text-[var(--text-main)]">{stats?.total}</span>
+                  <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Total</span>
                 </div>
               </div>
               <div className="mt-4 space-y-2">
@@ -401,9 +404,9 @@ export default function DashboardPage() {
                   <div key={i} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                      <span className="text-slate-600 dark:text-slate-400 capitalize font-medium">{p.priority}</span>
+                      <span className="text-[var(--text-secondary)] capitalize font-medium">{p.priority}</span>
                     </div>
-                    <span className="font-bold text-slate-900 dark:text-white">{p.count}</span>
+                    <span className="font-bold text-[var(--text-main)]">{p.count}</span>
                   </div>
                 ))}
               </div>
@@ -413,7 +416,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Department Performance */}
             <div className="premium-card p-6">
-              <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-8">
+              <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2 mb-8">
                 <Building2 size={18} className="text-primary-blue" />
                 {language === 'ar' ? 'أداء الأقسام' : 'Department Tickets'}
               </h3>
@@ -421,12 +424,12 @@ export default function DashboardPage() {
                 {deptPerf.map((dept, i) => (
                   <div key={i}>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                      <span className="text-sm font-bold text-[var(--text-secondary)]">
                         {language === 'ar' ? dept.nameAr : dept.nameEn}
                       </span>
-                      <span className="text-sm font-bold text-slate-900 dark:text-white">{dept.count}</span>
+                      <span className="text-sm font-bold text-[var(--text-main)]">{dept.count}</span>
                     </div>
-                    <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${(dept.count / (stats?.total || 1)) * 100}%` }}
@@ -438,16 +441,51 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Resolution Type Breakdown */}
+            <div className="premium-card p-6">
+              <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2 mb-8">
+                <CheckCircle2 size={18} className="text-success-green" />
+                {language === 'ar' ? 'نوع الحل' : 'Resolution Type'}
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-success-green/5 border border-success-green/10">
+                  <p className="text-[10px] font-bold text-success-green uppercase tracking-widest mb-1">{language === 'ar' ? 'داخلي' : 'Internal'}</p>
+                  <p className="text-2xl font-bold text-success-green">{stats?.resolvedInternal || 0}</p>
+                  <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                    {stats && (stats.resolvedInternal + stats.resolvedExternal) > 0
+                      ? `${Math.round((stats.resolvedInternal / (stats.resolvedInternal + stats.resolvedExternal)) * 100)}%`
+                      : '0%'}
+                  </p>
+                </div>
+                <div className="p-4 rounded-2xl bg-warning-amber/5 border border-warning-amber/10">
+                  <p className="text-[10px] font-bold text-warning-amber uppercase tracking-widest mb-1">{language === 'ar' ? 'خارجي' : 'External'}</p>
+                  <p className="text-2xl font-bold text-warning-amber">{stats?.resolvedExternal || 0}</p>
+                  <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                    {stats && (stats.resolvedInternal + stats.resolvedExternal) > 0
+                      ? `${Math.round((stats.resolvedExternal / (stats.resolvedInternal + stats.resolvedExternal)) * 100)}%`
+                      : '0%'}
+                  </p>
+                </div>
+              </div>
+              {(stats?.resolvedExternal || 0) > 0 && (
+                <div className="mt-4 p-3 rounded-xl bg-warning-amber/5 border border-warning-amber/10 text-xs text-warning-amber font-medium">
+                  {language === 'ar' 
+                    ? `إجمالي تكلفة الموارد الخارجية: ${stats?.resolvedExternal || 0} تذكرة` 
+                    : `Total external resources: ${stats?.resolvedExternal || 0} tickets`}
+                </div>
+              )}
+            </div>
+
             {/* Asset Summary */}
             <div className="premium-card p-6">
-              <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-8">
+              <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2 mb-8">
                 <Package size={18} className="text-primary-blue" />
                 {language === 'ar' ? 'ملخص الأصول' : 'Asset Summary'}
               </h3>
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{language === 'ar' ? 'إجمالي الأصول' : 'Total Assets'}</p>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">{assetSummary?.total || 0}</p>
+                <div className="p-4 rounded-2xl bg-[var(--border-dim)]/50 border border-[var(--border-dim)]">
+                  <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">{language === 'ar' ? 'إجمالي الأصول' : 'Total Assets'}</p>
+                  <p className="text-2xl font-bold text-[var(--text-main)]">{assetSummary?.total || 0}</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-success-green/5 border border-success-green/10">
                   <p className="text-[10px] font-bold text-success-green uppercase tracking-widest mb-1">{language === 'ar' ? 'نشط' : 'Active'}</p>
@@ -464,7 +502,7 @@ export default function DashboardPage() {
               </div>
               <button 
                 onClick={() => window.location.href = '/admin/assets'}
-                className="w-full mt-6 py-3 rounded-xl border border-slate-200 dark:border-slate-800 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                className="w-full mt-6 py-3 rounded-xl border border-[var(--border-main)] text-sm font-bold text-[var(--text-secondary)] hover:bg-[var(--border-dim)] transition-all flex items-center justify-center gap-2"
               >
                 {language === 'ar' ? 'إدارة الأصول' : 'Manage Assets'}
                 <ExternalLink size={14} />
@@ -476,7 +514,7 @@ export default function DashboardPage() {
             {/* Agent Performance Table */}
             <div className="lg:col-span-2 premium-card p-6 overflow-hidden">
               <div className="flex items-center justify-between mb-8">
-                <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2">
                   <TrendingUp size={18} className="text-primary-blue" />
                   {language === 'ar' ? 'أداء الوكلاء' : 'Agent Performance'}
                 </h3>
@@ -484,7 +522,7 @@ export default function DashboardPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
+                    <tr className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest border-b border-[var(--border-dim)]">
                       <th className="pb-4">{language === 'ar' ? 'الوكيل' : 'Agent'}</th>
                       <th className="pb-4">{language === 'ar' ? 'تم الحل' : 'Resolved'}</th>
                       <th className="pb-4">{language === 'ar' ? 'متوسط الاستجابة' : 'Avg Response'}</th>
@@ -492,31 +530,31 @@ export default function DashboardPage() {
                       <th className="pb-4">{language === 'ar' ? 'الالتزام بـ SLA' : 'SLA Adherence'}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tbody className="divide-y divide-[var(--border-dim)]">
                     {agentPerf.map((agent) => (
-                      <tr key={agent.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">
+                      <tr key={agent.id} className="group hover:bg-[var(--border-dim)] transition-all">
                         <td className="py-4">
-                          <p className="text-sm font-bold text-slate-900 dark:text-white">{language === 'ar' ? agent.nameAr : agent.nameEn}</p>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">{agent.department}</p>
+                          <p className="text-sm font-bold text-[var(--text-main)]">{language === 'ar' ? agent.nameAr : agent.nameEn}</p>
+                          <p className="text-[10px] text-[var(--text-secondary)] font-medium">{agent.department}</p>
                         </td>
                         <td className="py-4">
-                          <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{agent.resolvedCount}</span>
+                          <span className="text-sm font-bold text-[var(--text-secondary)]">{agent.resolvedCount}</span>
                         </td>
                         <td className="py-4">
-                          <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">{agent.avgResponseTimeHours}h</span>
+                          <span className="text-sm text-[var(--text-secondary)] font-medium">{agent.avgResponseTimeHours}h</span>
                         </td>
                         <td className="py-4">
-                          <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">{agent.avgResolutionTimeHours}h</span>
+                          <span className="text-sm text-[var(--text-secondary)] font-medium">{agent.avgResolutionTimeHours}h</span>
                         </td>
                         <td className="py-4">
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden min-w-[60px]">
+                            <div className="flex-1 h-1.5 bg-[var(--bg-elevated)] rounded-full overflow-hidden min-w-[60px]">
                               <div 
                                 className={`h-full rounded-full ${agent.slaAdherenceRate >= 90 ? 'bg-success-green' : agent.slaAdherenceRate >= 70 ? 'bg-warning-amber' : 'bg-danger-red'}`}
                                 style={{ width: `${agent.slaAdherenceRate}%` }}
                               />
                             </div>
-                            <span className="text-xs font-bold text-slate-900 dark:text-white">{agent.slaAdherenceRate}%</span>
+                            <span className="text-xs font-bold text-[var(--text-main)]">{agent.slaAdherenceRate}%</span>
                           </div>
                         </td>
                       </tr>
@@ -529,7 +567,7 @@ export default function DashboardPage() {
             {/* Recent Activity */}
             <div className="premium-card p-6">
               <div className="flex items-center justify-between mb-8">
-                <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2">
                   <Activity size={18} className="text-primary-blue" />
                   {language === 'ar' ? 'النشاط الأخير' : 'Recent Activity'}
                 </h3>
@@ -537,17 +575,17 @@ export default function DashboardPage() {
               <div className="space-y-6">
                 {recentActivity.map((log, i) => (
                   <div key={i} className="flex gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 shrink-0 overflow-hidden">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--bg-elevated)] flex items-center justify-center text-[var(--text-muted)] shrink-0 overflow-hidden">
                       {log.user?.avatarUrl ? (
                         <img src={log.user.avatarUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       ) : <Users size={20} />}
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-slate-900 dark:text-white">
+                      <p className="text-sm text-[var(--text-main)]">
                         <span className="font-bold">{language === 'ar' ? log.user?.fullNameAr : log.user?.fullNameEn}</span>
                         {' '}{log.action}
                       </p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-1">
+                      <p className="text-[10px] text-[var(--text-secondary)] font-medium mt-1">
                         {new Date(log.createdAt).toLocaleString()}
                       </p>
                     </div>
@@ -560,34 +598,34 @@ export default function DashboardPage() {
       ) : (
         <div className="space-y-6">
           {/* Export Controls */}
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="bg-[var(--bg-surface)] p-8 rounded-3xl border border-[var(--border-main)] shadow-sm">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
               <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+                  <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
                     {language === 'ar' ? 'من تاريخ' : 'From Date'}
                   </label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
                     <input 
                       type="date" 
                       value={exportStartDate}
                       onChange={(e) => setExportStartDate(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm outline-none focus:ring-2 focus:ring-primary-blue"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] text-sm outline-none focus:ring-2 focus:ring-primary-blue"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+                  <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
                     {language === 'ar' ? 'إلى تاريخ' : 'To Date'}
                   </label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
                     <input 
                       type="date" 
                       value={exportEndDate}
                       onChange={(e) => setExportEndDate(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm outline-none focus:ring-2 focus:ring-primary-blue"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] text-sm outline-none focus:ring-2 focus:ring-primary-blue"
                     />
                   </div>
                 </div>
@@ -611,57 +649,57 @@ export default function DashboardPage() {
           </div>
 
           {/* Export History Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
+          <div className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-main)] shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-[var(--border-dim)] flex items-center gap-3">
               <History className="text-primary-blue" size={20} />
-              <h3 className="font-bold text-slate-900 dark:text-white">
+              <h3 className="font-bold text-[var(--text-main)]">
                 {language === 'ar' ? 'سجل التقارير المصدرة' : 'Export History'}
               </h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'اسم الملف' : 'File Name'}</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'الفترة' : 'Period'}</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'التذاكر' : 'Tickets'}</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'بواسطة' : 'Exported By'}</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'ar' ? 'التاريخ' : 'Date'}</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"></th>
+                  <tr className="bg-[var(--border-dim)]/50 border-b border-[var(--border-dim)]">
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'اسم الملف' : 'File Name'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الفترة' : 'Period'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'التذاكر' : 'Tickets'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'بواسطة' : 'Exported By'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'التاريخ' : 'Date'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-[var(--border-dim)]">
                   {exportHistory.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-slate-400 text-sm italic">
+                      <td colSpan={6} className="px-6 py-12 text-center text-[var(--text-muted)] text-sm italic">
                         {language === 'ar' ? 'لا يوجد سجل تصدير متاح' : 'No export history available'}
                       </td>
                     </tr>
                   ) : exportHistory.map((exp) => (
-                    <tr key={exp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">
+                    <tr key={exp.id} className="hover:bg-[var(--border-dim)] transition-all">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <FileSpreadsheet className="text-success-green" size={18} />
-                          <span className="text-sm font-bold text-slate-900 dark:text-white">{exp.fileName}</span>
+                          <span className="text-sm font-bold text-[var(--text-main)]">{exp.fileName}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-[var(--text-secondary)]">
                           {new Date(exp.dateFrom).toLocaleDateString()} - {new Date(exp.dateTo).toLocaleDateString()}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                        <span className="px-2 py-1 rounded-lg bg-[var(--bg-elevated)] text-[10px] font-bold text-[var(--text-secondary)]">
                           {exp.ticketCount}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-sm text-slate-600 dark:text-slate-300">
+                        <span className="text-sm text-[var(--text-secondary)]">
                           {language === 'ar' ? exp.exportedBy.fullNameAr : exp.exportedBy.fullNameEn}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-xs text-slate-400">{new Date(exp.createdAt).toLocaleString()}</span>
+                        <span className="text-xs text-[var(--text-muted)]">{new Date(exp.createdAt).toLocaleString()}</span>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <a 

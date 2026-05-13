@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticate, type AuthRequest } from '../../core/middleware/auth.middleware.ts';
 import prisma from '../../core/db.ts';
+import { AVATARS_DIR } from '../../core/paths.ts';
 import { uploadAvatar } from '../../core/middleware/upload.middleware.ts';
 import sharp from 'sharp';
 import path from 'path';
@@ -52,8 +53,7 @@ router.put('/avatar', authenticate, uploadAvatar.single('avatar'), async (req: A
   try {
     const originalPath = req.file.path;
     const resizedFilename = `resized-${req.file.filename}`;
-    // BUG FIX: Use absolute path to prevent CWD-dependent failures
-    const resizedPath = path.join(process.cwd(), 'uploads/avatars/', resizedFilename);
+    const resizedPath = path.join(AVATARS_DIR, resizedFilename);
 
     // Resize image to 200x200
     await sharp(originalPath)

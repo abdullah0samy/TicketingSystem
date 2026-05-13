@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { authenticate } from '../../core/middleware/auth.middleware.ts';
+import { UPLOADS_DIR } from '../../core/paths.ts';
 
 const router = express.Router();
 
@@ -64,8 +65,8 @@ router.get('/download/:filename', authenticate as any, (req, res) => {
 
   // SECURITY: Sanitize filename to prevent path traversal attacks (e.g. ../../etc/passwd)
   const sanitized = path.basename(filename);
-  const filePath = path.resolve(process.cwd(), uploadDir, sanitized);
-  const uploadsRoot = path.resolve(process.cwd(), uploadDir);
+  const filePath = path.resolve(UPLOADS_DIR, uploadDir, sanitized);
+  const uploadsRoot = path.resolve(UPLOADS_DIR, uploadDir);
 
   // Double-check: resolved path must be strictly within the uploads directory
   if (!filePath.startsWith(uploadsRoot + path.sep) && filePath !== uploadsRoot) {

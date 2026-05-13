@@ -15,7 +15,7 @@ export default function UserProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 flex items-center gap-3">
+      <h2 className="text-2xl font-bold text-[var(--text-main)] mb-8 flex items-center gap-3">
         <User className="text-primary-blue" />
         {language === 'ar' ? 'الملف الشخصي' : 'My Profile'}
       </h2>
@@ -29,7 +29,7 @@ export default function UserProfilePage() {
               : (user.fullNameEn?.[0] ?? '?')}
           </div>
           <div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+            <h3 className="text-xl font-bold text-[var(--text-main)]">
               {language === 'ar' ? user.fullNameAr : user.fullNameEn}
             </h3>
             <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-primary-blue bg-primary-blue/10 px-3 py-1 rounded-full mt-1">
@@ -39,24 +39,24 @@ export default function UserProfilePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6 border-t border-slate-100 dark:border-slate-800">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6 border-t border-[var(--border-dim)]">
           {user.email && (
-            <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
-              <Mail size={16} className="text-slate-400" />
+            <div className="flex items-center gap-3 text-[var(--text-secondary)]">
+              <Mail size={16} className="text-[var(--text-muted)]" />
               <span className="text-sm">{user.email}</span>
             </div>
           )}
           {user.department && (
-            <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
-              <Building2 size={16} className="text-slate-400" />
+            <div className="flex items-center gap-3 text-[var(--text-secondary)]">
+              <Building2 size={16} className="text-[var(--text-muted)]" />
               <span className="text-sm">
                 {language === 'ar' ? user.department.nameAr : user.department.nameEn}
               </span>
             </div>
           )}
           {user.badgeNumber && (
-            <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
-              <User size={16} className="text-slate-400" />
+            <div className="flex items-center gap-3 text-[var(--text-secondary)]">
+              <User size={16} className="text-[var(--text-muted)]" />
               <span className="text-sm font-mono">{user.badgeNumber}</span>
             </div>
           )}

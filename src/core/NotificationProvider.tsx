@@ -44,7 +44,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const langRef = useRef(language);
   langRef.current = language;
 
+  const toastTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
   const removeToast = useCallback((id: string) => {
+    const timer = toastTimersRef.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      toastTimersRef.current.delete(id);
+    }
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
@@ -62,9 +69,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     });
     setToasts(prev => [...prev, newNotif]);
 
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      toastTimersRef.current.delete(newNotif.id);
       setToasts(prev => prev.filter(t => t.id !== newNotif.id));
     }, TOAST_DURATION);
+    toastTimersRef.current.set(newNotif.id, timer);
 
     if (typeof window.Notification !== 'undefined' && Notification.permission === 'granted') {
       new Notification(newNotif.title, { body: newNotif.message });

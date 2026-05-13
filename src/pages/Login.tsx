@@ -43,18 +43,18 @@ export default function Login() {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 transition-colors duration-300 font-sans ${language === 'ar' ? 'rtl' : 'ltr'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className={`min-h-screen flex items-center justify-center bg-[var(--bg-main)] p-4 transition-colors duration-300 font-sans ${language === 'ar' ? 'rtl' : 'ltr'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Theme & Language Toggles */}
       <div className="fixed top-6 right-6 flex items-center gap-3">
         <button 
           onClick={toggleTheme}
-          className="p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-blue transition-all"
+          className="p-3 bg-[var(--bg-surface)] rounded-2xl shadow-sm border border-[var(--border-main)] text-[var(--text-secondary)] hover:text-primary-blue transition-all"
         >
           {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
         </button>
         <button 
           onClick={toggleLanguage}
-          className="p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-primary-blue transition-all flex items-center gap-2 font-bold"
+          className="p-3 bg-[var(--bg-surface)] rounded-2xl shadow-sm border border-[var(--border-main)] text-[var(--text-secondary)] hover:text-primary-blue transition-all flex items-center gap-2 font-bold"
         >
           <Globe size={20} />
           <span className="text-xs uppercase">{language}</span>
@@ -76,8 +76,8 @@ export default function Login() {
               <div className="w-24 h-24 mb-6 drop-shadow-2xl">
                 <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mb-2 tracking-tight leading-tight">{t.loginTitle}</h1>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-300">{t.loginSubTitle}</p>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--text-main)] mb-2 tracking-tight leading-tight">{t.loginTitle}</h1>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">{t.loginSubTitle}</p>
             </div>
 
             {error && (
@@ -93,7 +93,7 @@ export default function Login() {
 
             <form onSubmit={handleLogin} className="space-y-6">
               <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 ml-1">
+                <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 ml-1">
                   {t.badgeNumber}
                 </label>
                 <div className="relative">
@@ -101,7 +101,7 @@ export default function Login() {
                     type="text"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    className="input-surface w-full py-4 px-6 bg-slate-50/50 dark:bg-slate-800/20"
+                    className="input-surface w-full py-4 px-6 bg-[var(--border-dim)]"
                     placeholder="00000"
                     required
                   />
@@ -109,7 +109,7 @@ export default function Login() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 ml-1">
+                <label className="block text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 ml-1">
                   {t.password}
                 </label>
                 <div className="relative">
@@ -117,14 +117,14 @@ export default function Login() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="input-surface w-full py-4 px-6 pr-14 bg-slate-50/50 dark:bg-slate-800/20"
+                    className="input-surface w-full py-4 px-6 pr-14 bg-[var(--border-dim)]"
                     placeholder={t.passwordPlaceholder}
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-all p-1"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-all p-1"
                     tabIndex={-1}
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -148,8 +148,8 @@ export default function Login() {
               </button>
             </form>
 
-            <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
-              <p className="text-slate-400 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+            <div className="mt-10 pt-8 border-t border-[var(--border-dim)] text-center">
+              <p className="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest">
                 {t.copyright}
               </p>
             </div>

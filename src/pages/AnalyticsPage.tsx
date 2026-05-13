@@ -35,6 +35,8 @@ interface Stats {
   open: number;
   overdue: number;
   avgResolutionTimeHours: number;
+  resolvedInternal: number;
+  resolvedExternal: number;
 }
 
 interface AgentPerformance {
@@ -91,16 +93,16 @@ export const AnalyticsPage: React.FC = () => {
     <div className="p-6 space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-3">
             <BarChart3 className="text-primary-blue" />
             {language === 'ar' ? 'التحليلات والتقارير' : 'Analytics & Reports'}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-[var(--text-secondary)] mt-1">
             {language === 'ar' ? 'متابعة أداء النظام ومؤشرات الإنجاز' : 'Monitor system performance and achievement indicators'}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-xl text-sm font-medium hover:bg-[var(--bg-main)] transition-colors">
             <Calendar size={18} />
             {language === 'ar' ? 'آخر 30 يوم' : 'Last 30 Days'}
           </button>
@@ -116,52 +118,91 @@ export const AnalyticsPage: React.FC = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="bg-[var(--bg-surface)] p-6 rounded-3xl border border-[var(--border-main)] shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl text-blue-600">
               <TrendingUp size={24} />
             </div>
             <span className="text-xs font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg">+12%</span>
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">{stats?.total || 0}</div>
-          <div className="text-sm text-slate-500 dark:text-slate-400">{language === 'ar' ? 'إجمالي التذاكر' : 'Total Tickets'}</div>
+          <div className="text-2xl font-bold text-[var(--text-main)]">{stats?.total || 0}</div>
+          <div className="text-sm text-[var(--text-secondary)]">{language === 'ar' ? 'إجمالي التذاكر' : 'Total Tickets'}</div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="bg-[var(--bg-surface)] p-6 rounded-3xl border border-[var(--border-main)] shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl text-amber-600">
               <Clock size={24} />
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">{stats?.avgResolutionTimeHours || 0}h</div>
-          <div className="text-sm text-slate-500 dark:text-slate-400">{language === 'ar' ? 'متوسط وقت الحل' : 'Avg Resolution Time'}</div>
+          <div className="text-2xl font-bold text-[var(--text-main)]">{stats?.avgResolutionTimeHours || 0}h</div>
+          <div className="text-sm text-[var(--text-secondary)]">{language === 'ar' ? 'متوسط وقت الحل' : 'Avg Resolution Time'}</div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="bg-[var(--bg-surface)] p-6 rounded-3xl border border-[var(--border-main)] shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl text-emerald-600">
               <CheckCircle2 size={24} />
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">{stats?.resolved || 0}</div>
-          <div className="text-sm text-slate-500 dark:text-slate-400">{language === 'ar' ? 'تم حلها' : 'Resolved Tickets'}</div>
+          <div className="text-2xl font-bold text-[var(--text-main)]">{stats?.resolved || 0}</div>
+          <div className="text-sm text-[var(--text-secondary)]">{language === 'ar' ? 'تم حلها' : 'Resolved Tickets'}</div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="bg-[var(--bg-surface)] p-6 rounded-3xl border border-[var(--border-main)] shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 bg-rose-50 dark:bg-rose-900/20 rounded-2xl text-rose-600">
               <AlertCircle size={24} />
             </div>
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white">{stats?.overdue || 0}</div>
-          <div className="text-sm text-slate-500 dark:text-slate-400">{language === 'ar' ? 'تجاوزت المهلة' : 'SLA Breached'}</div>
+          <div className="text-2xl font-bold text-[var(--text-main)]">{stats?.overdue || 0}</div>
+          <div className="text-sm text-[var(--text-secondary)]">{language === 'ar' ? 'تجاوزت المهلة' : 'SLA Breached'}</div>
+        </div>
+      </div>
+
+      {/* Resolution Type Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-[var(--bg-surface)] p-6 rounded-3xl border border-success-green/20 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl text-emerald-600">
+              <CheckCircle2 size={24} />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-[var(--text-main)]">{stats?.resolvedInternal || 0}</div>
+              <div className="text-sm text-[var(--text-secondary)]">{language === 'ar' ? 'تم الحل داخلياً' : 'Resolved Internally'}</div>
+            </div>
+          </div>
+          <div className="w-full h-2 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-success-green rounded-full"
+              style={{ width: `${stats && (stats.resolvedInternal + stats.resolvedExternal) > 0 ? (stats.resolvedInternal / (stats.resolvedInternal + stats.resolvedExternal)) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="bg-[var(--bg-surface)] p-6 rounded-3xl border border-warning-amber/20 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl text-amber-600">
+              <TrendingUp size={24} />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-[var(--text-main)]">{stats?.resolvedExternal || 0}</div>
+              <div className="text-sm text-[var(--text-secondary)]">{language === 'ar' ? 'تم الحل خارجياً' : 'Resolved Externally'}</div>
+            </div>
+          </div>
+          <div className="w-full h-2 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-warning-amber rounded-full"
+              style={{ width: `${stats && (stats.resolvedInternal + stats.resolvedExternal) > 0 ? (stats.resolvedExternal / (stats.resolvedInternal + stats.resolvedExternal)) * 100 : 0}%` }}
+            />
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Status Distribution */}
-        <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">
+        <div className="lg:col-span-1 bg-[var(--bg-surface)] p-8 rounded-3xl border border-[var(--border-main)] shadow-sm">
+          <h3 className="text-lg font-bold text-[var(--text-main)] mb-6">
             {language === 'ar' ? 'توزيع الحالات' : 'Status Distribution'}
           </h3>
           <div className="h-64">
@@ -188,16 +229,16 @@ export const AnalyticsPage: React.FC = () => {
             {statusData.map((item, i) => (
               <div key={i} className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                <span className="text-xs text-slate-500 dark:text-slate-400">{item.name}: {item.value}</span>
+                <span className="text-xs text-[var(--text-secondary)]">{item.name}: {item.value}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Agent Performance Table */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+        <div className="lg:col-span-2 bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-main)] shadow-sm overflow-hidden">
+          <div className="p-8 border-b border-[var(--border-dim)] flex items-center justify-between">
+            <h3 className="text-lg font-bold text-[var(--text-main)] flex items-center gap-2">
               <Award className="text-amber-500" />
               {language === 'ar' ? 'أداء الوكلاء' : 'Agent Performance'}
             </h3>
@@ -208,7 +249,7 @@ export const AnalyticsPage: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-[10px] uppercase tracking-wider">
+                <tr className="bg-[var(--border-dim)]/50 text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">
                   <th className="px-8 py-4 font-bold">{language === 'ar' ? 'الوكيل' : 'Agent'}</th>
                   <th className="px-8 py-4 font-bold">{language === 'ar' ? 'تم حلها' : 'Resolved'}</th>
                   <th className="px-8 py-4 font-bold">{language === 'ar' ? 'متوسط الاستجابة' : 'Avg Response'}</th>
@@ -216,37 +257,37 @@ export const AnalyticsPage: React.FC = () => {
                   <th className="px-8 py-4 font-bold">{language === 'ar' ? 'الالتزام بـ SLA' : 'SLA Adherence'}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-[var(--border-dim)]">
                 {agentPerformance.slice(0, 5).map((agent) => (
-                  <tr key={agent.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                  <tr key={agent.id} className="hover:bg-[var(--border-dim)]/50 transition-colors">
                     <td className="px-8 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-primary-blue">
+                        <div className="w-8 h-8 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-xs font-bold text-primary-blue">
                           {agent.nameEn.charAt(0)}
                         </div>
                         <div>
-                          <div className="text-sm font-bold text-slate-900 dark:text-white">
+                          <div className="text-sm font-bold text-[var(--text-main)]">
                             {language === 'ar' ? agent.nameAr : agent.nameEn}
                           </div>
-                          <div className="text-[10px] text-slate-500">{agent.department}</div>
+                          <div className="text-[10px] text-[var(--text-secondary)]">{agent.department}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-8 py-4">
                       <div className="flex items-center gap-2">
                         <Zap size={14} className="text-amber-500" />
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{agent.resolvedCount}</span>
+                        <span className="text-sm font-bold text-[var(--text-secondary)]">{agent.resolvedCount}</span>
                       </div>
                     </td>
-                    <td className="px-8 py-4 text-sm text-slate-600 dark:text-slate-400">
+                    <td className="px-8 py-4 text-sm text-[var(--text-secondary)]">
                       {agent.avgResponseTimeHours}h
                     </td>
-                    <td className="px-8 py-4 text-sm text-slate-600 dark:text-slate-400">
+                    <td className="px-8 py-4 text-sm text-[var(--text-secondary)]">
                       {agent.avgResolutionTimeHours}h
                     </td>
                     <td className="px-8 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div className="flex-1 h-1.5 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
                           <div 
                             className={`h-full rounded-full ${
                               agent.slaAdherenceRate > 90 ? 'bg-emerald-500' : 
@@ -255,7 +296,7 @@ export const AnalyticsPage: React.FC = () => {
                             style={{ width: `${agent.slaAdherenceRate}%` }}
                           ></div>
                         </div>
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{agent.slaAdherenceRate}%</span>
+                        <span className="text-xs font-bold text-[var(--text-secondary)]">{agent.slaAdherenceRate}%</span>
                       </div>
                     </td>
                   </tr>

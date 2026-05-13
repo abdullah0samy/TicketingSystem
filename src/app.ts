@@ -13,13 +13,12 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import prisma from './core/db.ts';
-import path from 'path';
+import { UPLOADS_DIR, AVATARS_DIR } from './core/paths.ts';
 import fs from 'fs';
 
 // Ensure upload directories exist
-const uploadDir = path.join(process.cwd(), 'uploads/avatars');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+if (!fs.existsSync(AVATARS_DIR)) {
+  fs.mkdirSync(AVATARS_DIR, { recursive: true });
 }
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
@@ -51,7 +50,8 @@ const globalLimiter = rateLimit({
   max: process.env.NODE_ENV === 'production' ? 2000 : 1000000, 
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Too many requests, please try again later.' }
+  message: { message: 'Too many requests, please try again later.' },
+  skip: (req) => req.path === '/api/health' || req.path === '/api/test-bigint'
 });
 
 // Auth
@@ -111,12 +111,12 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(morgan('dev'));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 app.use('/api/', globalLimiter, requestLogger);
 
 // Serve static files from uploads
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use('/uploads', express.static(UPLOADS_DIR));
 
 // API Health Check
 app.get('/api/health', async (req: Request, res: Response) => {

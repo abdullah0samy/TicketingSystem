@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
 import { translations } from '../../core/translations.ts';
@@ -50,6 +50,12 @@ export default function NewTicketPage() {
   const { accessToken } = useAuthStore();
   const { language } = useSettingsStore();
   const t = translations[language];
+  const isMounted = useRef(true);
+  const navigateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
 
   useEffect(() => {
     fetchInitialData();
@@ -64,24 +70,35 @@ export default function NewTicketPage() {
         apiFetch('/api/assets')
       ]);
       
+      if (!isMounted.current) return;
       setBuildings(bData.filter((b: any) => b.isActive));
-      // Only show departments that can RECEIVE tickets
       setDepartments(dData.filter((d: any) => d.isActive && (d.deptType === 'RECEIVER_ONLY' || d.deptType === 'BOTH')));
       setTicketTypes(tData.filter((tt: any) => tt.isActive));
       setAssets(aData.filter((a: any) => a.status === 'active'));
     } catch (err) {
+      if (!isMounted.current) return;
       console.error('Error fetching initial data:', err);
       setError('Failed to load initial data. Please refresh the page.');
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
   };
 
   useEffect(() => {
     if (formData.buildingId) {
-      apiFetch(`/api/admin/floors`)
-        .then(data => setFloors(data.filter((f: any) => f.buildingId === parseInt(formData.buildingId) && f.isActive)))
-        .catch(err => console.error('Error fetching floors:', err));
+      const controller = new AbortController();
+      const selectedBuildingId = formData.buildingId;
+      apiFetch(`/api/admin/floors`, { signal: controller.signal })
+        .then(data => {
+          if (!controller.signal.aborted) {
+            setFloors(data.filter((f: any) => f.buildingId === parseInt(selectedBuildingId) && f.isActive));
+          }
+        })
+        .catch(err => {
+          if (err?.name === 'AbortError') return;
+          console.error('Error fetching floors:', err);
+        });
+      return () => controller.abort();
     } else {
       setFloors([]);
     }
@@ -125,7 +142,7 @@ export default function NewTicketPage() {
       });
 
       setSuccess(language === 'ar' ? `تم إنشاء التذكرة بنجاح: ${data.ticketNumber}` : `Ticket created successfully: ${data.ticketNumber}`);
-      setTimeout(() => window.dispatchEvent(new CustomEvent('navigate', { detail: '/inbox' })), 1500);
+      navigateTimerRef.current = setTimeout(() => window.dispatchEvent(new CustomEvent('navigate', { detail: '/inbox' })), 1500);
       setAttachments([]);
       setFormData({
         subject: '',
@@ -147,15 +164,15 @@ export default function NewTicketPage() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-slate-400">Loading...</div>;
+  if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">Loading...</div>;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+        <h2 className="text-2xl font-bold text-[var(--text-main)]">
           {language === 'ar' ? 'فتح تذكرة جديدة' : 'Open New Ticket'}
         </h2>
-        <p className="text-slate-500 dark:text-slate-400">
+        <p className="text-[var(--text-secondary)]">
           {language === 'ar' ? 'يرجى تقديم تفاصيل المشكلة للحصول على الدعم' : 'Please provide issue details for support'}
         </p>
       </div>
@@ -176,7 +193,7 @@ export default function NewTicketPage() {
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Location Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+        <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-main)] p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-6 text-primary-blue">
             <Building2 size={20} />
             <h3 className="font-bold uppercase tracking-widest text-xs">{language === 'ar' ? 'الموقع' : 'Location'}</h3>
@@ -184,21 +201,21 @@ export default function NewTicketPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                 {language === 'ar' ? 'المبنى' : 'Building'} <span className="text-danger-red">*</span>
               </label>
               <select
                 value={formData.buildingId}
                 required
                 onChange={(e) => setFormData({ ...formData, buildingId: e.target.value, floorId: '' })}
-                className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue"
+                className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
               >
                 <option value="">{language === 'ar' ? 'اختر المبنى' : 'Select Building'}</option>
                 {buildings.map(b => <option key={b.id} value={b.id}>{language === 'ar' ? b.nameAr : b.nameEn}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                 {language === 'ar' ? 'الطابق' : 'Floor'} <span className="text-danger-red">*</span>
               </label>
               <select
@@ -206,7 +223,7 @@ export default function NewTicketPage() {
                 disabled={!formData.buildingId}
                 required
                 onChange={(e) => setFormData({ ...formData, floorId: e.target.value })}
-                className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue disabled:opacity-50"
+                className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue disabled:opacity-50"
               >
                 <option value="">{language === 'ar' ? 'اختر الطابق' : 'Select Floor'}</option>
                 {floors.map(f => <option key={f.id} value={f.id}>{language === 'ar' ? f.nameAr : f.nameEn}</option>)}
@@ -214,23 +231,23 @@ export default function NewTicketPage() {
             </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{language === 'ar' ? 'الأصل المرتبط' : 'Related Asset'}</label>
+              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{language === 'ar' ? 'الأصل المرتبط' : 'Related Asset'}</label>
               <select
                 value={formData.assetId}
                 onChange={(e) => setFormData({ ...formData, assetId: e.target.value })}
-                className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue"
+                className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
               >
                 <option value="">{language === 'ar' ? 'اختر الأصل (اختياري)' : 'Select Asset (Optional)'}</option>
                 {assets.map(a => <option key={a.id} value={a.id}>{a.name} ({a.serialNumber})</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{language === 'ar' ? 'الغرفة / الامتداد' : 'Room / Ext.'}</label>
+              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{language === 'ar' ? 'الغرفة / الامتداد' : 'Room / Ext.'}</label>
               <input
                 type="text"
                 value={formData.roomExtension}
                 onChange={(e) => setFormData({ ...formData, roomExtension: e.target.value })}
-                className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue"
+                className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                 placeholder="e.g. Room 402"
               />
             </div>
@@ -239,7 +256,7 @@ export default function NewTicketPage() {
         </div>
 
         {/* Contact Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+        <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-main)] p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-6 text-primary-blue">
             <Phone size={20} />
             <h3 className="font-bold uppercase tracking-widest text-xs">{language === 'ar' ? 'معلومات الاتصال' : 'Contact Info'}</h3>
@@ -247,17 +264,17 @@ export default function NewTicketPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{language === 'ar' ? 'رقم الهاتف' : 'Phone Number'}</label>
+              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{language === 'ar' ? 'رقم الهاتف' : 'Phone Number'}</label>
               <input
                 type="text"
                 value={formData.creatorPhone}
                 onChange={(e) => setFormData({ ...formData, creatorPhone: e.target.value })}
-                className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue"
+                className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                 placeholder="05xxxxxxxx"
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                 {language === 'ar' ? 'التحويلة' : 'Extension'} <span className="text-danger-red">*</span>
               </label>
               <input
@@ -265,7 +282,7 @@ export default function NewTicketPage() {
                 value={formData.creatorExtension}
                 required
                 onChange={(e) => setFormData({ ...formData, creatorExtension: e.target.value })}
-                className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue"
+                className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                 placeholder="e.g. 1234"
               />
             </div>
@@ -273,7 +290,7 @@ export default function NewTicketPage() {
         </div>
 
         {/* Issue Details Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+        <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-main)] p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-6 text-primary-blue">
             <AlertCircle size={20} />
             <h3 className="font-bold uppercase tracking-widest text-xs">{language === 'ar' ? 'تفاصيل المشكلة' : 'Issue Details'}</h3>
@@ -282,13 +299,13 @@ export default function NewTicketPage() {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                   {language === 'ar' ? 'القسم الموجه إليه' : 'Target Department'} <span className="text-danger-red">*</span>
                 </label>
                 <select
                   value={formData.departmentId}
                   onChange={(e) => setFormData({ ...formData, departmentId: e.target.value, ticketTypeId: '' })}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue"
+                  className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                   required
                 >
                   <option value="">{language === 'ar' ? 'اختر القسم' : 'Select Department'}</option>
@@ -296,13 +313,13 @@ export default function NewTicketPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                   {language === 'ar' ? 'نوع المشكلة' : 'Issue Type'}
                 </label>
                 <select
                   value={formData.ticketTypeId}
                   onChange={(e) => setFormData({ ...formData, ticketTypeId: e.target.value })}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue"
+                  className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                 >
                   <option value="">{language === 'ar' ? 'اختر النوع (اختياري)' : 'Select Type (Optional)'}</option>
                   {ticketTypes
@@ -313,7 +330,7 @@ export default function NewTicketPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{language === 'ar' ? 'الأولوية' : 'Priority'}</label>
+              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{language === 'ar' ? 'الأولوية' : 'Priority'}</label>
               <div className="grid grid-cols-4 gap-4">
                 {['low', 'normal', 'high', 'urgent'].map((p) => (
                   <button
@@ -323,7 +340,7 @@ export default function NewTicketPage() {
                     className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all border ${
                       formData.priority === p 
                         ? (p === 'urgent' ? 'bg-danger-red text-white border-danger-red' : 'bg-primary-blue text-white border-primary-blue')
-                        : 'bg-white dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
+                        : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border-[var(--border-main)]'
                     }`}
                   >
                     {p}
@@ -333,7 +350,7 @@ export default function NewTicketPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                 {language === 'ar' ? 'الموضوع' : 'Subject'} <span className="text-danger-red">*</span>
               </label>
               <input
@@ -341,19 +358,19 @@ export default function NewTicketPage() {
                 value={formData.subject}
                 required
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue"
+                className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                 placeholder={language === 'ar' ? 'عنوان مختصر للمشكلة' : 'Brief summary of the issue'}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
                 {language === 'ar' ? 'الوصف التفصيلي' : 'Detailed Description'} <span className="text-danger-red">*</span>
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-blue min-h-[150px]"
+                className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue min-h-[150px]"
                 placeholder={language === 'ar' ? 'يرجى شرح المشكلة بالتفصيل...' : 'Please explain the issue in detail...'}
                 required
               />
@@ -361,14 +378,14 @@ export default function NewTicketPage() {
 
             {/* Attachments */}
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{language === 'ar' ? 'المرفقات' : 'Attachments'}</label>
+              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{language === 'ar' ? 'المرفقات' : 'Attachments'}</label>
               <div className="flex flex-wrap gap-4">
                 {attachments.map((file, idx) => (
-                  <div key={idx} className="relative group bg-slate-100 dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                  <div key={idx} className="relative group bg-[var(--bg-elevated)] p-3 rounded-xl border border-[var(--border-main)] flex items-center gap-3">
                     <FileIcon size={20} className="text-primary-blue" />
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 line-clamp-1 max-w-[150px]">{file.fileName}</span>
-                      <span className="text-[10px] text-slate-400">{(file.fileSize / 1024).toFixed(1)} KB</span>
+                      <span className="text-xs font-bold text-[var(--text-secondary)] line-clamp-1 max-w-[150px]">{file.fileName}</span>
+                      <span className="text-[10px] text-[var(--text-muted)]">{(file.fileSize / 1024).toFixed(1)} KB</span>
                     </div>
                     <button 
                       type="button"
@@ -380,7 +397,7 @@ export default function NewTicketPage() {
                   </div>
                 ))}
                 
-                <label className="w-32 h-20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-primary-blue hover:bg-primary-blue/5 transition-all text-slate-400 hover:text-primary-blue">
+                <label className="w-32 h-20 border-2 border-dashed border-[var(--border-main)] rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-primary-blue hover:bg-primary-blue/5 transition-all text-[var(--text-muted)] hover:text-primary-blue">
                   <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} />
                   <Paperclip size={20} />
                   <span className="text-[10px] font-bold uppercase tracking-widest">{uploading ? '...' : (language === 'ar' ? 'إرفاق' : 'Attach')}</span>

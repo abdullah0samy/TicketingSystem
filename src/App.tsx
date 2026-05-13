@@ -102,27 +102,41 @@ function AppContent() {
   }, [theme]);
 
   useEffect(() => {
+    const controller = new AbortController();
+    let cancelled = false;
+
     if (accessToken && !user && !isFetching) {
       setIsFetching(true);
       fetch('/api/users/me', {
         headers: { Authorization: `Bearer ${accessToken}` },
-        credentials: 'include'
+        credentials: 'include',
+        signal: controller.signal
       })
       .then(res => {
         if (res.ok) return res.json();
         throw new Error('Session expired');
       })
       .then(userData => {
-        setAuth(userData, accessToken);
+        if (!cancelled) setAuth(userData, accessToken);
       })
-      .catch(() => logout())
+      .catch((err) => {
+        if (err?.name === 'AbortError') return;
+        if (!cancelled) logout();
+      })
       .finally(() => {
-        setIsReady(true);
-        setIsFetching(false);
+        if (!cancelled) {
+          setIsReady(true);
+          setIsFetching(false);
+        }
       });
     } else if (!accessToken || user) {
       setIsReady(true);
     }
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, user]);
 
@@ -195,7 +209,7 @@ function AppContent() {
   };
 
   const sidebar = (
-    <aside className={`h-full bg-white dark:bg-sidebar-bg border-r border-[var(--border-main)] flex flex-col transition-colors duration-300`}>
+    <aside className={`h-full bg-[var(--bg-surface)] border-r border-[var(--border-main)] flex flex-col transition-colors duration-300`}>
       <div className="p-5 flex items-center gap-3 border-b border-[var(--border-dim)]">
         <div className="w-9 h-9 flex items-center justify-center shrink-0">
           <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
@@ -396,7 +410,7 @@ function AppContent() {
               <p className="text-sm font-bold text-[var(--text-main)] leading-tight">{language === 'ar' ? user.fullNameAr : user.fullNameEn}</p>
               <p className="text-[9px] text-[var(--text-muted)] font-bold uppercase tracking-widest">{user.role.replace('_', ' ')}</p>
             </div>
-            <div className="w-9 h-9 bg-blue-50 dark:bg-slate-800 rounded-full flex items-center justify-center border-2 border-[var(--border-dim)] overflow-hidden shrink-0">
+            <div className="w-9 h-9 bg-[var(--border-dim)] rounded-full flex items-center justify-center border-2 border-[var(--border-dim)] overflow-hidden shrink-0">
               {user.avatarUrl ? (
                 <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               ) : (

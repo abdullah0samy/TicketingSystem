@@ -5,6 +5,7 @@ import { authenticate, authorize } from '../../core/middleware/auth.middleware.t
 import ExcelJS from 'exceljs';
 import fs from 'fs';
 import path from 'path';
+import { EXPORTS_DIR } from '../../core/paths.ts';
 
 const router = express.Router();
 
@@ -40,7 +41,8 @@ router.get('/dashboard-summary', authenticate, async (req: any, res) => {
       activity,
       agents,
       exportHistoryItems,
-      assets
+      assets,
+      slaBreached
     ] = await Promise.all([
       prisma.ticket.count({ where: baseWhere }),
       prisma.ticket.count({ where: { ...baseWhere, status: 'pending' } }),
@@ -82,18 +84,24 @@ router.get('/dashboard-summary', authenticate, async (req: any, res) => {
         orderBy: { createdAt: 'desc' },
         include: { exportedBy: { select: { fullNameAr: true, fullNameEn: true } } }
       }),
-      prisma.asset.findMany({})
+      prisma.asset.findMany({}),
+      prisma.ticket.count({
+        where: { ...baseWhere, slaBreachSent: true }
+      })
     ]);
 
-    // Average resolution time - High Performance Raw Query
-    // We use raw SQL because Prisma aggregate doesn't support date subtraction directly in PostgreSQL
-    const avgResResult: any = await prisma.$queryRaw`
-      SELECT AVG(EXTRACT(EPOCH FROM (completed_at - created_at))) as avg_seconds
-      FROM tickets 
-      WHERE (status = 'resolved' OR status = 'closed') 
-      AND completed_at IS NOT NULL
-    `;
-    const avgResolutionTimeHours = avgResResult[0]?.avg_seconds ? (avgResResult[0].avg_seconds / 3600) : 0;
+    // Average resolution time - scoped to user's department/role
+    const resolvedTicketsForAvg = await prisma.ticket.findMany({
+      where: { ...baseWhere, completedAt: { not: null }, status: { in: ['resolved', 'closed'] } },
+      select: { createdAt: true, completedAt: true }
+    });
+    let avgResolutionTimeHours = 0;
+    if (resolvedTicketsForAvg.length > 0) {
+      const totalMs = resolvedTicketsForAvg.reduce((acc, t) => {
+        return acc + (t.completedAt!.getTime() - t.createdAt.getTime());
+      }, 0);
+      avgResolutionTimeHours = (totalMs / resolvedTicketsForAvg.length) / (1000 * 60 * 60);
+    }
 
     // Process agent performance
     const agentPerformance = agents.map(agent => {
@@ -112,16 +120,26 @@ router.get('/dashboard-summary', authenticate, async (req: any, res) => {
         department: agent.department?.nameEn, resolvedCount: totalRes,
         avgResolutionTimeHours: totalRes > 0 ? Math.round((resTime / totalRes) / (3600000) * 10) / 10 : 0,
         avgResponseTimeHours: respCount > 0 ? Math.round((respTime / respCount) / (3600000) * 10) / 10 : 0,
-        slaAdherenceRate: totalRes > 0 ? Math.round((slaCount / totalRes) * 100) : 100
+        slaAdherenceRate: totalRes > 0 ? Math.round((slaCount / totalRes) * 100) : null
       };
     });
 
-    res.json({
-      stats: {
-        total: totalTickets, pending: pendingTickets, resolved: resolvedTickets,
-        open: openTickets, overdue: overdueTickets,
-        avgResolutionTimeHours: Math.round(avgResolutionTimeHours * 10) / 10
-      },
+      // Resolution type breakdown
+      const resolvedInternal = await prisma.ticket.count({
+        where: { ...baseWhere, status: { in: ['resolved', 'closed'] }, requiresExternalResource: false }
+      });
+      const resolvedExternal = await prisma.ticket.count({
+        where: { ...baseWhere, status: { in: ['resolved', 'closed'] }, requiresExternalResource: true }
+      });
+
+      res.json({
+          stats: {
+            total: totalTickets, pending: pendingTickets, resolved: resolvedTickets,
+            open: openTickets, overdue: overdueTickets,
+            slaBreaches: slaBreached,
+            avgResolutionTimeHours: Math.round(avgResolutionTimeHours * 10) / 10,
+            resolvedInternal, resolvedExternal
+          },
       statusDistribution: statusStats.map(s => ({ status: s.status, count: s._count._all })),
       priorityDistribution: priorityStats.map(s => ({ priority: s.priority, count: s._count._all })),
       departmentPerformance: depts.map(d => ({ nameAr: d.nameAr || '', nameEn: d.nameEn || '', count: d._count?.ticketsIn || 0 })),
@@ -240,13 +258,12 @@ router.get('/export', authenticate as any, async (req: any, res: Response) => {
     });
 
     // Save to file for history
-    const exportDir = path.join(process.cwd(), 'uploads/exports');
-    if (!fs.existsSync(exportDir)) {
-      fs.mkdirSync(exportDir, { recursive: true });
+    if (!fs.existsSync(EXPORTS_DIR)) {
+      fs.mkdirSync(EXPORTS_DIR, { recursive: true });
     }
 
     const fileName = `tickets_report_${Date.now()}.xlsx`;
-    const filePath = path.join(exportDir, fileName);
+    const filePath = path.join(EXPORTS_DIR, fileName);
     await workbook.xlsx.writeFile(filePath);
 
     // Create Export History record
@@ -264,10 +281,10 @@ router.get('/export', authenticate as any, async (req: any, res: Response) => {
     });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`);
 
     await workbook.xlsx.write(res);
-    res.end();
+    if (!res.headersSent) res.end();
   } catch (error) {
     console.error('Export error:', error);
     res.status(500).json({ message: 'Error exporting tickets' });
@@ -421,7 +438,7 @@ router.get('/agent-performance', authenticate, authorize(['super_admin', 'superv
       
       const slaAdherenceRate = totalResolved > 0 
         ? (slaAdherenceCount / totalResolved) * 100 
-        : 100;
+        : null;
 
       return {
         id: agent.id,

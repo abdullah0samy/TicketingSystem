@@ -265,7 +265,7 @@ export default function InboxPage() {
       case 'urgent': return 'bg-danger-red/10 text-danger-red dark:bg-danger-red/20 dark:text-rose-400';
       case 'high': return 'bg-orange-500/10 text-orange-500 dark:bg-orange-500/20 dark:text-orange-400';
       case 'normal': return 'bg-primary-blue/10 text-primary-blue dark:bg-primary-blue/20 dark:text-medical-blue';
-      default: return 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400';
+      default: return 'bg-[var(--bg-elevated)] text-[var(--text-secondary)]';
     }
   };
 
@@ -284,31 +284,31 @@ export default function InboxPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+          <h2 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-3">
             <Inbox className="text-primary-blue" />
             {language === 'ar' ? 'صندوق الوارد للقسم' : 'Department Inbox'}
           </h2>
-          <p className="text-slate-500 dark:text-slate-400">
+          <p className="text-[var(--text-secondary)]">
             {language === 'ar' ? `تذاكر قسم ${user?.department?.nameAr || ''}` : `Tickets for ${user?.department?.nameEn || ''} department`}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <form onSubmit={handleSearch} className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
             <input
               type="text"
               placeholder={t.search}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-surface pl-10 pr-4 py-2 w-64 bg-white dark:bg-slate-900/50"
+              className="input-surface pl-10 pr-4 py-2 w-64 bg-[var(--bg-surface)]/50"
             />
           </form>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="input-surface px-4 py-2 bg-white dark:bg-slate-900/50"
+            className="input-surface px-4 py-2 bg-[var(--bg-surface)]/50"
           >
             <option value="all">{language === 'ar' ? 'كل الحالات' : 'All Statuses'}</option>
             <option value="pending">{language === 'ar' ? 'قيد الانتظار' : 'Pending'}</option>
@@ -321,7 +321,7 @@ export default function InboxPage() {
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="input-surface px-4 py-2 bg-white dark:bg-slate-900/50"
+            className="input-surface px-4 py-2 bg-[var(--bg-surface)]/50"
           >
             <option value="all">{language === 'ar' ? 'كل الأولويات' : 'All Priorities'}</option>
             <option value="low">Low</option>
@@ -335,14 +335,14 @@ export default function InboxPage() {
               type="date" 
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="input-surface px-3 py-2 text-xs bg-white dark:bg-slate-900/50"
+              className="input-surface px-3 py-2 text-xs bg-[var(--bg-surface)]/50"
             />
-            <span className="text-slate-400">-</span>
+            <span className="text-[var(--text-muted)]">-</span>
             <input 
               type="date" 
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="input-surface px-3 py-2 text-xs bg-white dark:bg-slate-900/50"
+              className="input-surface px-3 py-2 text-xs bg-[var(--bg-surface)]/50"
             />
           </div>
 
@@ -351,13 +351,13 @@ export default function InboxPage() {
             placeholder={language === 'ar' ? 'اسم المنشئ' : 'Creator Name'}
             value={creatorNameFilter}
             onChange={(e) => setCreatorNameFilter(e.target.value)}
-            className="input-surface px-4 py-2 w-40 bg-white dark:bg-slate-900/50"
+            className="input-surface px-4 py-2 w-40 bg-[var(--bg-surface)]/50"
           />
 
           <select
             value={agentIdFilter}
             onChange={(e) => setAgentIdFilter(e.target.value)}
-            className="input-surface px-4 py-2 bg-white dark:bg-slate-900/50"
+            className="input-surface px-4 py-2 bg-[var(--bg-surface)]/50"
           >
             <option value="all">{language === 'ar' ? 'كل الوكلاء' : 'All Agents'}</option>
             {agents.map(agent => (
@@ -370,13 +370,13 @@ export default function InboxPage() {
             <div className="flex items-center premium-card p-1 shadow-sm">
               <button 
                 onClick={() => setViewMode('table')}
-                className={`p-1.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-primary-blue text-white' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'}`}
+                className={`p-1.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-primary-blue text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
               >
                 <List size={18} />
               </button>
               <button 
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-primary-blue text-white' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'}`}
+                className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-primary-blue text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
               >
                 <LayoutGrid size={18} />
               </button>
@@ -385,7 +385,7 @@ export default function InboxPage() {
             <div className="relative">
               <button 
                 onClick={() => setShowColumnToggle(!showColumnToggle)}
-                className="flex items-center gap-2 px-4 py-2 premium-card shadow-sm text-sm font-bold text-slate-600 dark:text-slate-300 transition-all"
+                className="flex items-center gap-2 px-4 py-2 premium-card shadow-sm text-sm font-bold text-[var(--text-secondary)] transition-all"
               >
                 <Columns size={18} />
                 <span>{language === 'ar' ? 'الأعمدة' : 'Columns'}</span>
@@ -398,19 +398,19 @@ export default function InboxPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-4 space-y-2"
+                    className="absolute right-0 mt-2 w-48 bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-2xl shadow-xl z-50 p-4 space-y-2"
                   >
                     {columns.map(col => (
                       <label key={col.id} className="flex items-center gap-3 cursor-pointer group">
                         <div 
                           onClick={() => toggleColumn(col.id)}
                           className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
-                            visibleColumns.includes(col.id) ? 'bg-primary-blue border-primary-blue text-white' : 'border-slate-300 dark:border-slate-700'
+                            visibleColumns.includes(col.id) ? 'bg-primary-blue border-primary-blue text-white' : 'border-[var(--border-main)]'
                           }`}
                         >
                           {visibleColumns.includes(col.id) && <CheckSquare size={14} />}
                         </div>
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300 group-hover:text-primary-blue transition-all">{col.label}</span>
+                        <span className="text-xs font-bold text-[var(--text-secondary)] group-hover:text-primary-blue transition-all">{col.label}</span>
                       </label>
                     ))}
                   </motion.div>
@@ -423,14 +423,14 @@ export default function InboxPage() {
 
       <div className="premium-card overflow-hidden">
         {selectedTickets.length > 0 && (
-          <div className="bg-primary-blue/10 dark:bg-primary-blue/20 px-6 py-4 flex items-center justify-between border-b border-primary-blue/20">
+          <div className="bg-primary-blue/10 px-6 py-4 flex items-center justify-between border-b border-primary-blue/20">
             <div className="flex items-center gap-4">
               <span className="text-sm font-bold text-primary-blue">
                 {language === 'ar' ? `${selectedTickets.length} تذكرة مختارة` : `${selectedTickets.length} tickets selected`}
               </span>
               <button 
                 onClick={() => setSelectedTickets([])}
-                className="text-xs font-bold text-slate-500 hover:text-danger-red transition-all uppercase tracking-widest"
+                className="text-xs font-bold text-[var(--text-secondary)] hover:text-danger-red transition-all uppercase tracking-widest"
               >
                 {language === 'ar' ? 'إلغاء التحديد' : 'Clear Selection'}
               </button>
@@ -438,11 +438,11 @@ export default function InboxPage() {
 
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <RefreshCw size={14} className="text-slate-400" />
+                <RefreshCw size={14} className="text-[var(--text-muted)]" />
                 <select 
                   onChange={(e) => handleBulkStatusChange(e.target.value)}
                   disabled={bulkActionLoading}
-                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-primary-blue"
+                  className="bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-primary-blue"
                 >
                   <option value="">{language === 'ar' ? 'تغيير الحالة' : 'Change Status'}</option>
                   <option value="open">Open</option>
@@ -453,11 +453,11 @@ export default function InboxPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <UserPlus size={14} className="text-slate-400" />
+                <UserPlus size={14} className="text-[var(--text-muted)]" />
                 <select 
                   onChange={(e) => handleBulkAssign(e.target.value)}
                   disabled={bulkActionLoading}
-                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-primary-blue"
+                  className="bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-primary-blue"
                 >
                   <option value="">{language === 'ar' ? 'تعيين إلى' : 'Assign To'}</option>
                   <option value="unassign">{language === 'ar' ? 'إلغاء التعيين' : 'Unassign'}</option>
@@ -472,7 +472,7 @@ export default function InboxPage() {
               <button 
                 onClick={handleBulkArchive}
                 disabled={bulkActionLoading}
-                className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-bold text-warning-amber hover:bg-warning-amber/5 transition-all outline-none"
+                className="flex items-center gap-2 bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-lg px-3 py-1.5 text-xs font-bold text-warning-amber hover:bg-warning-amber/5 transition-all outline-none"
               >
                 <Archive size={14} />
                 <span>{language === 'ar' ? 'أرشفة' : 'Archive'}</span>
@@ -485,14 +485,14 @@ export default function InboxPage() {
           {viewMode === 'table' ? (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
+                <tr className="bg-[var(--border-dim)]/30 border-b border-[var(--border-dim)]">
                   <th className="px-6 py-4 w-10">
-                    <button onClick={handleSelectAll} className="text-slate-400 dark:text-slate-500 hover:text-primary-blue transition-all">
+                    <button onClick={handleSelectAll} className="text-[var(--text-muted)] hover:text-primary-blue transition-all">
                       {selectedTickets.length === tickets.length && tickets.length > 0 ? <CheckSquare size={18} /> : <Square size={18} />}
                     </button>
                   </th>
                   {visibleColumns.includes('ticketNumber') && (
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('ticketNumber')}>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('ticketNumber')}>
                       <div className="flex items-center gap-1">
                         {language === 'ar' ? 'رقم التذكرة' : 'Ticket #'}
                         <ArrowUpDown size={12} />
@@ -500,7 +500,7 @@ export default function InboxPage() {
                     </th>
                   )}
                   {visibleColumns.includes('subject') && (
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('subject')}>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('subject')}>
                       <div className="flex items-center gap-1">
                         {language === 'ar' ? 'الموضوع' : 'Subject'}
                         <ArrowUpDown size={12} />
@@ -508,7 +508,7 @@ export default function InboxPage() {
                     </th>
                   )}
                   {visibleColumns.includes('creator') && (
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('creator')}>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('creator')}>
                       <div className="flex items-center gap-1">
                         {language === 'ar' ? 'المنشئ' : 'Creator'}
                         <ArrowUpDown size={12} />
@@ -516,7 +516,7 @@ export default function InboxPage() {
                     </th>
                   )}
                   {visibleColumns.includes('priority') && (
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('priority')}>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('priority')}>
                       <div className="flex items-center gap-1">
                         {language === 'ar' ? 'الأولوية' : 'Priority'}
                         <ArrowUpDown size={12} />
@@ -524,7 +524,7 @@ export default function InboxPage() {
                     </th>
                   )}
                   {visibleColumns.includes('status') && (
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('status')}>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('status')}>
                       <div className="flex items-center gap-1">
                         {language === 'ar' ? 'الحالة' : 'Status'}
                         <ArrowUpDown size={12} />
@@ -532,7 +532,7 @@ export default function InboxPage() {
                     </th>
                   )}
                   {visibleColumns.includes('date') && (
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('createdAt')}>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('createdAt')}>
                       <div className="flex items-center gap-1">
                         {language === 'ar' ? 'التاريخ' : 'Date'}
                         <ArrowUpDown size={12} />
@@ -540,7 +540,7 @@ export default function InboxPage() {
                     </th>
                   )}
                   {visibleColumns.includes('dueDate') && (
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('dueDate')}>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('dueDate')}>
                       <div className="flex items-center gap-1">
                         {language === 'ar' ? 'الاستحقاق' : 'Due Date'}
                         <ArrowUpDown size={12} />
@@ -548,45 +548,45 @@ export default function InboxPage() {
                     </th>
                   )}
                   {visibleColumns.includes('assignedTo') && (
-                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
                       {language === 'ar' ? 'مسندة إلى' : 'Assigned To'}
                     </th>
                   )}
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest"></th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-[var(--border-dim)]">
                 {loading ? (
-                  <tr><td colSpan={10} className="px-6 py-12 text-center text-slate-400">Loading tickets...</td></tr>
+                  <tr><td colSpan={10} className="px-6 py-12 text-center text-[var(--text-muted)]">Loading tickets...</td></tr>
                 ) : sortedTickets.length === 0 ? (
-                  <tr><td colSpan={10} className="px-6 py-12 text-center text-slate-400">No tickets found</td></tr>
+                  <tr><td colSpan={10} className="px-6 py-12 text-center text-[var(--text-muted)]">No tickets found</td></tr>
                 ) : sortedTickets.map((ticket) => (
                   <tr 
                     key={ticket.id} 
-                    className={`hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all cursor-pointer group ${selectedTickets.includes(ticket.id) ? 'bg-primary-blue/5 dark:bg-primary-blue/10' : ''}`}
+                    className={`hover:bg-[var(--bg-main)] transition-all cursor-pointer group ${selectedTickets.includes(ticket.id) ? 'bg-primary-blue/5' : ''}`}
                     onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: `/tickets/${ticket.id}` }))}
                   >
                     <td className="px-6 py-4">
                       <button 
                         onClick={(e) => handleSelectTicket(ticket.id, e)}
-                        className={`transition-all ${selectedTickets.includes(ticket.id) ? 'text-primary-blue' : 'text-slate-300 group-hover:text-slate-400 dark:text-slate-700 dark:group-hover:text-slate-500'}`}
+                        className={`transition-all ${selectedTickets.includes(ticket.id) ? 'text-primary-blue' : 'text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]'}`}
                       >
                         {selectedTickets.includes(ticket.id) ? <CheckSquare size={18} /> : <Square size={18} />}
                       </button>
                     </td>
                     {visibleColumns.includes('ticketNumber') && (
                       <td className="px-6 py-4">
-                        <span className="font-mono text-xs font-bold text-primary-blue bg-primary-blue/5 dark:bg-primary-blue/10 px-2 py-1 rounded-lg">{ticket.ticketNumber}</span>
+                        <span className="font-mono text-xs font-bold text-primary-blue bg-primary-blue/5 px-2 py-1 rounded-lg">{ticket.ticketNumber}</span>
                       </td>
                     )}
                     {visibleColumns.includes('subject') && (
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-primary-blue transition-all">{ticket.subject}</span>
+                          <span className="font-bold text-[var(--text-main)] line-clamp-1 group-hover:text-primary-blue transition-all">{ticket.subject}</span>
                           {ticket.ticketType && (
                             <div className="flex items-center gap-1.5 mt-1">
                               <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: ticket.ticketType.color }} />
-                              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                              <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
                                 {language === 'ar' ? ticket.ticketType.nameAr : ticket.ticketType.nameEn}
                               </span>
                             </div>
@@ -597,10 +597,10 @@ export default function InboxPage() {
                     {visibleColumns.includes('creator') && (
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400">
+                          <div className="w-8 h-8 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-[var(--text-secondary)]">
                             <User size={14} />
                           </div>
-                          <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">{ticket.creatorName}</span>
+                          <span className="text-sm text-[var(--text-secondary)] font-medium">{ticket.creatorName}</span>
                         </div>
                       </td>
                     )}
@@ -637,7 +637,7 @@ export default function InboxPage() {
                     )}
                     {visibleColumns.includes('date') && (
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
+                        <div className="flex items-center gap-2 text-[var(--text-muted)]">
                           <Clock size={14} />
                           <span className="text-xs font-medium">{new Date(ticket.createdAt).toLocaleDateString()}</span>
                         </div>
@@ -651,7 +651,7 @@ export default function InboxPage() {
                             <span className="text-xs font-bold">{new Date(ticket.dueDate).toLocaleDateString()}</span>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-300">-</span>
+                          <span className="text-xs text-[var(--text-muted)]">-</span>
                         )}
                       </td>
                     )}
@@ -659,20 +659,20 @@ export default function InboxPage() {
                       <td className="px-6 py-4">
                         {ticket.assignedTo ? (
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-primary-blue">
+                            <div className="w-6 h-6 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-[10px] font-bold text-primary-blue">
                               {language === 'ar' ? ticket.assignedTo.fullNameAr.charAt(0) : ticket.assignedTo.fullNameEn.charAt(0)}
                             </div>
-                            <span className="text-xs text-slate-600 dark:text-slate-300">
+                            <span className="text-xs text-[var(--text-secondary)]">
                               {language === 'ar' ? ticket.assignedTo.fullNameAr : ticket.assignedTo.fullNameEn}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-400 italic">Unassigned</span>
+                          <span className="text-xs text-[var(--text-muted)] italic">Unassigned</span>
                         )}
                       </td>
                     )}
                     <td className="px-6 py-4 text-right">
-                      <ChevronRight className="text-slate-300 dark:text-slate-700 group-hover:text-primary-blue transition-all" size={20} />
+                      <ChevronRight className="text-[var(--text-muted)] group-hover:text-primary-blue transition-all" size={20} />
                     </td>
                   </tr>
                 ))}
@@ -687,12 +687,12 @@ export default function InboxPage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: `/tickets/${ticket.id}` }))}
-                  className={`bg-white dark:bg-slate-900 rounded-2xl border p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer group relative ${selectedTickets.includes(ticket.id) ? 'border-primary-blue ring-2 ring-primary-blue/20' : 'border-slate-200 dark:border-slate-800'}`}
+                  className={`bg-[var(--bg-surface)] rounded-2xl border p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer group relative ${selectedTickets.includes(ticket.id) ? 'border-primary-blue ring-2 ring-primary-blue/20' : 'border-[var(--border-main)]'}`}
                 >
                   <div className="absolute top-4 right-4">
                     <button 
                       onClick={(e) => handleSelectTicket(ticket.id, e)}
-                      className={`transition-all ${selectedTickets.includes(ticket.id) ? 'text-primary-blue' : 'text-slate-300 group-hover:text-slate-400'}`}
+                      className={`transition-all ${selectedTickets.includes(ticket.id) ? 'text-primary-blue' : 'text-[var(--text-muted)] group-hover:text-[var(--text-muted)]'}`}
                     >
                       {selectedTickets.includes(ticket.id) ? <CheckSquare size={20} /> : <Square size={20} />}
                     </button>
@@ -705,25 +705,25 @@ export default function InboxPage() {
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 line-clamp-1 group-hover:text-primary-blue transition-all">{ticket.subject}</h3>
+                  <h3 className="text-lg font-bold text-[var(--text-main)] mb-2 line-clamp-1 group-hover:text-primary-blue transition-all">{ticket.subject}</h3>
                   
-                  <div className="flex items-center gap-2 mb-4 text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center gap-2 mb-4 text-[var(--text-secondary)]">
                     <User size={14} />
                     <span className="text-xs font-medium">{ticket.creatorName}</span>
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between pt-4 border-t border-[var(--border-dim)]">
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${ticket.status === 'resolved' ? 'bg-success-green' : 'bg-primary-blue'}`} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400">{getStatusLabel(ticket.status)}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">{getStatusLabel(ticket.status)}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-slate-400">
+                    <div className="flex items-center gap-1 text-[var(--text-muted)]">
                       <Clock size={12} />
                       <span className="text-[10px]">{new Date(ticket.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
                   {ticket.dueDate && (
-                    <div className={`mt-3 pt-3 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between ${new Date(ticket.dueDate) < new Date() && ticket.status !== 'resolved' && ticket.status !== 'closed' ? 'text-danger-red' : 'text-indigo-500'}`}>
+                    <div className={`mt-3 pt-3 border-t border-[var(--border-dim)] flex items-center justify-between ${new Date(ticket.dueDate) < new Date() && ticket.status !== 'resolved' && ticket.status !== 'closed' ? 'text-danger-red' : 'text-indigo-500'}`}>
                       <span className="text-[10px] font-bold uppercase tracking-widest">{language === 'ar' ? 'موعد الاستحقاق' : 'Due Date'}</span>
                       <span className="text-xs font-bold">{new Date(ticket.dueDate).toLocaleDateString()}</span>
                     </div>
@@ -736,25 +736,25 @@ export default function InboxPage() {
         
         {/* Pagination */}
         {pagination.pages > 1 && (
-          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <span className="text-xs text-slate-500">
+          <div className="px-6 py-4 bg-[var(--border-dim)]/50 border-t border-[var(--border-dim)] flex items-center justify-between">
+            <span className="text-xs text-[var(--text-secondary)]">
               {language === 'ar' ? `إجمالي ${pagination.total} تذكرة` : `Total ${pagination.total} tickets`}
             </span>
             <div className="flex items-center gap-2">
               <button 
                 disabled={pagination.page === 1}
                 onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
-                className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-50 transition-all"
+                className="p-2 rounded-lg border border-[var(--border-main)] hover:bg-[var(--bg-surface)] disabled:opacity-50 transition-all"
               >
                 <ChevronRight size={16} className="rotate-180" />
               </button>
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+              <span className="text-xs font-bold text-[var(--text-secondary)]">
                 {pagination.page} / {pagination.pages}
               </span>
               <button 
                 disabled={pagination.page === pagination.pages}
                 onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
-                className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 disabled:opacity-50 transition-all"
+                className="p-2 rounded-lg border border-[var(--border-main)] hover:bg-[var(--bg-surface)] disabled:opacity-50 transition-all"
               >
                 <ChevronRight size={16} />
               </button>

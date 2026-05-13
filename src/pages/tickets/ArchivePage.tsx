@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
 import { translations } from '../../core/translations.ts';
@@ -27,6 +27,11 @@ export default function ArchivePage() {
   const { user } = useAuthStore();
   const { language } = useSettingsStore();
   const t = translations[language];
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
 
   const fetchTickets = async (page = 1) => {
     setLoading(true);
@@ -34,12 +39,14 @@ export default function ArchivePage() {
       const params = new URLSearchParams({ page: page.toString(), limit: '20' });
       if (searchTerm) params.set('search', searchTerm);
       const data = await apiFetch(`/api/tickets/archived?${params}`);
+      if (!isMounted.current) return;
       setTickets(data.tickets);
       setPagination(data.pagination);
     } catch (err) {
+      if (!isMounted.current) return;
       console.error('Failed to fetch archived tickets:', err);
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
   };
 
@@ -72,78 +79,78 @@ export default function ArchivePage() {
       open: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
       in_progress: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
       resolved: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-      closed: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
+      closed: 'bg-[var(--bg-elevated)] text-[var(--text-secondary)]',
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status] || 'bg-[var(--bg-elevated)] text-[var(--text-secondary)]';
   };
 
   const priorityColor = (priority: string) => {
     const colors: Record<string, string> = {
-      low: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+      low: 'bg-[var(--bg-elevated)] text-[var(--text-secondary)]',
       normal: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
       high: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
       critical: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
     };
-    return colors[priority] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+    return colors[priority] || 'bg-[var(--bg-elevated)] text-[var(--text-secondary)]';
   };
 
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Archive size={28} className="text-slate-400" />
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <Archive size={28} className="text-[var(--text-muted)]" />
+          <h1 className="text-2xl font-bold text-[var(--text-main)]">
             {language === 'ar' ? 'الأرشيف' : 'Archive'}
           </h1>
         </div>
         <button
           onClick={() => fetchTickets(pagination.page)}
-          className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          className="p-2 rounded-lg hover:bg-[var(--bg-elevated)] transition-colors"
         >
-          <RefreshCw size={20} className="text-slate-500" />
+          <RefreshCw size={20} className="text-[var(--text-secondary)]" />
         </button>
       </div>
 
       <form onSubmit={handleSearch} className="mb-6">
         <div className="relative">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={language === 'ar' ? 'بحث في الأرشيف...' : 'Search archived tickets...'}
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </form>
 
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm border border-[var(--border-main)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('ticketNumber')}>
+              <tr className="border-b border-[var(--border-main)] bg-[var(--border-dim)]/50">
+                <th className="text-right px-4 py-3 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider cursor-pointer" onClick={() => handleSort('ticketNumber')}>
                   <span className="flex items-center gap-1">{language === 'ar' ? 'رقم التذكرة' : 'Ticket #'} <ArrowUpDown size={14} /></span>
                 </th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('subject')}>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider cursor-pointer" onClick={() => handleSort('subject')}>
                   <span className="flex items-center gap-1">{t.subject} <ArrowUpDown size={14} /></span>
                 </th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.creator}</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{language === 'ar' ? 'الحالة' : 'Status'}</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.priority}</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{language === 'ar' ? 'تاريخ الأرشفة' : 'Archived At'}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">{t.creator}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'الحالة' : 'Status'}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">{t.priority}</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'تاريخ الأرشفة' : 'Archived At'}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+            <tbody className="divide-y divide-[var(--border-dim)]">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-slate-400">
+                  <td colSpan={6} className="px-4 py-12 text-center text-[var(--text-muted)]">
                     {language === 'ar' ? 'جاري التحميل...' : 'Loading...'}
                   </td>
                 </tr>
               ) : tickets.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-slate-400">
+                  <td colSpan={6} className="px-4 py-12 text-center text-[var(--text-muted)]">
                     {language === 'ar' ? 'لا توجد تذاكر في الأرشيف' : 'No archived tickets'}
                   </td>
                 </tr>
@@ -151,16 +158,16 @@ export default function ArchivePage() {
                 tickets.map((ticket) => (
                   <tr
                     key={ticket.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
+                    className="hover:bg-[var(--border-dim)] cursor-pointer transition-colors"
                     onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: `/tickets/${ticket.id}` }))}
                   >
                     <td className="px-4 py-3 text-sm font-medium text-blue-600 dark:text-blue-400">
                       {ticket.ticketNumber}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-900 dark:text-white max-w-xs truncate">
+                    <td className="px-4 py-3 text-sm text-[var(--text-main)] max-w-xs truncate">
                       {ticket.subject || '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
+                    <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">
                       {ticket.creatorName || '-'}
                     </td>
                     <td className="px-4 py-3">
@@ -173,7 +180,7 @@ export default function ArchivePage() {
                         {ticket.priority}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-500">
+                    <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">
                       {ticket.archivedAt ? new Date(ticket.archivedAt).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-GB') : '-'}
                     </td>
                   </tr>
@@ -193,7 +200,7 @@ export default function ArchivePage() {
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 p === pagination.page
                   ? 'bg-blue-600 text-white'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'
               }`}
             >
               {p}

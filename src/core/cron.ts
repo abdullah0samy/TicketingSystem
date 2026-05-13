@@ -2,7 +2,8 @@ import cron from 'node-cron';
 import prisma from './db.ts';
 import fs from 'fs';
 import path from 'path';
-import { getIO } from './socket.ts'; // BUG FIX #6: Static import — prevents repeated dynamic import overhead inside loops
+import { getIO } from './socket.ts';
+import { EXPORTS_DIR } from './paths.ts'; // BUG FIX #6: Static import — prevents repeated dynamic import overhead inside loops
 
 
 export const initCron = () => {
@@ -25,7 +26,7 @@ export const initCron = () => {
       }
 
       // 2. Delete physical files for expired records
-      const exportDir = path.join(process.cwd(), 'uploads/exports');
+      const exportDir = EXPORTS_DIR;
       for (const rec of expiredExports) {
         if (rec.fileName) {
           const filePath = path.join(exportDir, rec.fileName);

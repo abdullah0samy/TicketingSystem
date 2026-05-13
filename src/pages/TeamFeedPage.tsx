@@ -102,7 +102,7 @@ export default function TeamFeedPage() {
   const fetchNotes = async (signal?: AbortSignal) => {
     try {
       const data = await apiFetch('/api/team-notes', { signal });
-      setNotes(data);
+      if (!signal?.aborted) setNotes(data);
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       console.error('Error fetching notes:', err);
@@ -292,18 +292,18 @@ export default function TeamFeedPage() {
     <div className="max-w-2xl mx-auto space-y-6 pb-20">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-3">
             <Users className="text-primary-blue" />
             {language === 'ar' ? 'ساحة الفريق' : 'Team Feed'}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400">
+          <p className="text-[var(--text-secondary)]">
             {language === 'ar' ? 'شارك المعرفة والتحديثات مع زملائك' : 'Share knowledge and updates with your colleagues'}
           </p>
         </div>
       </div>
 
       {/* Create Post Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-main)] shadow-sm overflow-hidden">
         <div className="p-6">
           <div className="flex gap-4">
             <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-slate-800 flex items-center justify-center border border-blue-100 dark:border-slate-700 overflow-hidden shrink-0">
@@ -313,7 +313,7 @@ export default function TeamFeedPage() {
               value={newNoteBody}
               onChange={(e) => setNewNoteBody(e.target.value)}
               placeholder={language === 'ar' ? 'بماذا تفكر؟' : "What's on your mind?"}
-              className="w-full bg-transparent border-none outline-none text-slate-900 dark:text-white placeholder-slate-400 resize-none min-h-[80px] py-2"
+              className="w-full bg-transparent border-none outline-none text-[var(--text-main)] placeholder-slate-400 resize-none min-h-[80px] py-2"
             />
           </div>
 
@@ -321,12 +321,12 @@ export default function TeamFeedPage() {
           {attachments.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {attachments.map((a, i) => (
-                <div key={i} className="relative group bg-slate-50 dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                <div key={i} className="relative group bg-[var(--border-dim)] p-2 rounded-xl border border-[var(--border-main)] flex items-center gap-2">
                   {a.isVoiceNote ? <Mic size={14} className="text-rose-500" /> : <Paperclip size={14} className="text-primary-blue" />}
-                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 max-w-[100px] truncate">
+                  <span className="text-[10px] font-bold text-[var(--text-secondary)] max-w-[100px] truncate">
                     {a.isVoiceNote ? `Voice Note (${formatDuration(a.voiceDuration)})` : a.fileName}
                   </span>
-                  <button onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))} className="text-slate-400 hover:text-danger-red">
+                  <button onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))} className="text-[var(--text-muted)] hover:text-danger-red">
                     <X size={14} />
                   </button>
                 </div>
@@ -335,19 +335,19 @@ export default function TeamFeedPage() {
           )}
         </div>
 
-        <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="px-6 py-4 bg-[var(--border-dim)]/50 border-t border-[var(--border-dim)] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <label className="p-2 text-slate-500 hover:text-primary-blue hover:bg-primary-blue/10 rounded-full cursor-pointer transition-all">
+            <label className="p-2 text-[var(--text-secondary)] hover:text-primary-blue hover:bg-primary-blue/10 rounded-full cursor-pointer transition-all">
               <input type="file" className="hidden" onChange={handleFileUpload} />
               <ImageIcon size={20} />
             </label>
-            <label className="p-2 text-slate-500 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-full cursor-pointer transition-all">
+            <label className="p-2 text-[var(--text-secondary)] hover:text-emerald-500 hover:bg-emerald-500/10 rounded-full cursor-pointer transition-all">
               <input type="file" className="hidden" onChange={handleFileUpload} />
               <Paperclip size={20} />
             </label>
             <button 
               onClick={isRecording ? stopRecording : startRecording}
-              className={`p-2 rounded-full transition-all ${isRecording ? 'bg-rose-500 text-white animate-pulse' : 'text-slate-500 hover:text-rose-500 hover:bg-rose-500/10'}`}
+              className={`p-2 rounded-full transition-all ${isRecording ? 'bg-rose-500 text-white animate-pulse' : 'text-[var(--text-secondary)] hover:text-rose-500 hover:bg-rose-500/10'}`}
             >
               <Mic size={20} />
             </button>
@@ -366,11 +366,11 @@ export default function TeamFeedPage() {
       {/* Feed */}
       <div className="space-y-6">
         {loading ? (
-          <div className="p-8 text-center text-slate-400">Loading feed...</div>
+          <div className="p-8 text-center text-[var(--text-muted)]">Loading feed...</div>
         ) : notes.length === 0 ? (
-          <div className="p-20 text-center bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
+          <div className="p-20 text-center bg-[var(--bg-surface)] rounded-3xl border border-dashed border-[var(--border-main)]">
             <Users size={48} className="mx-auto text-slate-200 mb-4" />
-            <p className="text-slate-400">{language === 'ar' ? 'لا توجد منشورات بعد' : 'No posts yet'}</p>
+            <p className="text-[var(--text-muted)]">{language === 'ar' ? 'لا توجد منشورات بعد' : 'No posts yet'}</p>
           </div>
         ) : (
           notes.map((note) => (
@@ -378,27 +378,27 @@ export default function TeamFeedPage() {
               key={note.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
+              className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-main)] shadow-sm overflow-hidden"
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-700">
-                      {note.author.avatarUrl ? <img src={note.author.avatarUrl} className="w-full h-full object-cover" /> : <User className="text-slate-400" size={20} />}
+                    <div className="w-10 h-10 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center overflow-hidden border border-[var(--border-main)]">
+                      {note.author.avatarUrl ? <img src={note.author.avatarUrl} className="w-full h-full object-cover" /> : <User className="text-[var(--text-muted)]" size={20} />}
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                      <h4 className="text-sm font-bold text-[var(--text-main)]">
                         {language === 'ar' ? note.author.fullNameAr : note.author.fullNameEn}
                       </h4>
-                      <p className="text-[10px] text-slate-400">{new Date(note.createdAt).toLocaleString()}</p>
+                      <p className="text-[10px] text-[var(--text-muted)]">{new Date(note.createdAt).toLocaleString()}</p>
                     </div>
                   </div>
-                  <button className="text-slate-400 hover:text-slate-600">
+                  <button className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
                     <MoreHorizontal size={20} />
                   </button>
                 </div>
 
-                <div className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap mb-4">
+                <div className="text-[var(--text-secondary)] text-sm leading-relaxed whitespace-pre-wrap mb-4">
                   {note.body}
                 </div>
 
@@ -408,29 +408,29 @@ export default function TeamFeedPage() {
                     {note.attachments.map((att) => (
                       <div key={att.id}>
                         {att.isVoiceNote ? (
-                          <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl flex items-center gap-4 border border-slate-100 dark:border-slate-800">
+                          <div className="bg-[var(--border-dim)]/50 p-3 rounded-2xl flex items-center gap-4 border border-[var(--border-dim)]">
                             <button className="w-10 h-10 rounded-full bg-primary-blue text-white flex items-center justify-center hover:scale-105 transition-transform">
                               <Play size={18} fill="currentColor" />
                             </button>
-                            <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden relative">
+                            <div className="flex-1 h-1.5 bg-[var(--bg-elevated)] rounded-full overflow-hidden relative">
                               <div className="absolute inset-0 bg-primary-blue w-1/3" />
                             </div>
-                            <span className="text-[10px] font-mono font-bold text-slate-500">{formatDuration(att.voiceDuration || 0)}</span>
+                            <span className="text-[10px] font-mono font-bold text-[var(--text-secondary)]">{formatDuration(att.voiceDuration || 0)}</span>
                           </div>
                         ) : att.mimeType?.startsWith('image/') ? (
-                          <img src={att.fileUrl} className="rounded-2xl w-full max-h-96 object-cover border border-slate-100 dark:border-slate-800" />
+                          <img src={att.fileUrl} className="rounded-2xl w-full max-h-96 object-cover border border-[var(--border-dim)]" />
                         ) : (
                           <a 
                             href={att.fileUrl} 
                             target="_blank" 
-                            className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 hover:bg-slate-100 transition-all"
+                            className="flex items-center gap-3 p-3 bg-[var(--border-dim)]/50 rounded-2xl border border-[var(--border-dim)] hover:bg-[var(--bg-elevated)] transition-all"
                           >
-                            <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                            <div className="p-2 bg-[var(--bg-surface)] rounded-xl shadow-sm">
                               <FileText className="text-primary-blue" size={20} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{att.fileName}</p>
-                              <p className="text-[10px] text-slate-400">{(Number(att.fileSize) / 1024).toFixed(1)} KB</p>
+                              <p className="text-xs font-bold text-[var(--text-secondary)] truncate">{att.fileName}</p>
+                              <p className="text-[10px] text-[var(--text-muted)]">{(Number(att.fileSize) / 1024).toFixed(1)} KB</p>
                             </div>
                           </a>
                         )}
@@ -439,24 +439,24 @@ export default function TeamFeedPage() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-6 pt-4 border-t border-slate-50 dark:border-slate-800/50">
+                <div className="flex items-center gap-6 pt-4 border-t border-[var(--border-dim)]/50">
                   <button 
                     onClick={() => handleLike(note.id)}
-                    className={`flex items-center gap-2 text-xs font-bold transition-all ${note.likes.some(l => l.userId === user?.id) ? 'text-primary-blue' : 'text-slate-400 hover:text-primary-blue'}`}
+                    className={`flex items-center gap-2 text-xs font-bold transition-all ${note.likes.some(l => l.userId === user?.id) ? 'text-primary-blue' : 'text-[var(--text-muted)] hover:text-primary-blue'}`}
                   >
                     <ThumbsUp size={18} className={note.likes.some(l => l.userId === user?.id) ? 'fill-current' : ''} />
                     {note.likes.length} {language === 'ar' ? 'إعجاب' : 'Likes'}
                   </button>
                   <button 
                     onClick={() => setCommentingOn(commentingOn === note.id ? null : note.id)}
-                    className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-primary-blue transition-all"
+                    className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] hover:text-primary-blue transition-all"
                   >
                     <MessageSquare size={18} />
                     {note.comments.length} {language === 'ar' ? 'تعليق' : 'Comments'}
                   </button>
                   <button 
                     onClick={() => handleShare(note)}
-                    className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-primary-blue transition-all"
+                    className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] hover:text-primary-blue transition-all"
                   >
                     <Share2 size={18} />
                     {language === 'ar' ? 'مشاركة' : 'Share'}
@@ -471,22 +471,22 @@ export default function TeamFeedPage() {
                     initial={{ height: 0 }}
                     animate={{ height: 'auto' }}
                     exit={{ height: 0 }}
-                    className="bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 overflow-hidden"
+                    className="bg-[var(--border-dim)]/30 border-t border-[var(--border-dim)] overflow-hidden"
                   >
                     <div className="p-6 space-y-4">
                       {note.comments.map((comment) => (
                         <div key={comment.id} className="flex gap-3">
-                          <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 shrink-0 overflow-hidden">
-                            {comment.author.avatarUrl ? <img src={comment.author.avatarUrl} className="w-full h-full object-cover" /> : <User size={16} className="m-2 text-slate-400" />}
+                          <div className="w-8 h-8 rounded-full bg-[var(--bg-elevated)] shrink-0 overflow-hidden">
+                            {comment.author.avatarUrl ? <img src={comment.author.avatarUrl} className="w-full h-full object-cover" /> : <User size={16} className="m-2 text-[var(--text-muted)]" />}
                           </div>
-                          <div className="flex-1 bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                          <div className="flex-1 bg-[var(--bg-surface)] p-3 rounded-2xl shadow-sm border border-[var(--border-dim)]">
                             <div className="flex items-center justify-between mb-1">
-                              <h5 className="text-xs font-bold text-slate-900 dark:text-white">
+                              <h5 className="text-xs font-bold text-[var(--text-main)]">
                                 {language === 'ar' ? comment.author.fullNameAr : comment.author.fullNameEn}
                               </h5>
-                              <span className="text-[9px] text-slate-400">{new Date(comment.createdAt).toLocaleTimeString()}</span>
+                              <span className="text-[9px] text-[var(--text-muted)]">{new Date(comment.createdAt).toLocaleTimeString()}</span>
                             </div>
-                            <p className="text-xs text-slate-600 dark:text-slate-400">{comment.body}</p>
+                            <p className="text-xs text-[var(--text-secondary)]">{comment.body}</p>
                           </div>
                         </div>
                       ))}
@@ -505,7 +505,7 @@ export default function TeamFeedPage() {
                             }}
                             onKeyDown={(e) => e.key === 'Enter' && handleAddComment(note.id)}
                             placeholder={language === 'ar' ? 'اكتب تعليقاً...' : 'Write a comment...'}
-                            className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-blue"
+                            className="w-full bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-xl px-4 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-blue"
                           />
                           <button 
                             onClick={() => handleAddComment(note.id)}

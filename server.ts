@@ -5,6 +5,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { initSocket } from './src/core/socket.ts';
 import { initCron } from './src/core/cron.ts';
+import { DIST_DIR } from './src/core/paths.ts';
 
 async function startServer() {
   const PORT = Number(process.env.PORT) || 3000;
@@ -24,10 +25,9 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(DIST_DIR));
     app.get('*', (req: any, res: any) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      res.sendFile(path.join(DIST_DIR, 'index.html'));
     });
   }
 

@@ -20,6 +20,7 @@ export const GlobalSearch: React.FC = () => {
   const { accessToken } = useAuthStore();
   const { language } = useSettingsStore();
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -40,24 +41,41 @@ export const GlobalSearch: React.FC = () => {
       }
     }, 300);
 
-    return () => clearTimeout(delayDebounceFn);
+    return () => {
+      clearTimeout(delayDebounceFn);
+      if (searchControllerRef.current) {
+        searchControllerRef.current.abort();
+      }
+    };
   }, [query]);
 
   const performSearch = async () => {
+    if (searchControllerRef.current) {
+      searchControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    searchControllerRef.current = controller;
+
     setLoading(true);
     try {
       const res = await fetch(`/api/tickets/search?q=${encodeURIComponent(query)}&limit=5`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
+        headers: { Authorization: `Bearer ${accessToken}` },
+        signal: controller.signal
       });
       if (res.ok) {
         const data = await res.json();
-        setResults(data.tickets);
-        setIsOpen(true);
+        if (!controller.signal.aborted) {
+          setResults(data.tickets);
+          setIsOpen(true);
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.name === 'AbortError') return;
       console.error('Search error:', error);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
   };
 
@@ -70,7 +88,7 @@ export const GlobalSearch: React.FC = () => {
   return (
     <div className="relative w-full max-w-md" ref={containerRef}>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
         <input
           type="text"
           placeholder={language === 'ar' ? 'بحث عن تذكرة...' : 'Search tickets...'}
@@ -82,12 +100,12 @@ export const GlobalSearch: React.FC = () => {
           onFocus={() => {
             if (query.length >= 2) setIsOpen(true);
           }}
-          className="w-full pl-10 pr-10 py-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-sm outline-none focus:ring-2 focus:ring-primary-blue transition-all"
+          className="input-surface w-full pl-10 pr-10 py-2 text-sm"
         />
         {query && (
           <button 
             onClick={() => { setQuery(''); setResults([]); }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
           >
             <X size={16} />
           </button>
@@ -95,9 +113,9 @@ export const GlobalSearch: React.FC = () => {
       </div>
 
       {isOpen && (query.length >= 2) && (
-        <div className="absolute top-12 left-0 w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl z-50 overflow-hidden">
+        <div className="absolute top-12 left-0 w-full bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-main)] shadow-2xl z-50 overflow-hidden">
           {loading ? (
-            <div className="p-4 flex items-center justify-center text-slate-400 gap-2">
+            <div className="p-4 flex items-center justify-center text-[var(--text-muted)] gap-2">
               <Loader2 className="animate-spin" size={18} />
               <span className="text-sm">{language === 'ar' ? 'جاري البحث...' : 'Searching...'}</span>
             </div>
@@ -107,36 +125,36 @@ export const GlobalSearch: React.FC = () => {
                 <div 
                   key={ticket.id}
                   onClick={() => handleSelect(ticket.id)}
-                  className="p-4 border-b border-slate-50 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-all group"
+                  className="p-4 border-b border-[var(--border-dim)] hover:bg-[var(--border-dim)] cursor-pointer transition-all group"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
-                      <div className="mt-1 p-1.5 bg-blue-50 dark:bg-blue-900/30 rounded-lg text-primary-blue">
+                      <div className="mt-1 p-1.5 bg-primary-blue/10 rounded-lg text-primary-blue">
                         <Ticket size={16} />
                       </div>
                       <div>
                         <p className="text-xs font-mono font-bold text-primary-blue">{ticket.ticketNumber}</p>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-primary-blue transition-all">
+                        <p className="text-sm font-bold text-[var(--text-main)] line-clamp-1 group-hover:text-primary-blue transition-all">
                           {ticket.subject}
                         </p>
                         <div className="flex items-center gap-3 mt-1">
-                          <span className="text-[10px] flex items-center gap-1 text-slate-500 dark:text-slate-300">
+                          <span className="text-[10px] flex items-center gap-1 text-[var(--text-secondary)]">
                             <User size={10} />
                             {ticket.creatorName}
                           </span>
-                          <span className="text-[10px] flex items-center gap-1 text-slate-500 dark:text-slate-300">
+                          <span className="text-[10px] flex items-center gap-1 text-[var(--text-secondary)]">
                             <Calendar size={10} />
                             {new Date(ticket.createdAt).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
                     </div>
-                    <ChevronRight size={16} className="text-slate-300 group-hover:text-primary-blue mt-1" />
+                    <ChevronRight size={16} className="text-[var(--text-muted)] group-hover:text-primary-blue mt-1" />
                   </div>
                 </div>
               ))}
               <div 
-                className="p-3 bg-slate-50 dark:bg-slate-800/50 text-center"
+                className="p-3 bg-[var(--border-dim)] text-center"
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent('navigate', { detail: `/inbox?search=${encodeURIComponent(query)}` }));
                   setIsOpen(false);
@@ -148,7 +166,7 @@ export const GlobalSearch: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="p-8 text-center text-slate-400 text-sm">
+            <div className="p-8 text-center text-[var(--text-muted)] text-sm">
               {language === 'ar' ? 'لا توجد نتائج' : 'No results found'}
             </div>
           )}

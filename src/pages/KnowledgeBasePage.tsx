@@ -245,7 +245,7 @@ export default function KnowledgeBasePage() {
         <>
           {parts.map((part, i) => 
             regex.test(part) ? (
-              <mark key={i} className="bg-yellow-200 dark:bg-yellow-900/50 text-slate-900 dark:text-white rounded-sm px-0.5">
+              <mark key={i} className="bg-yellow-200 dark:bg-yellow-900/50 text-[var(--text-main)] rounded-sm px-0.5">
                 {part}
               </mark>
             ) : (
@@ -277,7 +277,7 @@ export default function KnowledgeBasePage() {
 
 
 
-  if (loading) return <div className="p-8 text-center text-slate-400">Loading knowledge base...</div>;
+  if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">Loading knowledge base...</div>;
 
   return (
     <div className="max-w-7xl mx-auto pb-20">
@@ -292,24 +292,24 @@ export default function KnowledgeBasePage() {
           >
             <button 
               onClick={() => setSelectedArticle(null)}
-              className="flex items-center gap-2 text-slate-500 hover:text-primary-blue transition-all font-bold"
+              className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-primary-blue transition-all font-bold"
             >
               <ArrowLeft size={20} />
               {language === 'ar' ? 'العودة للمركز المعرفي' : 'Back to Knowledge Base'}
             </button>
 
             {/* Breadcrumbs */}
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-300">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
               <span className="hover:text-primary-blue cursor-pointer transition-colors" onClick={() => setSelectedArticle(null)}>{language === 'ar' ? 'المركز المعرفي' : 'Knowledge Base'}</span>
               <ChevronRight size={12} className={language === 'ar' ? 'rotate-180' : ''} />
               <span className="text-primary-blue">{language === 'ar' ? selectedArticle.category.nameAr : selectedArticle.category.nameEn}</span>
               <ChevronRight size={12} className={language === 'ar' ? 'rotate-180' : ''} />
-              <span className="text-slate-400 dark:text-slate-400 truncate max-w-[200px]">{language === 'ar' ? selectedArticle.titleAr : selectedArticle.titleEn}</span>
+              <span className="text-[var(--text-muted)] truncate max-w-[200px]">{language === 'ar' ? selectedArticle.titleAr : selectedArticle.titleEn}</span>
             </div>
 
             <div className="premium-card overflow-hidden">
               <div className="p-8 md:p-12 space-y-6">
-                <div className="flex flex-wrap items-center gap-4 text-xs font-bold uppercase tracking-widest text-slate-400">
+                <div className="flex flex-wrap items-center gap-4 text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">
                   <span className="px-3 py-1 rounded-full bg-primary-blue/10 text-primary-blue">
                     {language === 'ar' ? selectedArticle.category.nameAr : selectedArticle.category.nameEn}
                   </span>
@@ -323,33 +323,33 @@ export default function KnowledgeBasePage() {
                   </div>
                 </div>
 
-                <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
+                <h1 className="text-3xl md:text-4xl font-bold text-[var(--text-main)]">
                   {language === 'ar' ? selectedArticle.titleAr : selectedArticle.titleEn}
                 </h1>
 
-                <div className="flex items-center gap-3 py-4 border-y border-slate-100 dark:border-slate-800">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                <div className="flex items-center gap-3 py-4 border-y border-[var(--border-dim)]">
+                  <div className="w-10 h-10 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-[var(--text-muted)]">
                     <User size={20} />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-900 dark:text-white">
+                    <p className="text-sm font-bold text-[var(--text-main)]">
                       {language === 'ar' ? selectedArticle.author.fullNameAr : selectedArticle.author.fullNameEn}
                     </p>
-                    <p className="text-xs text-slate-500">Author</p>
+                    <p className="text-xs text-[var(--text-secondary)]">Author</p>
                   </div>
                 </div>
 
-                <div className="prose dark:prose-invert max-w-none text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
+                <div className="prose prose-invert max-w-none text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
                   {language === 'ar' ? selectedArticle.contentAr : selectedArticle.contentEn}
                 </div>
 
-                <div className="flex items-center justify-between pt-8 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between pt-8 border-t border-[var(--border-dim)]">
                   <div className="flex items-center gap-4">
-                    <button className="flex items-center gap-2 px-4 py-2 premium-card shadow-sm text-slate-500 hover:text-primary-blue transition-all">
+                    <button className="flex items-center gap-2 px-4 py-2 premium-card shadow-sm text-[var(--text-secondary)] hover:text-primary-blue transition-all">
                       <ThumbsUp size={18} />
                       <span className="text-sm font-bold">Helpful</span>
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 premium-card shadow-sm text-slate-500 hover:text-primary-blue transition-all">
+                    <button className="flex items-center gap-2 px-4 py-2 premium-card shadow-sm text-[var(--text-secondary)] hover:text-primary-blue transition-all">
                       <Share2 size={18} />
                     </button>
                   </div>
@@ -371,17 +371,17 @@ export default function KnowledgeBasePage() {
           >
             {/* Hero Search */}
             <div className="text-center space-y-6 pt-12 pb-6">
-              <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white">
+              <h1 className="text-4xl md:text-5xl font-bold text-[var(--text-main)]">
                 {language === 'ar' ? 'كيف يمكننا مساعدتك اليوم؟' : 'How can we help you today?'}
               </h1>
               <div className="max-w-2xl mx-auto relative group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-blue transition-colors" size={24} />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-primary-blue transition-colors" size={24} />
                   <input 
                   type="text"
                   placeholder={language === 'ar' ? 'ابحث عن حلول، مقالات، أو أدلة...' : 'Search for solutions, articles, or guides...'}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="input-surface w-full pl-14 pr-6 py-5 text-lg shadow-xl shadow-slate-200/20 dark:shadow-none bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                  className="input-surface w-full pl-14 pr-6 py-5 text-lg shadow-xl shadow-slate-200/20 dark:shadow-none bg-[var(--bg-surface)] border-[var(--border-main)] text-[var(--text-main)]"
                 />
               </div>
 
@@ -400,7 +400,7 @@ export default function KnowledgeBasePage() {
                   </button>
                   <button 
                     onClick={() => setShowCategoryForm(true)}
-                    className="flex items-center gap-2 px-6 py-3 premium-card shadow-sm text-slate-700 dark:text-white font-bold transition-all text-sm"
+                    className="flex items-center gap-2 px-6 py-3 premium-card shadow-sm text-[var(--text-main)] font-bold transition-all text-sm"
                   >
                     <PlusCircle size={20} />
                     {language === 'ar' ? 'إدارة التصنيفات' : 'Manage Categories'}
@@ -412,13 +412,13 @@ export default function KnowledgeBasePage() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
               {/* Sidebar Categories */}
               <div className="space-y-6">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest px-4">
+                <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest px-4">
                   {language === 'ar' ? 'التصنيفات' : 'Categories'}
                 </h3>
                 <div className="space-y-1">
                   <button 
                     onClick={() => { setSelectedCategory(null); setPage(1); }}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all ${!selectedCategory ? 'bg-primary-blue text-white shadow-lg shadow-primary-blue/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all ${!selectedCategory ? 'bg-primary-blue text-white shadow-lg shadow-primary-blue/20' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'}`}
                   >
                     <span className="font-bold">{language === 'ar' ? 'الكل' : 'All Articles'}</span>
                   </button>
@@ -426,17 +426,17 @@ export default function KnowledgeBasePage() {
                     <button 
                       key={cat.id}
                       onClick={() => { setSelectedCategory(cat.id); setPage(1); }}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all ${selectedCategory === cat.id ? 'bg-primary-blue text-white shadow-lg shadow-primary-blue/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all ${selectedCategory === cat.id ? 'bg-primary-blue text-white shadow-lg shadow-primary-blue/20' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'}`}
                     >
                       <span className="font-bold">{language === 'ar' ? cat.nameAr : cat.nameEn}</span>
-                      <span className={`text-xs font-bold ${selectedCategory === cat.id ? 'text-white/70' : 'text-slate-400'}`}>{cat._count.articles}</span>
+                      <span className={`text-xs font-bold ${selectedCategory === cat.id ? 'text-white/70' : 'text-[var(--text-muted)]'}`}>{cat._count.articles}</span>
                     </button>
                   ))}
                 </div>
 
                 <div className="p-6 bg-primary-blue/5 rounded-3xl border border-primary-blue/10 space-y-4">
                   <h4 className="font-bold text-primary-blue">Need more help?</h4>
-                  <p className="text-xs text-slate-500 leading-relaxed">
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                     If you can't find what you're looking for, our support team is ready to assist you.
                   </p>
                   <button className="w-full py-2 rounded-xl bg-primary-blue text-white text-xs font-bold hover:bg-blue-800 transition-all">
@@ -458,18 +458,18 @@ export default function KnowledgeBasePage() {
                     >
                       <div onClick={() => handleViewArticle(article)}>
                         <div className="flex items-center justify-between mb-4">
-                          <span className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800/50 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                          <span className="px-2 py-1 rounded-lg bg-[var(--bg-elevated)]/50 text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">
                             {language === 'ar' ? article.category.nameAr : article.category.nameEn}
                           </span>
-                          <div className="flex items-center gap-1 text-slate-400 dark:text-slate-600 text-[10px] font-bold">
+                          <div className="flex items-center gap-1 text-[var(--text-muted)] text-[10px] font-bold">
                             <Eye size={12} />
                             {article.views}
                           </div>
                         </div>
-                        <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-primary-blue transition-colors mb-3">
+                        <h3 className="text-lg font-bold text-[var(--text-main)] group-hover:text-primary-blue transition-colors mb-3">
                           {highlightText(language === 'ar' ? article.titleAr : article.titleEn, searchTerm)}
                         </h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 min-h-[3rem]">
+                        <p className="text-sm text-[var(--text-secondary)] mb-6 min-h-[3rem]">
                           {searchTerm 
                             ? highlightText(getSnippet(language === 'ar' ? article.contentAr : article.contentEn, searchTerm), searchTerm)
                             : (language === 'ar' ? article.contentAr : article.contentEn).substring(0, 100) + '...'}
@@ -491,7 +491,7 @@ export default function KnowledgeBasePage() {
                               });
                               setShowArticleForm(true);
                             }}
-                            className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 hover:text-primary-blue transition-all"
+                            className="p-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-dim)] text-[var(--text-muted)] hover:text-primary-blue transition-all"
                           >
                             <Edit2 size={14} />
                           </button>
@@ -500,19 +500,19 @@ export default function KnowledgeBasePage() {
                               e.stopPropagation();
                               handleDeleteArticle(article.id);
                             }}
-                            className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 hover:text-danger-red transition-all"
+                            className="p-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-dim)] text-[var(--text-muted)] hover:text-danger-red transition-all"
                           >
                             <Trash2 size={14} />
                           </button>
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800" onClick={() => handleViewArticle(article)}>
-                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                      <div className="flex items-center justify-between pt-4 border-t border-[var(--border-dim)]" onClick={() => handleViewArticle(article)}>
+                        <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
                           <User size={14} />
                           {language === 'ar' ? article.author.fullNameAr : article.author.fullNameEn}
                         </div>
-                        <ChevronRight size={18} className="text-slate-300 group-hover:text-primary-blue group-hover:translate-x-1 transition-all" />
+                        <ChevronRight size={18} className="text-[var(--text-muted)] group-hover:text-primary-blue group-hover:translate-x-1 transition-all" />
                       </div>
                     </motion.div>
                   ))}
@@ -524,7 +524,7 @@ export default function KnowledgeBasePage() {
                     <button 
                       disabled={page === 1}
                       onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
-                      className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-primary-blue disabled:opacity-30 transition-all bg-white dark:bg-slate-900"
+                      className="p-3 rounded-2xl border border-[var(--border-main)] text-[var(--text-secondary)] hover:text-primary-blue disabled:opacity-30 transition-all bg-[var(--bg-surface)]"
                     >
                       {language === 'ar' ? <ChevronLeft size={24} /> : <ChevronLeft size={24} />}
                     </button>
@@ -533,7 +533,7 @@ export default function KnowledgeBasePage() {
                         <button 
                           key={i}
                           onClick={() => { setPage(i + 1); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
-                          className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${page === i + 1 ? 'bg-primary-blue text-white shadow-lg shadow-primary-blue/20' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                          className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${page === i + 1 ? 'bg-primary-blue text-white shadow-lg shadow-primary-blue/20' : 'text-[var(--text-muted)] hover:bg-[var(--bg-elevated)]'}`}
                         >
                           {i + 1}
                         </button>
@@ -542,7 +542,7 @@ export default function KnowledgeBasePage() {
                     <button 
                       disabled={page === totalPages}
                       onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
-                      className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-primary-blue disabled:opacity-30 transition-all bg-white dark:bg-slate-900"
+                      className="p-3 rounded-2xl border border-[var(--border-main)] text-[var(--text-secondary)] hover:text-primary-blue disabled:opacity-30 transition-all bg-[var(--bg-surface)]"
                     >
                       {language === 'ar' ? <ChevronRight size={24} className="rotate-180" /> : <ChevronRight size={24} />}
                     </button>
@@ -550,9 +550,9 @@ export default function KnowledgeBasePage() {
                 )}
 
                 {articles.length === 0 && (
-                  <div className="text-center py-20 bg-slate-50 dark:bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-                    <BookOpen size={48} className="mx-auto text-slate-300 mb-4" />
-                    <p className="text-slate-500 font-bold">No articles found matching your search.</p>
+                  <div className="text-center py-20 bg-[var(--bg-main)] rounded-3xl border-2 border-dashed border-[var(--border-main)]">
+                    <BookOpen size={48} className="mx-auto text-[var(--text-muted)] mb-4" />
+                    <p className="text-[var(--text-secondary)] font-bold">No articles found matching your search.</p>
                   </div>
                 )}
               </div>
@@ -569,16 +569,16 @@ export default function KnowledgeBasePage() {
             animate={{ opacity: 1, scale: 1 }}
             className="premium-card w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
-            <div className="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+            <div className="px-8 py-6 border-b border-[var(--border-dim)] flex items-center justify-between bg-[var(--border-dim)]">
               <div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                <h3 className="text-xl font-bold text-[var(--text-main)]">
                   {editingArticle ? (language === 'ar' ? 'تعديل مقال' : 'Edit Article') : (language === 'ar' ? 'مقال جديد' : 'New Article')}
                 </h3>
-                <p className="text-xs text-slate-400 mt-1">Fill in the details for both Arabic and English versions</p>
+                <p className="text-xs text-[var(--text-muted)] mt-1">Fill in the details for both Arabic and English versions</p>
               </div>
               <button 
                 onClick={() => { setShowArticleForm(false); setEditingArticle(null); }}
-                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-all"
+                className="p-2 hover:bg-[var(--bg-elevated)] rounded-xl transition-all"
               >
                 <X size={20} />
               </button>
@@ -590,28 +590,28 @@ export default function KnowledgeBasePage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-[10px] font-bold bg-green-500/10 text-green-500 px-2 py-0.5 rounded uppercase tracking-widest">AR</span>
-                    <h4 className="font-bold text-slate-700 dark:text-slate-300 text-sm">العربية</h4>
+                    <h4 className="font-bold text-[var(--text-secondary)] text-sm">العربية</h4>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500">العنوان</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)]">العنوان</label>
                     <input 
                       type="text"
                       dir="rtl"
                       required
                       value={articleForm.titleAr}
                       onChange={(e) => setArticleForm({...articleForm, titleAr: e.target.value})}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:ring-2 focus:ring-primary-blue transition-all"
+                      className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-primary-blue transition-all"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500">المحتوى</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)]">المحتوى</label>
                     <textarea 
                       dir="rtl"
                       required
                       rows={12}
                       value={articleForm.contentAr}
                       onChange={(e) => setArticleForm({...articleForm, contentAr: e.target.value})}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:ring-2 focus:ring-primary-blue transition-all resize-none"
+                      className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-primary-blue transition-all resize-none"
                     />
                   </div>
                 </div>
@@ -620,40 +620,40 @@ export default function KnowledgeBasePage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-[10px] font-bold bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded uppercase tracking-widest">EN</span>
-                    <h4 className="font-bold text-slate-700 dark:text-slate-300 text-sm">English</h4>
+                    <h4 className="font-bold text-[var(--text-secondary)] text-sm">English</h4>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500">Article Title</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)]">Article Title</label>
                     <input 
                       type="text"
                       required
                       value={articleForm.titleEn}
                       onChange={(e) => setArticleForm({...articleForm, titleEn: e.target.value})}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:ring-2 focus:ring-primary-blue transition-all"
+                      className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-primary-blue transition-all"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500">Content</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)]">Content</label>
                     <textarea 
                       required
                       rows={12}
                       value={articleForm.contentEn}
                       onChange={(e) => setArticleForm({...articleForm, contentEn: e.target.value})}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:ring-2 focus:ring-primary-blue transition-all resize-none"
+                      className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-primary-blue transition-all resize-none"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+              <div className="pt-6 border-t border-[var(--border-dim)]">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="w-full md:w-64 space-y-2">
-                    <label className="text-xs font-bold text-slate-500">Category / التصنيف</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)]">Category / التصنيف</label>
                     <select 
                       required
                       value={articleForm.categoryId}
                       onChange={(e) => setArticleForm({...articleForm, categoryId: e.target.value})}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 outline-none focus:ring-2 focus:ring-primary-blue transition-all"
+                      className="w-full px-4 py-2.5 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] outline-none focus:ring-2 focus:ring-primary-blue transition-all"
                     >
                       <option value="">Select Category</option>
                       {categories.map(cat => (
@@ -665,7 +665,7 @@ export default function KnowledgeBasePage() {
                     <button 
                       type="button"
                       onClick={() => { setShowArticleForm(false); setEditingArticle(null); }}
-                      className="px-8 py-3 rounded-2xl font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                      className="px-8 py-3 rounded-2xl font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] transition-all"
                     >
                       Cancel
                     </button>
@@ -689,20 +689,20 @@ export default function KnowledgeBasePage() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
+            className="bg-[var(--bg-surface)] w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
           >
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 dark:text-white">Manage Categories</h3>
+            <div className="px-6 py-4 border-b border-[var(--border-dim)] flex items-center justify-between">
+              <h3 className="font-bold text-[var(--text-main)]">Manage Categories</h3>
               <button 
                 onClick={() => { setShowCategoryForm(false); setEditingCategory(null); }}
-                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                className="p-1 hover:bg-[var(--bg-elevated)] rounded-lg"
               >
                 <X size={18} />
               </button>
             </div>
 
             <div className="p-6 space-y-6">
-              <form onSubmit={handleSaveCategory} className="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <form onSubmit={handleSaveCategory} className="space-y-4 p-4 bg-[var(--border-dim)]/50 rounded-2xl border border-[var(--border-dim)]">
                 <input 
                   type="text" 
                   placeholder="Arabic Name / الاسم بالعربي"
@@ -710,7 +710,7 @@ export default function KnowledgeBasePage() {
                   required
                   value={categoryForm.nameAr}
                   onChange={(e) => setCategoryForm({...categoryForm, nameAr: e.target.value})}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 outline-none focus:ring-2 focus:ring-primary-blue"
+                  className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] outline-none focus:ring-2 focus:ring-primary-blue"
                 />
                 <input 
                   type="text" 
@@ -718,7 +718,7 @@ export default function KnowledgeBasePage() {
                   required
                   value={categoryForm.nameEn}
                   onChange={(e) => setCategoryForm({...categoryForm, nameEn: e.target.value})}
-                  className="w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 outline-none focus:ring-2 focus:ring-primary-blue"
+                  className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] outline-none focus:ring-2 focus:ring-primary-blue"
                 />
                 <button type="submit" className="w-full py-2 bg-primary-blue text-white rounded-xl font-bold">
                   {editingCategory ? 'Update' : 'Add Category'}
@@ -727,10 +727,10 @@ export default function KnowledgeBasePage() {
 
               <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                 {categories.map(cat => (
-                  <div key={cat.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all">
+                  <div key={cat.id} className="flex items-center justify-between p-3 rounded-xl border border-[var(--border-dim)] hover:bg-[var(--border-dim)] transition-all">
                     <div>
-                      <p className="text-sm font-bold text-slate-900 dark:text-white">{cat.nameEn}</p>
-                      <p className="text-[10px] text-slate-400">{cat.nameAr}</p>
+                      <p className="text-sm font-bold text-[var(--text-main)]">{cat.nameEn}</p>
+                      <p className="text-[10px] text-[var(--text-muted)]">{cat.nameAr}</p>
                     </div>
                     <div className="flex items-center gap-1">
                       <button 
@@ -738,13 +738,13 @@ export default function KnowledgeBasePage() {
                           setEditingCategory(cat);
                           setCategoryForm({ nameAr: cat.nameAr, nameEn: cat.nameEn });
                         }}
-                        className="p-1.5 text-slate-400 hover:text-primary-blue"
+                        className="p-1.5 text-[var(--text-muted)] hover:text-primary-blue"
                       >
                         <Edit2 size={14} />
                       </button>
                       <button 
                         onClick={() => handleDeleteCategory(cat.id)}
-                        className="p-1.5 text-slate-400 hover:text-danger-red"
+                        className="p-1.5 text-[var(--text-muted)] hover:text-danger-red"
                       >
                         <Trash2 size={14} />
                       </button>
