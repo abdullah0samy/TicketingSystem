@@ -79,12 +79,12 @@ export default function ArchivePage() {
 
   const priorityColor = (priority: string) => {
     const colors: Record<string, string> = {
-      low: 'bg-slate-100 text-slate-600',
-      normal: 'bg-blue-100 text-blue-700',
-      high: 'bg-orange-100 text-orange-700',
-      critical: 'bg-red-100 text-red-700',
+      low: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+      normal: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+      high: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+      critical: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
     };
-    return colors[priority] || 'bg-gray-100 text-gray-600';
+    return colors[priority] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
   };
 
   return (

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/authStore.ts';
-import { LogIn, LifeBuoy, Globe, Moon, Sun } from 'lucide-react';
+import { LogIn, LifeBuoy, Globe, Moon, Sun, Eye, EyeOff } from 'lucide-react';
 import { useSettingsStore } from '../store/settingsStore.ts';
 import { translations } from '../core/translations.ts';
 import { motion } from 'motion/react';
@@ -8,6 +8,7 @@ import { motion } from 'motion/react';
 export default function Login() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -111,14 +112,24 @@ export default function Login() {
                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 ml-1">
                   {t.password}
                 </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-surface w-full py-4 px-6 bg-slate-50/50 dark:bg-slate-800/20"
-                  placeholder={t.passwordPlaceholder}
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-surface w-full py-4 px-6 pr-14 bg-slate-50/50 dark:bg-slate-800/20"
+                    placeholder={t.passwordPlaceholder}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-all p-1"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
               </div>
 
               <button

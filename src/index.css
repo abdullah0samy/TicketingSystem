@@ -27,23 +27,27 @@
   --border-dim: #E8EDF2;
   --border-main: #D1D9E6;
   --border-strong: #B0BECF;
+  --glow-primary: rgba(2, 132, 199, 0.08);
+  --glow-success: rgba(13, 148, 136, 0.08);
 }
 
 .dark {
-  --bg-main: #0A0F1C;
-  --bg-surface: #131B2E;
-  --bg-elevated: #1A2540;
-  --text-main: #E8EDF5;
-  --text-secondary: #A8B5CC;
-  --text-muted: #6B7A99;
-  --border-dim: #1E2A40;
-  --border-main: #2A3A55;
+  --bg-main: #0C1220;
+  --bg-surface: #141D32;
+  --bg-elevated: #1B2740;
+  --text-main: #EAF0F8;
+  --text-secondary: #B0C4DE;
+  --text-muted: #6B83A8;
+  --border-dim: #1E2D48;
+  --border-main: #2A3D5C;
   --border-strong: #3D5070;
 
-  --color-primary-blue: #60B5F8;
-  --color-success-green: #4DD4C5;
-  --color-warning-amber: #F5C542;
-  --color-danger-red: #F9708E;
+  --color-primary-blue: #6BC2FF;
+  --color-success-green: #58DED0;
+  --color-warning-amber: #F7C948;
+  --color-danger-red: #FB7D94;
+  --glow-primary: rgba(107, 194, 255, 0.06);
+  --glow-success: rgba(88, 222, 208, 0.06);
 }
 
 @layer base {
@@ -79,6 +83,16 @@
 
   .premium-card:hover {
     box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.06);
+  }
+
+  .dark .premium-card {
+    border-color: var(--border-main);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.2), 0 0 0 1px rgba(107, 194, 255, 0.03);
+  }
+
+  .dark .premium-card:hover {
+    border-color: var(--border-strong);
+    box-shadow: 0 8px 24px -4px rgb(0 0 0 / 0.3), 0 0 0 1px rgba(107, 194, 255, 0.06);
   }
 
   .glass-surface {
@@ -124,6 +138,20 @@
     color: var(--text-muted);
   }
 
+  .dark .input-surface {
+    background-color: color-mix(in srgb, var(--bg-surface) 80%, black);
+    border-color: var(--border-main);
+  }
+
+  .dark .input-surface:focus {
+    border-color: var(--color-primary-blue);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-blue) 12%, transparent);
+  }
+
+  .dark .input-surface::placeholder {
+    color: var(--text-muted);
+  }
+
   .btn-primary {
     background-color: var(--color-primary-blue);
     color: white;
@@ -140,6 +168,10 @@
 
   .btn-primary:active {
     transform: scale(0.95);
+  }
+
+  .dark .btn-primary {
+    box-shadow: 0 10px 15px -3px rgba(107, 194, 255, 0.15), 0 4px 6px -4px rgba(107, 194, 255, 0.1);
   }
 
   .input-field {
