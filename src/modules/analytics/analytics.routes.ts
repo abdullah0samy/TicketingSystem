@@ -458,4 +458,66 @@ router.get('/agent-performance', authenticate, authorize(['super_admin', 'superv
   }
 });
 
+// --- AHT (Average Handling Time) Metrics ---
+router.get('/aht', authenticate, async (req: any, res) => {
+  try {
+    const baseWhere = getBaseTicketFilter(req);
+
+    // Overall AHT (all resolved/closed tickets)
+    const resolvedTickets = await prisma.ticket.findMany({
+      where: { ...baseWhere, completedAt: { not: null }, status: { in: ['resolved', 'closed'] } },
+      select: { createdAt: true, completedAt: true, status: true, priority: true, departmentId: true }
+    });
+
+    let overallAhtHours = 0;
+    if (resolvedTickets.length > 0) {
+      const totalMs = resolvedTickets.reduce((acc, t) => acc + (t.completedAt!.getTime() - t.createdAt.getTime()), 0);
+      overallAhtHours = (totalMs / resolvedTickets.length) / (1000 * 60 * 60);
+    }
+
+    // AHT by priority
+    const priorityGroups: Record<string, { total: number; count: number }> = {};
+    resolvedTickets.forEach(t => {
+      if (!priorityGroups[t.priority]) priorityGroups[t.priority] = { total: 0, count: 0 };
+      priorityGroups[t.priority].total += t.completedAt!.getTime() - t.createdAt.getTime();
+      priorityGroups[t.priority].count++;
+    });
+    const ahtByPriority = Object.entries(priorityGroups).map(([priority, data]) => ({
+      priority,
+      avgHours: Math.round((data.total / data.count) / (3600000) * 10) / 10,
+      count: data.count
+    }));
+
+    // AHT by department (super_admin only)
+    let ahtByDepartment: any[] = [];
+    if (req.user.role === 'super_admin') {
+      const deptGroups: Record<number, { total: number; count: number }> = {};
+      resolvedTickets.forEach(t => {
+        if (!deptGroups[t.departmentId]) deptGroups[t.departmentId] = { total: 0, count: 0 };
+        deptGroups[t.departmentId].total += t.completedAt!.getTime() - t.createdAt.getTime();
+        deptGroups[t.departmentId].count++;
+      });
+      const deptIds = Object.keys(deptGroups).map(Number);
+      const depts = await prisma.department.findMany({ where: { id: { in: deptIds } } });
+      const deptMap = new Map(depts.map(d => [d.id, d]));
+      ahtByDepartment = Object.entries(deptGroups).map(([deptId, data]) => ({
+        departmentId: Number(deptId),
+        departmentName: deptMap.get(Number(deptId))?.nameEn || 'Unknown',
+        avgHours: Math.round((data.total / data.count) / (3600000) * 10) / 10,
+        count: data.count
+      }));
+    }
+
+    res.json({
+      overallAhtHours: Math.round(overallAhtHours * 10) / 10,
+      totalResolved: resolvedTickets.length,
+      ahtByPriority,
+      ahtByDepartment
+    });
+  } catch (error) {
+    console.error('AHT error:', error);
+    res.status(500).json({ message: 'Error fetching AHT metrics' });
+  }
+});
+
 export default router;

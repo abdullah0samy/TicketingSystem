@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore.ts';
 import { useSettingsStore } from '../store/settingsStore.ts';
+import { translations } from '../core/translations.ts';
 import { motion } from 'motion/react';
 import { 
   BarChart, 
@@ -53,6 +54,7 @@ interface AgentPerformance {
 export const AnalyticsPage: React.FC = () => {
   const { accessToken } = useAuthStore();
   const { language } = useSettingsStore();
+  const t = translations[language];
   const [stats, setStats] = useState<Stats | null>(null);
   const [agentPerformance, setAgentPerformance] = useState<AgentPerformance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +97,7 @@ export const AnalyticsPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-3">
             <BarChart3 className="text-primary-blue" />
-            {language === 'ar' ? 'التحليلات والتقارير' : 'Analytics & Reports'}
+            {t.analytics}
           </h1>
           <p className="text-[var(--text-secondary)] mt-1">
             {language === 'ar' ? 'متابعة أداء النظام ومؤشرات الإنجاز' : 'Monitor system performance and achievement indicators'}
@@ -126,7 +128,7 @@ export const AnalyticsPage: React.FC = () => {
             <span className="text-xs font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg">+12%</span>
           </div>
           <div className="text-2xl font-bold text-[var(--text-main)]">{stats?.total || 0}</div>
-          <div className="text-sm text-[var(--text-secondary)]">{language === 'ar' ? 'إجمالي التذاكر' : 'Total Tickets'}</div>
+          <div className="text-sm text-[var(--text-secondary)]">{t.totalTickets}</div>
         </div>
 
         <div className="bg-[var(--bg-surface)] p-6 rounded-3xl border border-[var(--border-main)] shadow-sm">
@@ -136,7 +138,7 @@ export const AnalyticsPage: React.FC = () => {
             </div>
           </div>
           <div className="text-2xl font-bold text-[var(--text-main)]">{stats?.avgResolutionTimeHours || 0}h</div>
-          <div className="text-sm text-[var(--text-secondary)]">{language === 'ar' ? 'متوسط وقت الحل' : 'Avg Resolution Time'}</div>
+          <div className="text-sm text-[var(--text-secondary)]">{t.avgResolution}</div>
         </div>
 
         <div className="bg-[var(--bg-surface)] p-6 rounded-3xl border border-[var(--border-main)] shadow-sm">
@@ -146,7 +148,7 @@ export const AnalyticsPage: React.FC = () => {
             </div>
           </div>
           <div className="text-2xl font-bold text-[var(--text-main)]">{stats?.resolved || 0}</div>
-          <div className="text-sm text-[var(--text-secondary)]">{language === 'ar' ? 'تم حلها' : 'Resolved Tickets'}</div>
+          <div className="text-sm text-[var(--text-secondary)]">{t.resolved}</div>
         </div>
 
         <div className="bg-[var(--bg-surface)] p-6 rounded-3xl border border-[var(--border-main)] shadow-sm">
@@ -156,7 +158,7 @@ export const AnalyticsPage: React.FC = () => {
             </div>
           </div>
           <div className="text-2xl font-bold text-[var(--text-main)]">{stats?.overdue || 0}</div>
-          <div className="text-sm text-[var(--text-secondary)]">{language === 'ar' ? 'تجاوزت المهلة' : 'SLA Breached'}</div>
+          <div className="text-sm text-[var(--text-secondary)]">{t.slaCompliance}</div>
         </div>
       </div>
 
@@ -169,7 +171,7 @@ export const AnalyticsPage: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-bold text-[var(--text-main)]">{stats?.resolvedInternal || 0}</div>
-              <div className="text-sm text-[var(--text-secondary)]">{language === 'ar' ? 'تم الحل داخلياً' : 'Resolved Internally'}</div>
+              <div className="text-sm text-[var(--text-secondary)]">{t.internalResolution}</div>
             </div>
           </div>
           <div className="w-full h-2 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
@@ -187,7 +189,7 @@ export const AnalyticsPage: React.FC = () => {
             </div>
             <div>
               <div className="text-2xl font-bold text-[var(--text-main)]">{stats?.resolvedExternal || 0}</div>
-              <div className="text-sm text-[var(--text-secondary)]">{language === 'ar' ? 'تم الحل خارجياً' : 'Resolved Externally'}</div>
+              <div className="text-sm text-[var(--text-secondary)]">{t.externalResolution}</div>
             </div>
           </div>
           <div className="w-full h-2 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
@@ -203,7 +205,7 @@ export const AnalyticsPage: React.FC = () => {
         {/* Status Distribution */}
         <div className="lg:col-span-1 bg-[var(--bg-surface)] p-8 rounded-3xl border border-[var(--border-main)] shadow-sm">
           <h3 className="text-lg font-bold text-[var(--text-main)] mb-6">
-            {language === 'ar' ? 'توزيع الحالات' : 'Status Distribution'}
+            {t.statusDistribution}
           </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -240,21 +242,21 @@ export const AnalyticsPage: React.FC = () => {
           <div className="p-8 border-b border-[var(--border-dim)] flex items-center justify-between">
             <h3 className="text-lg font-bold text-[var(--text-main)] flex items-center gap-2">
               <Award className="text-amber-500" />
-              {language === 'ar' ? 'أداء الوكلاء' : 'Agent Performance'}
+              {t.agentPerformance}
             </h3>
             <button className="text-sm text-primary-blue font-bold hover:underline">
-              {language === 'ar' ? 'عرض الكل' : 'View All'}
+              {t.viewAll}
             </button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-[var(--border-dim)]/50 text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">
-                  <th className="px-8 py-4 font-bold">{language === 'ar' ? 'الوكيل' : 'Agent'}</th>
-                  <th className="px-8 py-4 font-bold">{language === 'ar' ? 'تم حلها' : 'Resolved'}</th>
-                  <th className="px-8 py-4 font-bold">{language === 'ar' ? 'متوسط الاستجابة' : 'Avg Response'}</th>
-                  <th className="px-8 py-4 font-bold">{language === 'ar' ? 'متوسط الحل' : 'Avg Resolution'}</th>
-                  <th className="px-8 py-4 font-bold">{language === 'ar' ? 'الالتزام بـ SLA' : 'SLA Adherence'}</th>
+                  <th className="px-8 py-4 font-bold">{t.agent}</th>
+                  <th className="px-8 py-4 font-bold">{t.resolved}</th>
+                  <th className="px-8 py-4 font-bold">{t.avgResponse}</th>
+                  <th className="px-8 py-4 font-bold">{t.avgResolution}</th>
+                  <th className="px-8 py-4 font-bold">{t.slaAdherence}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-dim)]">

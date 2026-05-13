@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
 import { translations } from '../../core/translations.ts';
@@ -27,32 +27,35 @@ export default function ArchivePage() {
   const { user } = useAuthStore();
   const { language } = useSettingsStore();
   const t = translations[language];
-  const isMounted = useRef(true);
 
-  useEffect(() => {
-    return () => { isMounted.current = false; };
-  }, []);
-
-  const fetchTickets = async (page = 1) => {
+  const fetchTickets = async (page = 1, signal?: AbortSignal) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: page.toString(), limit: '20' });
       if (searchTerm) params.set('search', searchTerm);
-      const data = await apiFetch(`/api/tickets/archived?${params}`);
-      if (!isMounted.current) return;
+      const data = await apiFetch(`/api/tickets/archived?${params}`, { signal });
+      if (signal?.aborted) return;
       setTickets(data.tickets);
       setPagination(data.pagination);
-    } catch (err) {
-      if (!isMounted.current) return;
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
       console.error('Failed to fetch archived tickets:', err);
     } finally {
-      if (isMounted.current) setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTickets();
+    const controller = new AbortController();
+    fetchTickets(1, controller.signal);
+    return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => fetchTickets(1, controller.signal), 400);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [searchTerm]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
