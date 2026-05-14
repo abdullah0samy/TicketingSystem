@@ -8,6 +8,7 @@ import { ALLOWED_TRANSITIONS, TICKET_PRIORITIES } from './workflow.constants.ts'
 import { calculateSLADeadline } from './sla.utils.ts';
 import { validate, validateQuery } from '../../core/utils/api.utils.ts';
 import { createTicketSchema, ticketSearchSchema } from './tickets.schema.ts';
+import { getCachedPermissions, setCachedPermissions, invalidatePermissionCache } from '../../core/permissionCache.ts';
 
 const router = express.Router();
 
@@ -31,20 +32,35 @@ async function checkTicketPermission(
   if (userRole === 'super_admin') return true;
   if (!userDeptId || Number(userDeptId) !== ticketDeptId) return false;
 
-  const userOverride = await txClient.userPermissionOverride.findUnique({ where: { userId } });
-  if (userOverride && userOverride[action] !== null) {
-    return Boolean(userOverride[action]);
+  // Use cache when not in a transaction
+  const isTransactional = txClient !== prisma;
+  if (!isTransactional) {
+    const cached = getCachedPermissions(userId, Number(userDeptId));
+    if (cached) {
+      if (cached[action] !== null) return Boolean(cached[action]);
+      if (action === 'canArchiveTickets') return userRole === 'supervisor';
+      return true;
+    }
   }
 
+  const userOverride = await txClient.userPermissionOverride.findUnique({ where: { userId } });
   const dept = await txClient.department.findUnique({
     where: { id: Number(userDeptId) },
     include: { defaultPermissions: true }
   });
-  
-  if (dept?.defaultPermissions && dept.defaultPermissions[action] !== null) {
-    return Boolean(dept.defaultPermissions[action]);
+
+  // Cache combined result
+  if (!isTransactional) {
+    setCachedPermissions(userId, Number(userDeptId), {
+      canChangeStatus: userOverride?.['canChangeStatus'] ?? dept?.defaultPermissions?.['canChangeStatus'] ?? null,
+      canAssignTickets: userOverride?.['canAssignTickets'] ?? dept?.defaultPermissions?.['canAssignTickets'] ?? null,
+      canTransferTickets: userOverride?.['canTransferTickets'] ?? dept?.defaultPermissions?.['canTransferTickets'] ?? null,
+      canArchiveTickets: userOverride?.['canArchiveTickets'] ?? dept?.defaultPermissions?.['canArchiveTickets'] ?? null,
+    });
   }
 
+  if (userOverride && userOverride[action] !== null) return Boolean(userOverride[action]);
+  if (dept?.defaultPermissions && dept.defaultPermissions[action] !== null) return Boolean(dept.defaultPermissions[action]);
   if (action === 'canArchiveTickets') return userRole === 'supervisor';
   return true; 
 }
