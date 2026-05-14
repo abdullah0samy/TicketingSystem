@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore.ts';
 import { useSettingsStore } from '../store/settingsStore.ts';
+import { translations } from '../core/translations.ts';
 import { 
   Search, 
   Filter, 
@@ -14,7 +15,9 @@ import {
   ArrowRightLeft,
   ShieldAlert,
   Archive,
-  Eye
+  Eye,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -46,11 +49,14 @@ interface AuditLog {
 export default function AuditLogPage() {
   const { accessToken } = useAuthStore();
   const { language } = useSettingsStore();
+  const t = translations[language];
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [showRawJson, setShowRawJson] = useState(false);
+  const [actionList, setActionList] = useState<string[]>([]);
 
   // Filters
   const [filters, setFilters] = useState({
@@ -60,6 +66,16 @@ export default function AuditLogPage() {
     endDate: '',
     ticketId: ''
   });
+  const [actionFilter, setActionFilter] = useState('');
+
+  useEffect(() => {
+    fetch('/api/audit/actions', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    })
+      .then(res => res.json())
+      .then(data => setActionList(data.actions || []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -70,7 +86,7 @@ export default function AuditLogPage() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [page, filters]);
+  }, [page, filters, actionFilter]);
 
   const fetchLogs = async (signal?: AbortSignal) => {
     setLoading(true);
@@ -78,7 +94,8 @@ export default function AuditLogPage() {
       const query = new URLSearchParams({
         page: page.toString(),
         limit: '15',
-        ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
+        ...(actionFilter && { action: actionFilter }),
+        ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v && _ !== 'action'))
       }).toString();
 
       const res = await fetch(`/api/audit?${query}`, {
@@ -106,24 +123,99 @@ export default function AuditLogPage() {
     return 'text-[var(--text-secondary)] bg-[var(--bg-elevated)]';
   };
 
+  const getActionLabel = (action: string): string => {
+    const map: Record<string, string> = {
+      TICKET_CREATED: t.ticketCreated,
+      TICKET_UPDATED: t.ticketUpdated,
+      TICKET_DELETED: t.ticketDeleted,
+      STATUS_CHANGED: t.statusChanged,
+      ASSIGNED: t.assigned,
+      TRANSFERRED: t.transferred,
+      ARTICLE_CREATED: t.articleCreated,
+      ARTICLE_UPDATED: t.articleUpdated,
+      ARTICLE_DELETED: t.articleDeleted,
+      USER_CREATED: t.userCreated,
+      USER_UPDATED: t.userUpdated,
+      USER_DELETED: t.userDeleted,
+      COMMENT_CREATED: t.commentCreated,
+      FILE_UPLOADED: t.fileUploaded,
+      DEPARTMENT_CREATED: t.departmentCreated,
+      DEPARTMENT_UPDATED: t.departmentUpdated,
+      DEPARTMENT_DELETED: t.departmentDeleted,
+      LOGIN: t.login,
+      LOGOUT: t.logout,
+    };
+    return map[action] || action.replace(/_/g, ' ');
+  };
+
+  const formatValue = (val: any): string => {
+    if (val === null || val === undefined) return '-';
+    if (typeof val === 'object') return JSON.stringify(val);
+    return String(val);
+  };
+
+  const renderDataChanges = (oldData: any, newData: any) => {
+    if (!oldData && !newData) return null;
+
+    const allKeys = [...new Set([...Object.keys(oldData || {}), ...Object.keys(newData || {})])];
+    const changes: { key: string; old: string; new: string }[] = [];
+
+    for (const key of allKeys) {
+      const oldVal = oldData?.[key];
+      const newVal = newData?.[key];
+      if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+        changes.push({
+          key,
+          old: formatValue(oldVal),
+          new: formatValue(newVal),
+        });
+      }
+    }
+
+    if (changes.length === 0) return <p className="text-xs text-[var(--text-muted)] italic">{t.noChanges}</p>;
+
+    return (
+      <div className="space-y-2">
+        {changes.map((c) => (
+          <div key={c.key} className="flex items-center gap-2 text-xs">
+            <span className="font-bold text-[var(--text-main)] capitalize min-w-[100px]">{c.key}:</span>
+            <span className="text-danger-red line-through max-w-[200px] truncate">{c.old}</span>
+            <ArrowRightLeft size={12} className="text-[var(--text-muted)] shrink-0" />
+            <span className="text-success-green max-w-[200px] truncate">{c.new}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-main)]">
-            {language === 'ar' ? 'سجلات التدقيق' : 'Audit Logs'}
+            {t.auditLogs}
           </h1>
           <p className="text-sm text-[var(--text-secondary)] mt-1">
-            {language === 'ar' ? 'مراقبة جميع تحركات النظام والتغييرات' : 'Monitor all system actions and data changes'}
+            {t.auditLogsDesc}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={actionFilter}
+            onChange={(e) => setActionFilter(e.target.value)}
+            className="px-3 py-2 bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-blue transition-all"
+          >
+            <option value="">{t.allActions}</option>
+            {actionList.map(a => (
+              <option key={a} value={a}>{getActionLabel(a)}</option>
+            ))}
+          </select>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
             <input 
               type="text"
-              placeholder={language === 'ar' ? 'البحث تذكرة ID...' : 'Ticket ID...'}
+              placeholder={t.searchTicketId}
               value={filters.ticketId}
               onChange={(e) => setFilters({...filters, ticketId: e.target.value})}
               className="pl-10 pr-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-blue transition-all"
@@ -154,10 +246,10 @@ export default function AuditLogPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[var(--border-dim)] border-b border-[var(--border-dim)]">
-                <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'المستخدم' : 'User'}</th>
-                <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الإجراء' : 'Action'}</th>
-                <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'التفاصيل' : 'Details'}</th>
-                <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'التاريخ' : 'Date'}</th>
+                <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.userLabel}</th>
+                <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.action}</th>
+                <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.details}</th>
+                <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.date}</th>
                 <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest text-right"></th>
               </tr>
             </thead>
@@ -188,7 +280,7 @@ export default function AuditLogPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${getActionColor(log.action)}`}>
-                        {log.action.replace(/_/g, ' ')}
+                        {getActionLabel(log.action)}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -204,7 +296,7 @@ export default function AuditLogPage() {
                           {language === 'ar' ? log.department.nameAr : log.department.nameEn}
                         </span>
                       ) : (
-                        <span className="text-[10px] text-[var(--text-muted)] font-medium italic">System Wide Action</span>
+                        <span className="text-[10px] text-[var(--text-muted)] font-medium italic">{t.systemWideAction}</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -217,7 +309,10 @@ export default function AuditLogPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <button 
-                        onClick={() => setSelectedLog(log)}
+                        onClick={() => {
+                          setSelectedLog(log);
+                          setShowRawJson(false);
+                        }}
                         className="p-2 text-[var(--text-muted)] hover:text-primary-blue transition-all"
                       >
                         <Eye size={18} />
@@ -228,7 +323,7 @@ export default function AuditLogPage() {
               ) : (
                 <tr>
                   <td colSpan={5} className="px-6 py-20 text-center text-[var(--text-muted)]">
-                    No logs found matching your criteria.
+                    {t.noLogsFound}
                   </td>
                 </tr>
               )}
@@ -239,7 +334,7 @@ export default function AuditLogPage() {
         {/* Pagination */}
         <div className="px-6 py-4 bg-[var(--border-dim)] flex items-center justify-between border-t border-[var(--border-dim)]">
           <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
-            Page {page} of {totalPages}
+            {t.pageOf.replace('{page}', String(page)).replace('{totalPages}', String(totalPages))}
           </p>
           <div className="flex items-center gap-2">
             <button 
@@ -276,7 +371,7 @@ export default function AuditLogPage() {
                     <ShieldAlert size={20} />
                   </div>
                   <div>
-                    <h3 className="font-bold text-[var(--text-main)] uppercase tracking-wider">{selectedLog.action.replace(/_/g, ' ')}</h3>
+                    <h3 className="font-bold text-[var(--text-main)] uppercase tracking-wider">{getActionLabel(selectedLog.action)}</h3>
                     <p className="text-[10px] text-[var(--text-muted)] mt-0.5">ID: {selectedLog.id} • {new Date(selectedLog.createdAt).toLocaleString()}</p>
                   </div>
                 </div>
@@ -291,45 +386,72 @@ export default function AuditLogPage() {
               <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-dim)]">
-                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">User Performance</p>
-                    <p className="text-sm font-bold text-[var(--text-main)]">{selectedLog.user.fullNameEn}</p>
+                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">{t.userPerformance}</p>
+                    <p className="text-sm font-bold text-[var(--text-main)]">
+                      {language === 'ar' ? selectedLog.user.fullNameAr : selectedLog.user.fullNameEn}
+                    </p>
                     <p className="text-xs text-[var(--text-secondary)]">{selectedLog.user.badgeNumber}</p>
+                    {selectedLog.department && (
+                      <p className="text-xs text-[var(--text-secondary)] mt-1">
+                        {t.department}: {language === 'ar' ? selectedLog.department.nameAr : selectedLog.department.nameEn}
+                      </p>
+                    )}
                   </div>
                   {selectedLog.ticket && (
                     <div className="p-4 rounded-2xl bg-primary-blue/5 border border-primary-blue/10">
-                      <p className="text-[10px] font-bold text-primary-blue uppercase tracking-widest mb-2">Related Ticket</p>
+                      <p className="text-[10px] font-bold text-primary-blue uppercase tracking-widest mb-2">{t.relatedTicket}</p>
                       <p className="text-sm font-bold text-[var(--text-main)]">{selectedLog.ticket.ticketNumber}</p>
                       <p className="text-xs text-[var(--text-secondary)] truncate">{selectedLog.ticket.subject}</p>
                     </div>
                   )}
                 </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Changes Data Comparison</label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-danger-red uppercase tracking-widest px-2 py-0.5 bg-danger-red/5 rounded">Previous State</span>
-                        <pre className="p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-dim)] text-[10px] text-[var(--text-secondary)] font-mono overflow-auto max-h-40 whitespace-pre-wrap">
-                          {selectedLog.oldData ? JSON.stringify(selectedLog.oldData, null, 2) : 'No previous data'}
-                        </pre>
-                      </div>
-                      <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-success-green uppercase tracking-widest px-2 py-0.5 bg-success-green/5 rounded">Updated State</span>
-                        <pre className="p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-dim)] text-[10px] text-[var(--text-secondary)] font-mono overflow-auto max-h-40 whitespace-pre-wrap">
-                          {selectedLog.newData ? JSON.stringify(selectedLog.newData, null, 2) : 'No updated data'}
-                        </pre>
+                {(selectedLog.oldData || selectedLog.newData) ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.changesDataComparison}</label>
+                      <div className="p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-dim)]">
+                        <p className="text-xs font-bold text-[var(--text-main)] mb-3">{t.changes}</p>
+                        {renderDataChanges(selectedLog.oldData, selectedLog.newData)}
                       </div>
                     </div>
+
+                    <div>
+                      <button
+                        onClick={() => setShowRawJson(!showRawJson)}
+                        className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] hover:text-primary-blue transition-all"
+                      >
+                        {showRawJson ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        {showRawJson ? t.hideRawJson : t.showRawJson}
+                      </button>
+                      {showRawJson && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                          <div className="space-y-2">
+                            <span className="text-[10px] font-bold text-danger-red uppercase tracking-widest px-2 py-0.5 bg-danger-red/5 rounded">{t.previousState}</span>
+                            <pre className="p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-dim)] text-[10px] text-[var(--text-secondary)] font-mono overflow-auto max-h-40 whitespace-pre-wrap">
+                              {selectedLog.oldData ? JSON.stringify(selectedLog.oldData, null, 2) : t.noPreviousData}
+                            </pre>
+                          </div>
+                          <div className="space-y-2">
+                            <span className="text-[10px] font-bold text-success-green uppercase tracking-widest px-2 py-0.5 bg-success-green/5 rounded">{t.updatedState}</span>
+                            <pre className="p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-dim)] text-[10px] text-[var(--text-secondary)] font-mono overflow-auto max-h-40 whitespace-pre-wrap">
+                              {selectedLog.newData ? JSON.stringify(selectedLog.newData, null, 2) : t.noUpdatedData}
+                            </pre>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <p className="text-xs text-[var(--text-muted)] italic">{t.noChanges}</p>
+                )}
               </div>
               <div className="p-6 bg-[var(--border-dim)] border-t border-[var(--border-dim)] flex justify-end">
                 <button 
                   onClick={() => setSelectedLog(null)}
                   className="px-8 py-2.5 bg-[var(--bg-elevated)] text-[var(--text-main)] rounded-xl font-bold text-sm shadow-xl shadow-slate-900/10 transition-all hover:scale-105"
                 >
-                  Dismiss Detail
+                  {t.dismissDetail}
                 </button>
               </div>
             </motion.div>

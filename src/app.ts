@@ -40,6 +40,7 @@ import knowledgeRoutes from './modules/knowledge/knowledge.routes.ts';
 import teamNoteRoutes from './modules/team-notes/team-notes.routes.ts';
 
 import auditRoutes from './modules/audit/audit.routes.ts';
+import profileRoutes from './modules/profile/profile.routes.ts';
 import { requestLogger } from './core/middleware/request_logger.ts';
 
 const app = express();
@@ -156,6 +157,7 @@ app.use('/api/uploads', uploadLimiter, uploadRoutes);
 app.use('/api/assets', assetRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/team-notes', teamNoteRoutes);
+app.use('/api/profile', profileRoutes);
 app.use('/api/audit', auditRoutes);
 
 // API 404 Handler

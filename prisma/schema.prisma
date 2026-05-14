@@ -110,6 +110,7 @@ model User {
   roleId              Int?                    @map("role_id")
   departmentId        Int?                    @map("department_id")
   avatarUrl           String?                 @map("avatar_url")
+  about               String?                 @map("about")
   langPref            String                  @default("ar") @map("lang_pref")
   isActive            Boolean                 @default(true) @map("is_active")
   forcePasswordChange Boolean                 @default(false) @map("force_password_change")

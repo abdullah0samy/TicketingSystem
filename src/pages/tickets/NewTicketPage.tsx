@@ -3,7 +3,7 @@ import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
 import { translations } from '../../core/translations.ts';
 import { apiFetch } from '../../core/api.ts';
-import { Send, Building2, Layers, Users, Tag, AlertCircle, CheckCircle2, Phone, Hash, Paperclip, X, File as FileIcon } from 'lucide-react';
+import { Send, Building2, Layers, Users, Tag, AlertCircle, CheckCircle2, Phone, Hash, Paperclip, X, File as FileIcon, Mic, MicOff } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface Building { id: number; nameAr: string; nameEn: string; }
@@ -32,6 +32,11 @@ export default function NewTicketPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<any>(null);
 
   const [formData, setFormData] = useState({
     subject: '',
@@ -54,7 +59,18 @@ export default function NewTicketPage() {
   const navigateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    return () => { isMounted.current = false; };
+    return () => {
+      isMounted.current = false;
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (mediaRecorderRef.current) {
+        if (mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop();
+        }
+        if (mediaRecorderRef.current.stream) {
+          mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+        }
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -129,6 +145,74 @@ export default function NewTicketPage() {
     setAttachments(attachments.filter((_, i) => i !== index));
   };
 
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const startVoiceRecording = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setError(t.microphoneNotSupported);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const file = new File([audioBlob], `voice-note-${Date.now()}.webm`, { type: 'audio/webm' });
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const data = await apiFetch('/api/uploads', {
+            method: 'POST',
+            body: formData
+          });
+          setAttachments([...attachments, { ...data, isVoiceNote: true, voiceDuration: recordingDuration } as any]);
+        } catch (err: any) {
+          setError(err.message || t.uploadFailed);
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+      timerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+    } catch (err: any) {
+      let message = t.couldNotAccessMicrophone;
+      if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError' || err.message?.includes('device not found')) {
+        message = t.noMicrophoneFound;
+      } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        message = t.microphonePermissionDenied;
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        message = t.microphoneInUse;
+      }
+      setError(message);
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      clearInterval(timerRef.current);
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -141,7 +225,7 @@ export default function NewTicketPage() {
         body: JSON.stringify({ ...formData, attachments })
       });
 
-      setSuccess(language === 'ar' ? `تم إنشاء التذكرة بنجاح: ${data.ticketNumber}` : `Ticket created successfully: ${data.ticketNumber}`);
+      setSuccess(t.ticketCreatedSuccess.replace('{ticketNumber}', data.ticketNumber));
       navigateTimerRef.current = setTimeout(() => window.dispatchEvent(new CustomEvent('navigate', { detail: '/inbox' })), 1500);
       setAttachments([]);
       setFormData({
@@ -164,16 +248,16 @@ export default function NewTicketPage() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">Loading...</div>;
+  if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">{t.loading}</div>;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-[var(--text-main)]">
-          {language === 'ar' ? 'فتح تذكرة جديدة' : 'Open New Ticket'}
+          {t.openNewTicket}
         </h2>
         <p className="text-[var(--text-secondary)]">
-          {language === 'ar' ? 'يرجى تقديم تفاصيل المشكلة للحصول على الدعم' : 'Please provide issue details for support'}
+          {t.newTicketSubtitle}
         </p>
       </div>
 
@@ -196,13 +280,13 @@ export default function NewTicketPage() {
         <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-main)] p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-6 text-primary-blue">
             <Building2 size={20} />
-            <h3 className="font-bold uppercase tracking-widest text-xs">{language === 'ar' ? 'الموقع' : 'Location'}</h3>
+            <h3 className="font-bold uppercase tracking-widest text-xs">{t.location}</h3>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                {language === 'ar' ? 'المبنى' : 'Building'} <span className="text-danger-red">*</span>
+                {t.building} <span className="text-danger-red">*</span>
               </label>
               <select
                 value={formData.buildingId}
@@ -210,13 +294,13 @@ export default function NewTicketPage() {
                 onChange={(e) => setFormData({ ...formData, buildingId: e.target.value, floorId: '' })}
                 className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
               >
-                <option value="">{language === 'ar' ? 'اختر المبنى' : 'Select Building'}</option>
+                <option value="">{t.selectBuilding}</option>
                 {buildings.map(b => <option key={b.id} value={b.id}>{language === 'ar' ? b.nameAr : b.nameEn}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                {language === 'ar' ? 'الطابق' : 'Floor'} <span className="text-danger-red">*</span>
+                {t.floor} <span className="text-danger-red">*</span>
               </label>
               <select
                 value={formData.floorId}
@@ -225,24 +309,24 @@ export default function NewTicketPage() {
                 onChange={(e) => setFormData({ ...formData, floorId: e.target.value })}
                 className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue disabled:opacity-50"
               >
-                <option value="">{language === 'ar' ? 'اختر الطابق' : 'Select Floor'}</option>
+                <option value="">{t.selectFloor}</option>
                 {floors.map(f => <option key={f.id} value={f.id}>{language === 'ar' ? f.nameAr : f.nameEn}</option>)}
               </select>
             </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{language === 'ar' ? 'الأصل المرتبط' : 'Related Asset'}</label>
+              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{t.relatedAsset}</label>
               <select
                 value={formData.assetId}
                 onChange={(e) => setFormData({ ...formData, assetId: e.target.value })}
                 className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
               >
-                <option value="">{language === 'ar' ? 'اختر الأصل (اختياري)' : 'Select Asset (Optional)'}</option>
+                <option value="">{t.selectAssetOptional}</option>
                 {assets.map(a => <option key={a.id} value={a.id}>{a.name} ({a.serialNumber})</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{language === 'ar' ? 'الغرفة / الامتداد' : 'Room / Ext.'}</label>
+              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{t.room}</label>
               <input
                 type="text"
                 value={formData.roomExtension}
@@ -259,12 +343,12 @@ export default function NewTicketPage() {
         <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-main)] p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-6 text-primary-blue">
             <Phone size={20} />
-            <h3 className="font-bold uppercase tracking-widest text-xs">{language === 'ar' ? 'معلومات الاتصال' : 'Contact Info'}</h3>
+            <h3 className="font-bold uppercase tracking-widest text-xs">{t.contactInfo}</h3>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{language === 'ar' ? 'رقم الهاتف' : 'Phone Number'}</label>
+              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{t.phone}</label>
               <input
                 type="text"
                 value={formData.creatorPhone}
@@ -275,7 +359,7 @@ export default function NewTicketPage() {
             </div>
             <div>
               <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                {language === 'ar' ? 'التحويلة' : 'Extension'} <span className="text-danger-red">*</span>
+                {t.extension} <span className="text-danger-red">*</span>
               </label>
               <input
                 type="text"
@@ -293,14 +377,14 @@ export default function NewTicketPage() {
         <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-main)] p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-6 text-primary-blue">
             <AlertCircle size={20} />
-            <h3 className="font-bold uppercase tracking-widest text-xs">{language === 'ar' ? 'تفاصيل المشكلة' : 'Issue Details'}</h3>
+            <h3 className="font-bold uppercase tracking-widest text-xs">{t.issueDetails}</h3>
           </div>
           
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                  {language === 'ar' ? 'القسم الموجه إليه' : 'Target Department'} <span className="text-danger-red">*</span>
+                  {t.targetDepartment} <span className="text-danger-red">*</span>
                 </label>
                 <select
                   value={formData.departmentId}
@@ -308,20 +392,20 @@ export default function NewTicketPage() {
                   className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                   required
                 >
-                  <option value="">{language === 'ar' ? 'اختر القسم' : 'Select Department'}</option>
+                  <option value="">{t.selectDepartment}</option>
                   {departments.map(d => <option key={d.id} value={d.id}>{language === 'ar' ? d.nameAr : d.nameEn}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                  {language === 'ar' ? 'نوع المشكلة' : 'Issue Type'}
+                  {t.issueType}
                 </label>
                 <select
                   value={formData.ticketTypeId}
                   onChange={(e) => setFormData({ ...formData, ticketTypeId: e.target.value })}
                   className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                 >
-                  <option value="">{language === 'ar' ? 'اختر النوع (اختياري)' : 'Select Type (Optional)'}</option>
+                  <option value="">{t.selectTypeOptional}</option>
                   {ticketTypes
                     .filter(tt => !tt.departmentId || tt.departmentId === parseInt(formData.departmentId))
                     .map(tt => <option key={tt.id} value={tt.id}>{language === 'ar' ? tt.nameAr : tt.nameEn}</option>)}
@@ -330,7 +414,7 @@ export default function NewTicketPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{language === 'ar' ? 'الأولوية' : 'Priority'}</label>
+              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{t.priority}</label>
               <div className="grid grid-cols-4 gap-4">
                 {['low', 'normal', 'high', 'urgent'].map((p) => (
                   <button
@@ -351,7 +435,7 @@ export default function NewTicketPage() {
 
             <div>
               <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                {language === 'ar' ? 'الموضوع' : 'Subject'} <span className="text-danger-red">*</span>
+                {t.subject} <span className="text-danger-red">*</span>
               </label>
               <input
                 type="text"
@@ -359,32 +443,34 @@ export default function NewTicketPage() {
                 required
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                 className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
-                placeholder={language === 'ar' ? 'عنوان مختصر للمشكلة' : 'Brief summary of the issue'}
+                placeholder={t.subjectPlaceholder}
               />
             </div>
 
             <div>
               <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                {language === 'ar' ? 'الوصف التفصيلي' : 'Detailed Description'} <span className="text-danger-red">*</span>
+                {t.detailedDescription} <span className="text-danger-red">*</span>
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue min-h-[150px]"
-                placeholder={language === 'ar' ? 'يرجى شرح المشكلة بالتفصيل...' : 'Please explain the issue in detail...'}
+                placeholder={t.descriptionPlaceholder}
                 required
               />
             </div>
 
             {/* Attachments */}
             <div>
-              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{language === 'ar' ? 'المرفقات' : 'Attachments'}</label>
+              <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{t.attachments}</label>
               <div className="flex flex-wrap gap-4">
                 {attachments.map((file, idx) => (
                   <div key={idx} className="relative group bg-[var(--bg-elevated)] p-3 rounded-xl border border-[var(--border-main)] flex items-center gap-3">
-                    <FileIcon size={20} className="text-primary-blue" />
+                    {(file as any).isVoiceNote ? <Mic size={20} className="text-rose-500" /> : <FileIcon size={20} className="text-primary-blue" />}
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-[var(--text-secondary)] line-clamp-1 max-w-[150px]">{file.fileName}</span>
+                      <span className="text-xs font-bold text-[var(--text-secondary)] line-clamp-1 max-w-[150px]">
+                        {(file as any).isVoiceNote ? `${t.voiceNote} (${formatDuration((file as any).voiceDuration || 0)})` : file.fileName}
+                      </span>
                       <span className="text-[10px] text-[var(--text-muted)]">{(file.fileSize / 1024).toFixed(1)} KB</span>
                     </div>
                     <button 
@@ -400,8 +486,24 @@ export default function NewTicketPage() {
                 <label className="w-32 h-20 border-2 border-dashed border-[var(--border-main)] rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-primary-blue hover:bg-primary-blue/5 transition-all text-[var(--text-muted)] hover:text-primary-blue">
                   <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploading} />
                   <Paperclip size={20} />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">{uploading ? '...' : (language === 'ar' ? 'إرفاق' : 'Attach')}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">{uploading ? '...' : t.attach}</span>
                 </label>
+                
+                <button
+                  type="button"
+                  onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                  disabled={uploading}
+                  className={`w-32 h-20 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${
+                    isRecording
+                      ? 'border-rose-500 bg-rose-500/10 text-rose-500 animate-pulse'
+                      : 'border-[var(--border-main)] text-[var(--text-muted)] hover:border-rose-500 hover:bg-rose-500/5 hover:text-rose-500'
+                  }`}
+                >
+                  {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
+                  <span className="text-[10px] font-bold uppercase tracking-widest">
+                    {isRecording ? formatDuration(recordingDuration) : t.record}
+                  </span>
+                </button>
               </div>
             </div>
           </div>
@@ -416,7 +518,7 @@ export default function NewTicketPage() {
             {submitting ? '...' : (
               <>
                 <Send size={20} />
-                {language === 'ar' ? 'إرسال التذكرة' : 'Submit Ticket'}
+                {t.submitTicket}
               </>
             )}
           </button>

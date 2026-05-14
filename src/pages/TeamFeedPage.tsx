@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/authStore.ts';
 import { useSettingsStore } from '../store/settingsStore.ts';
+import { translations } from '../core/translations.ts';
 import { useNotifications } from '../core/NotificationProvider.tsx';
 import { apiFetch } from '../core/api.ts';
 import { 
@@ -15,8 +16,6 @@ import {
   MoreHorizontal,
   Paperclip,
   X,
-  Play,
-  Pause,
   Smile,
   Users,
   User
@@ -65,6 +64,7 @@ interface TeamNote {
 export default function TeamFeedPage() {
   const { user, accessToken } = useAuthStore();
   const { language } = useSettingsStore();
+  const t = translations[language];
   const { addNotification } = useNotifications();
   const [notes, setNotes] = useState<TeamNote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,8 +135,8 @@ export default function TeamFeedPage() {
   const startRecording = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       addNotification({
-        title: language === 'ar' ? 'خطأ في الميكروفون' : 'Microphone Error',
-        message: language === 'ar' ? 'متصفحك لا يدعم تسجيل الصوت' : 'Your browser does not support audio recording',
+        title: t.microphoneErrorTitle,
+        message: t.microphoneNotSupported,
         type: 'error'
       });
       return;
@@ -184,18 +184,18 @@ export default function TeamFeedPage() {
         console.error('Microphone access denied:', err);
       }
 
-      let message = language === 'ar' ? 'تعذر الوصول إلى الميكروفون' : 'Could not access microphone';
+      let message = t.couldNotAccessMicrophone;
       
       if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError' || err.message?.includes('device not found')) {
-        message = language === 'ar' ? 'لم يتم العثور على ميكروفون متصل. يرجى التأكد من توصيل الميكروفون.' : 'No microphone device found. Please ensure a microphone is connected.';
+        message = t.noMicrophoneFound;
       } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        message = language === 'ar' ? 'تم رفض الإذن بالوصول للميكروفون. يرجى تفعيل الإذن من إعدادات المتصفح.' : 'Microphone permission denied. Please enable it in your browser settings.';
+        message = t.microphonePermissionDenied;
       } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-        message = language === 'ar' ? 'الميكروفون مستخدم بالفعل من قبل تطبيق آخر.' : 'Microphone is already in use by another application.';
+        message = t.microphoneInUse;
       }
 
       addNotification({
-        title: language === 'ar' ? 'خطأ في الميكروفون' : 'Microphone Error',
+        title: t.microphoneErrorTitle,
         message,
         type: 'error'
       });
@@ -267,7 +267,7 @@ export default function TeamFeedPage() {
 
   const handleShare = async (note: TeamNote) => {
     const shareData = {
-      title: language === 'ar' ? 'مشاركة منشور الفريق' : 'Share Team Post',
+      title: t.shareTeamPost,
       text: note.body,
       url: window.location.href + `?noteId=${note.id}`
     };
@@ -278,8 +278,8 @@ export default function TeamFeedPage() {
       } else {
         await navigator.clipboard.writeText(shareData.url);
         addNotification({
-          title: language === 'ar' ? 'تم النسخ' : 'Link Copied',
-          message: language === 'ar' ? 'تم نسخ رابط المنشور إلى الحافظة' : 'Post link copied to clipboard',
+          title: t.linkCopiedTitle,
+          message: t.linkCopied,
           type: 'success'
         });
       }
@@ -294,10 +294,10 @@ export default function TeamFeedPage() {
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-3">
             <Users className="text-primary-blue" />
-            {language === 'ar' ? 'ساحة الفريق' : 'Team Feed'}
+            {t.teamFeed}
           </h1>
           <p className="text-[var(--text-secondary)]">
-            {language === 'ar' ? 'شارك المعرفة والتحديثات مع زملائك' : 'Share knowledge and updates with your colleagues'}
+            {t.teamFeedDesc}
           </p>
         </div>
       </div>
@@ -312,7 +312,7 @@ export default function TeamFeedPage() {
             <textarea
               value={newNoteBody}
               onChange={(e) => setNewNoteBody(e.target.value)}
-              placeholder={language === 'ar' ? 'بماذا تفكر؟' : "What's on your mind?"}
+              placeholder={t.whatsOnYourMind}
               className="w-full bg-transparent border-none outline-none text-[var(--text-main)] placeholder-slate-400 resize-none min-h-[80px] py-2"
             />
           </div>
@@ -358,7 +358,7 @@ export default function TeamFeedPage() {
             disabled={!newNoteBody.trim() && attachments.length === 0}
             className="bg-primary-blue text-white px-6 py-2 rounded-xl font-bold text-sm hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50"
           >
-            {language === 'ar' ? 'نشر' : 'Post'}
+            {t.post}
           </button>
         </div>
       </div>
@@ -370,7 +370,7 @@ export default function TeamFeedPage() {
         ) : notes.length === 0 ? (
           <div className="p-20 text-center bg-[var(--bg-surface)] rounded-3xl border border-dashed border-[var(--border-main)]">
             <Users size={48} className="mx-auto text-slate-200 mb-4" />
-            <p className="text-[var(--text-muted)]">{language === 'ar' ? 'لا توجد منشورات بعد' : 'No posts yet'}</p>
+            <p className="text-[var(--text-muted)]">{t.noPostsYet}</p>
           </div>
         ) : (
           notes.map((note) => (
@@ -409,12 +409,7 @@ export default function TeamFeedPage() {
                       <div key={att.id}>
                         {att.isVoiceNote ? (
                           <div className="bg-[var(--border-dim)]/50 p-3 rounded-2xl flex items-center gap-4 border border-[var(--border-dim)]">
-                            <button className="w-10 h-10 rounded-full bg-primary-blue text-white flex items-center justify-center hover:scale-105 transition-transform">
-                              <Play size={18} fill="currentColor" />
-                            </button>
-                            <div className="flex-1 h-1.5 bg-[var(--bg-elevated)] rounded-full overflow-hidden relative">
-                              <div className="absolute inset-0 bg-primary-blue w-1/3" />
-                            </div>
+                            <audio controls src={att.fileUrl} className="w-full h-10 rounded-xl" />
                             <span className="text-[10px] font-mono font-bold text-[var(--text-secondary)]">{formatDuration(att.voiceDuration || 0)}</span>
                           </div>
                         ) : att.mimeType?.startsWith('image/') ? (
@@ -445,21 +440,21 @@ export default function TeamFeedPage() {
                     className={`flex items-center gap-2 text-xs font-bold transition-all ${note.likes.some(l => l.userId === user?.id) ? 'text-primary-blue' : 'text-[var(--text-muted)] hover:text-primary-blue'}`}
                   >
                     <ThumbsUp size={18} className={note.likes.some(l => l.userId === user?.id) ? 'fill-current' : ''} />
-                    {note.likes.length} {language === 'ar' ? 'إعجاب' : 'Likes'}
+                    {note.likes.length} {t.likes}
                   </button>
                   <button 
                     onClick={() => setCommentingOn(commentingOn === note.id ? null : note.id)}
                     className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] hover:text-primary-blue transition-all"
                   >
                     <MessageSquare size={18} />
-                    {note.comments.length} {language === 'ar' ? 'تعليق' : 'Comments'}
+                    {note.comments.length} {t.comments}
                   </button>
                   <button 
                     onClick={() => handleShare(note)}
                     className="flex items-center gap-2 text-xs font-bold text-[var(--text-muted)] hover:text-primary-blue transition-all"
                   >
                     <Share2 size={18} />
-                    {language === 'ar' ? 'مشاركة' : 'Share'}
+                    {t.share}
                   </button>
                 </div>
               </div>
@@ -504,7 +499,7 @@ export default function TeamFeedPage() {
                               setNewComment(e.target.value);
                             }}
                             onKeyDown={(e) => e.key === 'Enter' && handleAddComment(note.id)}
-                            placeholder={language === 'ar' ? 'اكتب تعليقاً...' : 'Write a comment...'}
+                            placeholder={t.writeComment}
                             className="w-full bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-xl px-4 py-2 text-xs outline-none focus:ring-2 focus:ring-primary-blue"
                           />
                           <button 
