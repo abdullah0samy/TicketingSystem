@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
+import { translations } from '../../core/translations.ts';
 import { 
   Plus, 
   Search, 
@@ -39,6 +40,7 @@ interface Department {
 export default function AssetManagementPage() {
   const { accessToken } = useAuthStore();
   const { language } = useSettingsStore();
+  const t = translations[language];
   const [assets, setAssets] = useState<Asset[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,7 +122,7 @@ export default function AssetManagementPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا الأصل؟' : 'Are you sure you want to delete this asset?')) return;
+    if (!confirm(t.deleteAssetConfirm)) return;
     try {
       const res = await fetch(`/api/assets/${id}`, {
         method: 'DELETE',
@@ -145,10 +147,10 @@ export default function AssetManagementPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-main)]">
-            {language === 'ar' ? 'إدارة الأصول' : 'Asset Management'}
+            {t.assetManagement}
           </h1>
           <p className="text-sm text-[var(--text-secondary)]">
-            {language === 'ar' ? 'تتبع وإدارة المعدات الطبية والتقنية' : 'Track and manage medical and technical equipment'}
+            {t.assetManagementDesc}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -161,7 +163,7 @@ export default function AssetManagementPage() {
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-blue text-white font-bold hover:bg-blue-800 transition-all shadow-lg shadow-primary-blue/20"
           >
             <Plus size={18} />
-            {language === 'ar' ? 'إضافة أصل' : 'Add Asset'}
+            {t.addAsset}
           </button>
         </div>
       </div>
@@ -169,10 +171,10 @@ export default function AssetManagementPage() {
       {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { label: language === 'ar' ? 'إجمالي الأصول' : 'Total Assets', value: assets.length, icon: Package, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-          { label: language === 'ar' ? 'نشط' : 'Active', value: assets.filter(a => a.status === 'active').length, icon: ShieldCheck, color: 'text-green-500', bg: 'bg-green-500/10' },
-          { label: language === 'ar' ? 'تحت الصيانة' : 'Maintenance', value: assets.filter(a => a.status === 'maintenance').length, icon: Calendar, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-          { label: language === 'ar' ? 'متقاعد' : 'Retired', value: assets.filter(a => a.status === 'retired').length, icon: Trash2, color: 'text-[var(--text-secondary)]', bg: 'bg-[var(--bg-main)]0/10' },
+          { label: t.totalAssets, value: assets.length, icon: Package, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+          { label: t.active, value: assets.filter(a => a.status === 'active').length, icon: ShieldCheck, color: 'text-green-500', bg: 'bg-green-500/10' },
+          { label: t.maintenance, value: assets.filter(a => a.status === 'maintenance').length, icon: Calendar, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+          { label: t.retired, value: assets.filter(a => a.status === 'retired').length, icon: Trash2, color: 'text-[var(--text-secondary)]', bg: 'bg-[var(--bg-main)]0/10' },
         ].map((stat, i) => (
           <div key={i} className="bg-[var(--bg-surface)] p-4 rounded-2xl border border-[var(--border-main)] flex items-center gap-4">
             <div className={`w-12 h-12 rounded-xl ${stat.bg} flex items-center justify-center ${stat.color}`}>
@@ -192,7 +194,7 @@ export default function AssetManagementPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
           <input 
             type="text"
-            placeholder={language === 'ar' ? 'البحث عن أصل...' : 'Search assets...'}
+            placeholder={t.searchAssets}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] text-sm outline-none focus:ring-2 focus:ring-primary-blue"
@@ -214,11 +216,11 @@ export default function AssetManagementPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[var(--border-dim)]/50 border-b border-[var(--border-dim)]">
-                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الأصل' : 'Asset'}</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'النوع' : 'Type'}</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الموقع' : 'Location'}</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'القسم' : 'Department'}</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الحالة' : 'Status'}</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.asset}</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.type}</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.location}</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.department}</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.status}</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest"></th>
               </tr>
             </thead>
@@ -299,14 +301,14 @@ export default function AssetManagementPage() {
             >
               <div className="p-6 border-b border-[var(--border-dim)] flex items-center justify-between">
                 <h2 className="text-xl font-bold text-[var(--text-main)]">
-                  {editingAsset ? (language === 'ar' ? 'تعديل أصل' : 'Edit Asset') : (language === 'ar' ? 'إضافة أصل جديد' : 'Add New Asset')}
+                  {editingAsset ? t.editAsset : t.addNewAsset}
                 </h2>
                 <button onClick={() => setIsModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]">&times;</button>
               </div>
               <form onSubmit={handleSave} className="p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'اسم الأصل' : 'Asset Name'}</label>
+                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.assetName}</label>
                     <input 
                       required
                       value={formData.name}
@@ -315,7 +317,7 @@ export default function AssetManagementPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الرقم التسلسلي' : 'Serial Number'}</label>
+                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.serialNumber}</label>
                     <input 
                       value={formData.serialNumber || ''}
                       onChange={(e) => setFormData({...formData, serialNumber: e.target.value})}
@@ -323,7 +325,7 @@ export default function AssetManagementPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'النوع' : 'Type'}</label>
+                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.type}</label>
                     <select 
                       value={formData.type}
                       onChange={(e) => setFormData({...formData, type: e.target.value})}
@@ -336,7 +338,7 @@ export default function AssetManagementPage() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الحالة' : 'Status'}</label>
+                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.status}</label>
                     <select 
                       value={formData.status}
                       onChange={(e) => setFormData({...formData, status: e.target.value})}
@@ -348,7 +350,7 @@ export default function AssetManagementPage() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الموقع' : 'Location'}</label>
+                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.location}</label>
                     <input 
                       value={formData.location || ''}
                       onChange={(e) => setFormData({...formData, location: e.target.value})}
@@ -356,7 +358,7 @@ export default function AssetManagementPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'القسم' : 'Department'}</label>
+                    <label className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.department}</label>
                     <select 
                       value={formData.departmentId || ''}
                       onChange={(e) => setFormData({...formData, departmentId: e.target.value ? parseInt(e.target.value) : null})}
@@ -375,13 +377,13 @@ export default function AssetManagementPage() {
                     onClick={() => setIsModalOpen(false)}
                     className="px-6 py-2 rounded-xl border border-[var(--border-main)] text-[var(--text-secondary)] font-bold hover:bg-[var(--border-dim)] transition-all"
                   >
-                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                    {t.cancel}
                   </button>
                   <button 
                     type="submit"
                     className="px-8 py-2 rounded-xl bg-primary-blue text-white font-bold hover:bg-blue-800 transition-all shadow-lg shadow-primary-blue/20"
                   >
-                    {language === 'ar' ? 'حفظ' : 'Save'}
+                    {t.save}
                   </button>
                 </div>
               </form>

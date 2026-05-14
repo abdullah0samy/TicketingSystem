@@ -102,10 +102,10 @@ export default function FloorsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-main)]">
-            {language === 'ar' ? 'إدارة الطوابق' : 'Floors Management'}
+            {t.floorsManagement}
           </h2>
           <p className="text-[var(--text-secondary)]">
-            {language === 'ar' ? 'إدارة طوابق مباني المستشفى' : 'Manage floors for hospital buildings'}
+            {t.floorsManagementDesc}
           </p>
         </div>
         <button
@@ -117,7 +117,7 @@ export default function FloorsPage() {
           className="flex items-center gap-2 bg-primary-blue text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-800 transition-all"
         >
           <Plus size={20} />
-          {language === 'ar' ? 'إضافة طابق' : 'Add Floor'}
+          {t.addFloor}
         </button>
       </div>
 
@@ -126,16 +126,16 @@ export default function FloorsPage() {
           <thead>
             <tr className="bg-[var(--border-dim)]/50 border-b border-[var(--border-main)]">
               <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
-                {language === 'ar' ? 'الطابق' : 'Floor'}
+                {t.floor}
               </th>
               <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
-                {language === 'ar' ? 'المبنى' : 'Building'}
+                {t.building}
               </th>
               <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
-                {language === 'ar' ? 'الحالة' : 'Status'}
+                {t.status}
               </th>
               <th className="px-6 py-4 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest text-right">
-                {language === 'ar' ? 'إجراءات' : 'Actions'}
+                {t.actions}
               </th>
             </tr>
           </thead>
@@ -168,7 +168,7 @@ export default function FloorsPage() {
                   <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                     floor.isActive ? 'bg-success-green/10 text-success-green' : 'bg-[var(--bg-elevated)] text-[var(--text-muted)]'
                   }`}>
-                    {floor.isActive ? (language === 'ar' ? 'نشط' : 'Active') : (language === 'ar' ? 'غير نشط' : 'Inactive')}
+                    {floor.isActive ? t.active : t.inactive}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
@@ -212,7 +212,7 @@ export default function FloorsPage() {
           >
             <div className="p-6 border-b border-[var(--border-dim)] flex items-center justify-between">
               <h3 className="text-xl font-bold text-[var(--text-main)]">
-                {editingFloor ? (language === 'ar' ? 'تعديل طابق' : 'Edit Floor') : (language === 'ar' ? 'إضافة طابق جديد' : 'Add New Floor')}
+                {editingFloor ? t.editFloor : t.addNewFloor}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
                 <X size={24} />
@@ -222,7 +222,7 @@ export default function FloorsPage() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                  {language === 'ar' ? 'المبنى' : 'Building'}
+                  {t.building}
                 </label>
                 <select
                   value={formData.buildingId}
@@ -230,7 +230,7 @@ export default function FloorsPage() {
                   className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                   required
                 >
-                  <option value="">{language === 'ar' ? 'اختر المبنى' : 'Select Building'}</option>
+                  <option value="">{t.selectBuilding}</option>
                   {buildings.map(b => (
                     <option key={b.id} value={b.id}>{language === 'ar' ? b.nameAr : b.nameEn}</option>
                   ))}
@@ -238,7 +238,7 @@ export default function FloorsPage() {
               </div>
               <div>
                 <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                  {language === 'ar' ? 'الاسم بالعربية' : 'Name (Arabic)'}
+                  {t.nameArabic}
                 </label>
                 <input
                   type="text"
@@ -250,7 +250,7 @@ export default function FloorsPage() {
               </div>
               <div>
                 <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                  {language === 'ar' ? 'الاسم بالإنجليزية' : 'Name (English)'}
+                  {t.nameEnglish}
                 </label>
                 <input
                   type="text"
@@ -269,7 +269,7 @@ export default function FloorsPage() {
                   className="w-5 h-5 rounded border-[var(--border-main)] text-primary-blue focus:ring-primary-blue"
                 />
                 <label htmlFor="isActive" className="text-sm font-bold text-[var(--text-secondary)]">
-                  {language === 'ar' ? 'نشط' : 'Active'}
+                  {t.active}
                 </label>
               </div>
               
@@ -279,13 +279,13 @@ export default function FloorsPage() {
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1 px-4 py-2 rounded-xl border border-[var(--border-main)] text-[var(--text-secondary)] font-bold hover:bg-[var(--border-dim)] transition-all"
                 >
-                  {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  {t.cancel}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 px-4 py-2 rounded-xl bg-primary-blue text-white font-bold hover:bg-blue-800 transition-all"
                 >
-                  {language === 'ar' ? 'حفظ' : 'Save'}
+                  {t.save}
                 </button>
               </div>
             </form>

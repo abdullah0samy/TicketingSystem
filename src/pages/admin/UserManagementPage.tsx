@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
+import { translations } from '../../core/translations.ts';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface User {
@@ -54,6 +55,7 @@ interface Department {
 export const UserManagementPage: React.FC = () => {
   const { accessToken } = useAuthStore();
   const { language } = useSettingsStore();
+  const t = translations[language];
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -193,10 +195,10 @@ export const UserManagementPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-3">
             <Users className="text-primary-blue" />
-            {language === 'ar' ? 'إدارة المستخدمين' : 'User Management'}
+            {t.userManagement}
           </h1>
           <p className="text-[var(--text-secondary)] mt-1">
-            {language === 'ar' ? 'إدارة حسابات الموظفين والأدوار والأقسام' : 'Manage employee accounts, roles, and departments'}
+            {t.userManagementDesc}
           </p>
         </div>
         <button 
@@ -207,7 +209,7 @@ export const UserManagementPage: React.FC = () => {
           className="bg-primary-blue hover:bg-blue-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-blue-500/20"
         >
           <UserPlus size={20} />
-          {language === 'ar' ? 'إضافة مستخدم' : 'Add User'}
+          {t.addUser}
         </button>
       </div>
 
@@ -217,7 +219,7 @@ export const UserManagementPage: React.FC = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
             <input 
               type="text"
-              placeholder={language === 'ar' ? 'بحث بالاسم أو رقم البصمة / التعريف...' : 'Search by name or Finger ID / Staff ID...'}
+              placeholder={t.searchByNameOrId}
               className="w-full pl-10 pr-4 py-2 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -232,12 +234,12 @@ export const UserManagementPage: React.FC = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[var(--border-dim)]/50 text-[var(--text-secondary)] text-xs uppercase tracking-wider">
-                <th className="px-6 py-4 font-semibold">{language === 'ar' ? 'المستخدم' : 'User'}</th>
-                <th className="px-6 py-4 font-semibold">{language === 'ar' ? 'رقم البصمة' : 'Finger ID'}</th>
-                <th className="px-6 py-4 font-semibold">{language === 'ar' ? 'الدور' : 'Role'}</th>
-                <th className="px-6 py-4 font-semibold">{language === 'ar' ? 'القسم' : 'Department'}</th>
-                <th className="px-6 py-4 font-semibold">{language === 'ar' ? 'الحالة' : 'Status'}</th>
-                <th className="px-6 py-4 font-semibold text-right">{language === 'ar' ? 'الإجراءات' : 'Actions'}</th>
+                <th className="px-6 py-4 font-semibold">{t.userLabel}</th>
+                <th className="px-6 py-4 font-semibold">{t.fingerId}</th>
+                <th className="px-6 py-4 font-semibold">{t.role}</th>
+                <th className="px-6 py-4 font-semibold">{t.department}</th>
+                <th className="px-6 py-4 font-semibold">{t.status}</th>
+                <th className="px-6 py-4 font-semibold text-right">{t.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-dim)]">
@@ -246,14 +248,14 @@ export const UserManagementPage: React.FC = () => {
                   <td colSpan={6} className="px-6 py-12 text-center text-[var(--text-muted)]">
                     <div className="flex flex-col items-center gap-2">
                       <div className="w-8 h-8 border-4 border-primary-blue border-t-transparent rounded-full animate-spin"></div>
-                      <span>{language === 'ar' ? 'جاري التحميل...' : 'Loading users...'}</span>
+                      <span>{t.loadingUsers}</span>
                     </div>
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-[var(--text-muted)]">
-                    {language === 'ar' ? 'لم يتم العثور على مستخدمين' : 'No users found'}
+                    {t.noUsersFound}
                   </td>
                 </tr>
               ) : (
@@ -301,7 +303,7 @@ export const UserManagementPage: React.FC = () => {
                         }`}
                       >
                         {user.isActive ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
-                        {user.isActive ? (language === 'ar' ? 'نشط' : 'Active') : (language === 'ar' ? 'معطل' : 'Disabled')}
+                        {user.isActive ? t.active : t.disabled}
                       </button>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -312,7 +314,7 @@ export const UserManagementPage: React.FC = () => {
                             setShowModal(true);
                           }}
                           className="p-2 text-[var(--text-muted)] hover:text-primary-blue hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"
-                          title={language === 'ar' ? 'تعديل' : 'Edit'}
+                          title={t.edit}
                         >
                           <Edit2 size={16} />
                         </button>
@@ -322,13 +324,13 @@ export const UserManagementPage: React.FC = () => {
                             setShowResetModal(true);
                           }}
                           className="p-2 text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-all"
-                          title={language === 'ar' ? 'إعادة تعيين كلمة المرور' : 'Reset Password'}
+                          title={t.resetPassword}
                         >
                           <Key size={16} />
                         </button>
                         <button 
                           className="p-2 text-[var(--text-muted)] hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all"
-                          title={language === 'ar' ? 'حذف' : 'Delete'}
+                          title={t.deleteAction}
                         >
                           <Trash2 size={16} />
                         </button>
@@ -356,8 +358,8 @@ export const UserManagementPage: React.FC = () => {
                 <h2 className="text-xl font-bold text-[var(--text-main)] flex items-center gap-2">
                   {currentUser?.id ? <Edit2 className="text-primary-blue" /> : <UserPlus className="text-primary-blue" />}
                   {currentUser?.id 
-                    ? (language === 'ar' ? 'تعديل مستخدم' : 'Edit User') 
-                    : (language === 'ar' ? 'إضافة مستخدم جديد' : 'Add New User')}
+                    ? t.editUser 
+                    : t.addNewUser}
                 </h2>
                 <button onClick={() => setShowModal(false)} className="p-2 hover:bg-[var(--bg-elevated)] rounded-full transition-colors">
                   <XCircle size={24} className="text-[var(--text-muted)]" />
@@ -369,13 +371,13 @@ export const UserManagementPage: React.FC = () => {
                   onClick={() => setActiveTab('info')}
                   className={`px-8 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'info' ? 'border-primary-blue text-primary-blue' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                 >
-                  {language === 'ar' ? 'المعلومات' : 'Basic Info'}
+                  {t.basicInfo}
                 </button>
                 <button 
                   onClick={() => setActiveTab('permissions')}
                   className={`px-8 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'permissions' ? 'border-primary-blue text-primary-blue' : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                 >
-                  {language === 'ar' ? 'الصلاحيات' : 'Permissions Overrides'}
+                  {t.permissionsOverrides}
                 </button>
               </div>
 
@@ -384,33 +386,33 @@ export const UserManagementPage: React.FC = () => {
                   {activeTab === 'info' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'رقم البصمة / التعريف' : 'Finger ID / Staff ID'}</label>
+                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t.fingerIdStaffId}</label>
                         <input required type="text" placeholder="00000" className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.badgeNumber || ''} onChange={e => setCurrentUser({...currentUser, badgeNumber: e.target.value})} />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'معرف الدخول (رقمي)' : 'Numeric Login ID (Username)'}</label>
+                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t.numericLoginId}</label>
                         <input required type="text" placeholder="00000" className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.username || ''} onChange={e => setCurrentUser({...currentUser, username: e.target.value})} />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'الاسم الكامل (عربي)' : 'Full Name (Arabic)'}</label>
+                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t.fullNameArabic}</label>
                         <input required type="text" className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.fullNameAr || ''} onChange={e => setCurrentUser({...currentUser, fullNameAr: e.target.value})} />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'الاسم الكامل (إنجليزي)' : 'Full Name (English)'}</label>
+                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t.fullNameEnglish}</label>
                         <input type="text" className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.fullNameEn || ''} onChange={e => setCurrentUser({...currentUser, fullNameEn: e.target.value})} />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</label>
+                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t.emailLabel}</label>
                         <input type="email" className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.email || ''} onChange={e => setCurrentUser({...currentUser, email: e.target.value})} />
                       </div>
                       {!currentUser?.id && (
                         <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'كلمة المرور' : 'Password'}</label>
+                          <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t.password}</label>
                           <input required type="password" className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" onChange={e => setCurrentUser({...currentUser, password: e.target.value} as any)} />
                         </div>
                       )}
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'الدور' : 'Role'}</label>
+                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t.role}</label>
                         <select className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.roleId || currentUser?.role || ''} onChange={e => {
                           const val = e.target.value;
                           if (!isNaN(parseInt(val))) {
@@ -429,9 +431,9 @@ export const UserManagementPage: React.FC = () => {
                         </select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{language === 'ar' ? 'القسم' : 'Department'}</label>
+                        <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t.department}</label>
                         <select className="w-full px-4 py-2.5 bg-[var(--border-dim)] border-none rounded-xl focus:ring-2 focus:ring-primary-blue" value={currentUser?.departmentId || ''} onChange={e => setCurrentUser({...currentUser, departmentId: e.target.value ? parseInt(e.target.value) : null})}>
-                          <option value="">{language === 'ar' ? 'بدون قسم' : 'No Department'}</option>
+                          <option value="">{t.noDepartment}</option>
                           {departments.map(d => (
                             <option key={d.id} value={d.id}>{language === 'ar' ? d.nameAr : d.nameEn}</option>
                           ))}
@@ -440,7 +442,7 @@ export const UserManagementPage: React.FC = () => {
                       <div className="md:col-span-2 pt-2">
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input type="checkbox" className="w-5 h-5 rounded-lg border-[var(--border-main)] text-primary-blue focus:ring-primary-blue" checked={currentUser?.isActive} onChange={e => setCurrentUser({...currentUser, isActive: e.target.checked})} />
-                          <span className="text-sm font-medium text-[var(--text-secondary)]">{language === 'ar' ? 'الحساب نشط' : 'Account Active'}</span>
+                          <span className="text-sm font-medium text-[var(--text-secondary)]">{t.accountActive}</span>
                         </label>
                       </div>
                     </div>
@@ -448,9 +450,7 @@ export const UserManagementPage: React.FC = () => {
                     <div className="space-y-6 pb-6 pt-2">
                       <div className="p-4 bg-primary-blue/5 rounded-2xl border border-primary-blue/10">
                         <p className="text-xs text-primary-blue font-medium leading-relaxed">
-                          {language === 'ar' 
-                            ? 'هنا يمكنك تجاوز صلاحيات القسم الموروثة لهذا المستخدم بشكل خاص.' 
-                            : 'Here you can override the department inherited permissions for this specific user.'}
+                          {t.permissionsOverrideDesc}
                         </p>
                       </div>
                       
@@ -471,7 +471,7 @@ export const UserManagementPage: React.FC = () => {
                                   })}
                                   className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${currentValue === true ? 'bg-success-green text-white shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                                 >
-                                  {language === 'ar' ? 'مسموح' : 'Allow'}
+                                  {t.allow}
                                 </button>
                                 <button 
                                   type="button"
@@ -481,7 +481,7 @@ export const UserManagementPage: React.FC = () => {
                                   })}
                                   className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${currentValue === false ? 'bg-danger-red text-white shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                                 >
-                                  {language === 'ar' ? 'ممنوع' : 'Deny'}
+                                  {t.deny}
                                 </button>
                                 <button 
                                   type="button"
@@ -492,7 +492,7 @@ export const UserManagementPage: React.FC = () => {
                                   }}
                                   className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${currentValue === undefined || currentValue === null ? 'bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm' : 'text-[var(--text-muted)] hover:text-slate-200'}`}
                                 >
-                                  {language === 'ar' ? 'تلقائي' : 'Default'}
+                                  {t.defaultPermission}
                                 </button>
                               </div>
                             </div>
@@ -504,9 +504,9 @@ export const UserManagementPage: React.FC = () => {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-6 border-t border-[var(--border-dim)] bg-[var(--bg-surface)]">
-                  <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] rounded-xl transition-colors">{language === 'ar' ? 'إلغاء' : 'Cancel'}</button>
+                  <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] rounded-xl transition-colors">{t.cancel}</button>
                   <button disabled={isSubmitting} className="bg-primary-blue hover:bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50">
-                    {isSubmitting ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (language === 'ar' ? 'حفظ' : 'Save User')}
+                    {isSubmitting ? t.saving : t.saveUser}
                   </button>
                 </div>
               </form>
@@ -528,7 +528,7 @@ export const UserManagementPage: React.FC = () => {
               <div className="p-6 border-b border-[var(--border-dim)] flex items-center justify-between">
                 <h2 className="text-xl font-bold text-[var(--text-main)] flex items-center gap-2">
                   <Key className="text-amber-500" />
-                  {language === 'ar' ? 'إعادة تعيين كلمة المرور' : 'Reset Password'}
+                  {t.resetPassword}
                 </h2>
                 <button onClick={() => setShowResetModal(false)} className="p-2 hover:bg-[var(--bg-elevated)] rounded-full transition-colors">
                   <XCircle size={24} className="text-[var(--text-muted)]" />
@@ -538,15 +538,13 @@ export const UserManagementPage: React.FC = () => {
               <form onSubmit={handleResetPassword} className="p-6 space-y-4">
                 <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-900/30">
                   <p className="text-sm text-amber-700 dark:text-amber-400">
-                    {language === 'ar' 
-                      ? `أنت تقوم بإعادة تعيين كلمة المرور للمستخدم: ${currentUser?.fullNameAr}`
-                      : `You are resetting the password for: ${currentUser?.fullNameEn || currentUser?.fullNameAr}`}
+                    {t.resettingPasswordFor.replace('{name}', language === 'ar' ? currentUser?.fullNameAr : (currentUser?.fullNameEn || currentUser?.fullNameAr))}
                   </p>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
-                    {language === 'ar' ? 'كلمة المرور الجديدة' : 'New Password'}
+                    {t.newPassword}
                   </label>
                   <input 
                     required
@@ -563,13 +561,13 @@ export const UserManagementPage: React.FC = () => {
                     onClick={() => setShowResetModal(false)}
                     className="px-6 py-2.5 text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] rounded-xl transition-colors"
                   >
-                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                    {t.cancel}
                   </button>
                   <button 
                     disabled={isSubmitting}
                     className="bg-amber-500 hover:bg-amber-600 text-white px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50"
                   >
-                    {isSubmitting ? (language === 'ar' ? 'جاري التعيين...' : 'Resetting...') : (language === 'ar' ? 'تأكيد التعيين' : 'Confirm Reset')}
+                    {isSubmitting ? t.resetting : t.confirmReset}
                   </button>
                 </div>
               </form>

@@ -95,10 +95,10 @@ export default function DepartmentsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-main)]">
-            {language === 'ar' ? 'إدارة الأقسام' : 'Departments Management'}
+            {t.departmentsManagement}
           </h2>
           <p className="text-[var(--text-secondary)]">
-            {language === 'ar' ? 'إدارة أقسام المستشفى وصلاحياتها' : 'Manage hospital departments and their permissions'}
+            {t.departmentsManagementDesc}
           </p>
         </div>
         <button
@@ -117,7 +117,7 @@ export default function DepartmentsPage() {
           className="flex items-center gap-2 bg-primary-blue text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-800 transition-all"
         >
           <Plus size={20} />
-          {language === 'ar' ? 'إضافة قسم' : 'Add Department'}
+          {t.addDepartment}
         </button>
       </div>
 
@@ -173,7 +173,7 @@ export default function DepartmentsPage() {
               <div className="flex gap-4">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
                   <Users size={14} />
-                  {dept._count?.users || 0} {language === 'ar' ? 'موظف' : 'Users'}
+                  {dept._count?.users || 0} {t.employees}
                 </div>
                 <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
                   <Shield size={14} />
@@ -183,7 +183,7 @@ export default function DepartmentsPage() {
               <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                 dept.isActive ? 'bg-success-green/10 text-success-green' : 'bg-[var(--bg-elevated)] text-[var(--text-muted)]'
               }`}>
-                {dept.isActive ? (language === 'ar' ? 'نشط' : 'Active') : (language === 'ar' ? 'غير نشط' : 'Inactive')}
+                {dept.isActive ? t.active : t.inactive}
               </span>
             </div>
           </motion.div>
@@ -200,7 +200,7 @@ export default function DepartmentsPage() {
           >
             <div className="p-6 border-b border-[var(--border-dim)] flex items-center justify-between">
               <h3 className="text-xl font-bold text-[var(--text-main)]">
-                {editingDept ? (language === 'ar' ? 'تعديل قسم' : 'Edit Department') : (language === 'ar' ? 'إضافة قسم جديد' : 'Add New Department')}
+                {editingDept ? t.editDepartment : t.addNewDepartment}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
                 <X size={24} />
@@ -211,7 +211,7 @@ export default function DepartmentsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                    {language === 'ar' ? 'الاسم بالعربية' : 'Name (Arabic)'}
+                    {t.nameArabic}
                   </label>
                   <input
                     type="text"
@@ -223,7 +223,7 @@ export default function DepartmentsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                    {language === 'ar' ? 'الاسم بالإنجليزية' : 'Name (English)'}
+                    {t.nameEnglish}
                   </label>
                   <input
                     type="text"
@@ -238,7 +238,7 @@ export default function DepartmentsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                    {language === 'ar' ? 'الوصف بالعربية' : 'Description (Arabic)'}
+                    {t.descriptionArabic}
                   </label>
                   <textarea
                     value={formData.descriptionAr}
@@ -248,7 +248,7 @@ export default function DepartmentsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                    {language === 'ar' ? 'الوصف بالإنجليزية' : 'Description (English)'}
+                    {t.descriptionEnglish}
                   </label>
                   <textarea
                     value={formData.descriptionEn}
@@ -261,16 +261,16 @@ export default function DepartmentsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                    {language === 'ar' ? 'نوع القسم' : 'Department Type'}
+                    {t.departmentType}
                   </label>
                   <select
                     value={formData.deptType}
                     onChange={(e) => setFormData({ ...formData, deptType: e.target.value })}
                     className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                   >
-                    <option value="RECEIVER_ONLY">{language === 'ar' ? 'مستقبل فقط (مثال: IT)' : 'Receiver Only (e.g. IT)'}</option>
-                    <option value="SENDER_ONLY">{language === 'ar' ? 'مرسل فقط (مثال: التمريض)' : 'Sender Only (e.g. Nursing)'}</option>
-                    <option value="BOTH">{language === 'ar' ? 'كلاهما' : 'Both'}</option>
+                    <option value="RECEIVER_ONLY">{t.receiverOnly}</option>
+                    <option value="SENDER_ONLY">{t.senderOnly}</option>
+                    <option value="BOTH">{t.both}</option>
                   </select>
                 </div>
                 <div className="flex items-center gap-3 pt-8">
@@ -282,7 +282,7 @@ export default function DepartmentsPage() {
                     className="w-5 h-5 rounded border-[var(--border-main)] text-primary-blue focus:ring-primary-blue"
                   />
                   <label htmlFor="isActive" className="text-sm font-bold text-[var(--text-secondary)]">
-                    {language === 'ar' ? 'نشط' : 'Active'}
+                    {t.active}
                   </label>
                 </div>
               </div>
@@ -293,13 +293,13 @@ export default function DepartmentsPage() {
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1 px-4 py-2 rounded-xl border border-[var(--border-main)] text-[var(--text-secondary)] font-bold hover:bg-[var(--border-dim)] transition-all"
                 >
-                  {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  {t.cancel}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 px-4 py-2 rounded-xl bg-primary-blue text-white font-bold hover:bg-blue-800 transition-all"
                 >
-                  {language === 'ar' ? 'حفظ' : 'Save'}
+                  {t.save}
                 </button>
               </div>
             </form>

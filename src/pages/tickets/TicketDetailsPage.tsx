@@ -418,7 +418,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
   };
 
   const handleArchive = async () => {
-    if (!window.confirm(language === 'ar' ? 'هل أنت متأكد من أرشفة هذه التذكرة؟' : 'Are you sure you want to archive this ticket?')) return;
+    if (!window.confirm(t.archiveConfirm)) return;
     setSubmitting(true);
     try {
       const res = await fetch(`/api/tickets/${ticketId}/archive`, {
@@ -441,7 +441,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      alert(language === 'ar' ? 'تم نسخ الرابط إلى الحافظة' : 'Link copied to clipboard');
+      alert(t.linkCopied);
     } catch (err) {
       console.error('Failed to copy text: ', err);
     }
@@ -516,7 +516,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
         fetchTicket();
       } else {
         if (data.code === 'ISSUE_TYPE_REQUIRED') {
-          alert(language === 'ar' ? 'يجب اختيار نوع المشكلة قبل حل التذكرة' : 'Issue Type must be selected before resolving the ticket');
+          alert(t.issueTypeRequired);
         } else {
           alert(data.message || 'Error updating status');
         }
@@ -580,7 +580,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">Loading ticket details...</div>;
+  if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">{t.loading}</div>;
   if (!ticket) return <div className="p-8 text-center text-danger-red">Ticket not found or access denied</div>;
 
   const isAgent = ticket.departmentId === (user?.departmentId || user?.department?.id) || user?.role === 'super_admin';
@@ -659,7 +659,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
               className="flex items-center gap-2 px-4 py-2 premium-card shadow-sm text-sm font-bold text-[var(--text-secondary)] hover:bg-danger-red/5 hover:text-danger-red hover:border-danger-red/20 transition-all disabled:opacity-50"
             >
               <Archive size={18} />
-              <span>{language === 'ar' ? 'أرشفة' : 'Archive'}</span>
+              <span>{t.archiveAction}</span>
             </button>
 
             <button 
@@ -667,7 +667,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
               className="flex items-center gap-2 px-4 py-2 premium-card shadow-sm text-sm font-bold text-[var(--text-secondary)] transition-all"
             >
               <Share2 size={18} />
-              <span>{language === 'ar' ? 'مشاركة' : 'Share'}</span>
+              <span>{t.share}</span>
             </button>
 
             <div className="flex items-center gap-2 flex-wrap">
@@ -688,13 +688,13 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                 // Compute reason if disabled
                 let disabledReason = '';
                 if (!isCurrent && !isAllowed) {
-                  disabledReason = language === 'ar' ? 'انتقال غير مسموح' : `Cannot go from ${ticket.status.replace('_', ' ')} to ${s.replace('_', ' ')}`;
+                  disabledReason = t.invalidTransition;
                 } else if (s === 'resolved' && !ticket.assignedToId) {
-                  disabledReason = language === 'ar' ? 'يجب تعيين موظف أولاً' : 'Assign an agent first';
+                  disabledReason = t.assignAgentFirst;
                 } else if ((s === 'resolved' || s === 'closed') && !ticket.ticketTypeId) {
-                  disabledReason = language === 'ar' ? 'حدد نوع المشكلة أولاً' : 'Set Issue Type first';
+                  disabledReason = t.setIssueTypeFirst;
                 } else if (isLocked && !isCurrent) {
-                  disabledReason = language === 'ar' ? 'التذكرة مقفلة' : 'Ticket is locked';
+                  disabledReason = t.ticketLocked;
                 }
 
                 const isDisabled = isCurrent || (!isAllowed) || (isLocked && !isCurrent) || 
@@ -759,20 +759,20 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
             className="premium-card w-full max-w-md p-8 shadow-2xl"
           >
             <h3 className="text-xl font-bold text-[var(--text-main)] mb-6">
-              {language === 'ar' ? 'تحويل التذكرة' : 'Transfer Ticket'}
+              {t.transferTicket}
             </h3>
             
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                  {language === 'ar' ? 'القسم المستهدف' : 'Target Department'}
+                  {t.targetDepartment}
                 </label>
                 <select 
                   value={transferDeptId}
                   onChange={(e) => setTransferDeptId(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] text-sm outline-none focus:ring-2 focus:ring-primary-blue"
                 >
-                  <option value="">{language === 'ar' ? 'اختر القسم' : 'Select Department'}</option>
+                  <option value="">{t.selectDepartment}</option>
                   {departments.filter(d => d.id !== ticket.departmentId).map(d => (
                     <option key={d.id} value={d.id}>{language === 'ar' ? d.nameAr : d.nameEn}</option>
                   ))}
@@ -781,13 +781,13 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
 
               <div>
                 <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                  {language === 'ar' ? 'السبب' : 'Reason'}
+                  {t.reason}
                 </label>
                 <textarea 
                   value={transferReason}
                   onChange={(e) => setTransferReason(e.target.value)}
                   className="input-surface w-full h-24 resize-none bg-[var(--bg-main)]"
-                  placeholder={language === 'ar' ? 'لماذا يتم تحويل هذه التذكرة؟' : 'Why is this ticket being transferred?'}
+                  placeholder={t.transferReason}
                 />
               </div>
 
@@ -796,14 +796,14 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                   onClick={() => setShowTransferModal(false)}
                   className="flex-1 px-6 py-3 rounded-xl border border-[var(--border-main)] text-sm font-bold text-[var(--text-secondary)] hover:bg-[var(--border-dim)] transition-all"
                 >
-                  {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  {t.cancel}
                 </button>
                 <button 
                   onClick={handleTransfer}
                   disabled={!transferDeptId || submitting}
                   className="flex-1 px-6 py-3 rounded-xl bg-primary-blue text-white text-sm font-bold hover:bg-blue-600 transition-all disabled:opacity-50"
                 >
-                  {submitting ? '...' : (language === 'ar' ? 'تأكيد التحويل' : 'Confirm Transfer')}
+                  {submitting ? '...' : t.confirmTransfer}
                 </button>
               </div>
             </div>
@@ -820,21 +820,21 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
             className="premium-card w-full max-w-lg p-8 shadow-2xl"
           >
             <h3 className="text-xl font-bold text-[var(--text-main)] mb-6">
-              {language === 'ar' ? 'حل التذكرة' : 'Resolve Ticket'}
+              {t.resolveTicket}
             </h3>
             
             <div className="space-y-6">
               {/* Ticket Type */}
               <div>
                 <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                  {language === 'ar' ? 'نوع المشكلة' : 'Issue Type'}
+                  {t.issueType}
                 </label>
                 <select
                   value={resolveTypeId}
                   onChange={(e) => setResolveTypeId(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] text-sm outline-none focus:ring-2 focus:ring-primary-blue"
                 >
-                  <option value="">{language === 'ar' ? 'اختر النوع' : 'Select Type'}</option>
+                  <option value="">{t.selectType}</option>
                   {ticketTypes
                     .filter(tt => !tt.departmentId || tt.departmentId === ticket.departmentId)
                     .map(tt => (
@@ -855,7 +855,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                   className="w-4 h-4 rounded border-[var(--border-main)] text-primary-blue focus:ring-primary-blue"
                 />
                 <label htmlFor="ext-resource" className="text-sm font-bold text-[var(--text-secondary)] cursor-pointer">
-                  {language === 'ar' ? 'تم الحل باستخدام موارد خارجية' : 'Resolved using external resources'}
+                  {t.externalResolution}
                 </label>
               </div>
 
@@ -868,7 +868,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                 >
                   <div>
                     <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                      {language === 'ar' ? 'التكلفة' : 'Cost'}
+                      {t.cost}
                     </label>
                     <input
                       type="number"
@@ -876,18 +876,18 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                       min="0"
                       value={resolveExternalCost}
                       onChange={(e) => setResolveExternalCost(e.target.value)}
-                      placeholder={language === 'ar' ? 'أدخل التكلفة' : 'Enter cost'}
+                      placeholder={t.enterCost}
                       className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] text-sm outline-none focus:ring-2 focus:ring-primary-blue"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                      {language === 'ar' ? 'ملاحظات' : 'Notes'}
+                      {t.notes}
                     </label>
                     <textarea
                       value={resolveExternalNote}
                       onChange={(e) => setResolveExternalNote(e.target.value)}
-                      placeholder={language === 'ar' ? 'أضف ملاحظات حول المورد الخارجي...' : 'Add notes about the external resource...'}
+                      placeholder={t.addExternalNotes}
                       className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] text-sm outline-none focus:ring-2 focus:ring-primary-blue h-20 resize-none"
                     />
                   </div>
@@ -899,12 +899,12 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                   onClick={() => setShowResolveModal(false)}
                   className="flex-1 px-6 py-3 rounded-xl border border-[var(--border-main)] text-sm font-bold text-[var(--text-secondary)] hover:bg-[var(--border-dim)] transition-all"
                 >
-                  {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  {t.cancel}
                 </button>
                 <button
                   onClick={() => {
                     if (!resolveTypeId) {
-                      alert(language === 'ar' ? 'يرجى اختيار نوع المشكلة' : 'Please select an issue type');
+                      alert(t.pleaseSelectIssueType);
                       return;
                     }
                     setShowResolveModal(false);
@@ -918,7 +918,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                   disabled={!resolveTypeId}
                   className="flex-1 px-6 py-3 rounded-xl bg-success-green text-white text-sm font-bold hover:bg-green-600 transition-all disabled:opacity-50"
                 >
-                  {language === 'ar' ? 'تأكيد الحل' : 'Confirm Resolve'}
+                  {t.confirmResolve}
                 </button>
               </div>
             </div>
@@ -974,7 +974,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                   onClick={() => setShowConfirmModal(false)}
                   className="flex-1 px-6 py-3 rounded-xl border border-[var(--border-main)] text-sm font-bold text-[var(--text-secondary)] hover:bg-[var(--border-dim)] transition-all"
                 >
-                  {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  {t.cancel}
                 </button>
                 <button 
                   onClick={handleConfirmResolution}
@@ -996,7 +996,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
           <div className="premium-card p-6">
             <div className="flex items-center gap-2 mb-4 text-[var(--text-muted)]">
               <AlertCircle size={18} />
-              <h3 className="font-bold uppercase tracking-widest text-xs">{language === 'ar' ? 'الوصف' : 'Description'}</h3>
+              <h3 className="font-bold uppercase tracking-widest text-xs">{t.description}</h3>
             </div>
             <p className="text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
               {ticket.description}
@@ -1007,7 +1007,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
               <div className="mt-8 pt-8 border-t border-[var(--border-dim)]">
                 <div className="flex items-center gap-2 mb-6">
                   <RefreshCw size={18} className="text-primary-blue" />
-                  <h3 className="font-bold uppercase tracking-widest text-xs">{language === 'ar' ? 'سجل التحويلات' : 'Transfer History'}</h3>
+                  <h3 className="font-bold uppercase tracking-widest text-xs">{t.transferHistory}</h3>
                 </div>
                 <div className="space-y-6 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-[var(--border-dim)]">
                   {ticket.transfers.map((transfer, idx) => (
@@ -1018,10 +1018,10 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                       <div className="bg-[var(--border-dim)]/50 p-4 rounded-2xl border border-[var(--border-dim)] transition-all hover:border-primary-blue/30">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
                           <div className="flex items-center gap-2 flex-wrap text-sm">
-                            <span className="font-bold text-[var(--text-muted)]">{language === 'ar' ? 'من:' : 'From:'}</span>
+                            <span className="font-bold text-[var(--text-muted)]">{t.from}</span>
                             <span className="font-bold text-[var(--text-secondary)]">{language === 'ar' ? transfer.fromDepartment.nameAr : transfer.fromDepartment.nameEn}</span>
                             <ArrowLeft size={14} className={`text-[var(--text-muted)] ${language === 'ar' ? '' : 'rotate-180'}`} />
-                            <span className="font-bold text-[var(--text-muted)]">{language === 'ar' ? 'إلى:' : 'To:'}</span>
+                            <span className="font-bold text-[var(--text-muted)]">{t.to}</span>
                             <span className="font-bold text-primary-blue">{language === 'ar' ? transfer.toDepartment.nameAr : transfer.toDepartment.nameEn}</span>
                           </div>
                           <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
@@ -1047,7 +1047,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
             {ticket.attachments && ticket.attachments.length > 0 && (
               <div className="mt-6 pt-6 border-t border-[var(--border-dim)]">
                 <h4 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">
-                  {language === 'ar' ? 'المرفقات' : 'Attachments'}
+                  {t.attachments}
                 </h4>
                 <div className="flex flex-wrap gap-3">
                   {ticket.attachments.map((file) => (
@@ -1079,7 +1079,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                 }`}
               >
                 <MessageSquare size={18} />
-                {language === 'ar' ? 'التعليقات' : 'Comments'}
+                {t.comments}
               </button>
               <button 
                 onClick={() => setActiveTab('history')}
@@ -1088,7 +1088,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                 }`}
               >
                 <History size={18} />
-                {language === 'ar' ? 'السجل' : 'History'}
+                {t.history}
               </button>
             </div>
 
@@ -1097,7 +1097,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                 <div className="space-y-6">
                   <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                     {ticket.messages.length === 0 ? (
-                      <div className="text-center py-8 text-[var(--text-muted)] text-sm italic">No comments yet</div>
+                      <div className="text-center py-8 text-[var(--text-muted)] text-sm italic">{t.noCommentsYet}</div>
                     ) : ticket.messages.map((c) => (
                       <div key={c.id} className={`flex gap-3 ${c.messageType === 'internal_note' ? 'bg-warning-amber/5 p-4 rounded-2xl border border-warning-amber/10 dark:border-warning-amber/20' : ''}`}>
                         <div className="w-10 h-10 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-[var(--text-muted)] shrink-0 overflow-hidden">
@@ -1130,7 +1130,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                           )}
                           {c.messageType === 'internal_note' && (
                             <span className="inline-block mt-2 px-2 py-0.5 bg-warning-amber/10 text-warning-amber text-[10px] font-bold uppercase tracking-widest rounded">
-                              Internal Note
+                              {t.internalNote}
                             </span>
                           )}
                         </div>
@@ -1142,7 +1142,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                     <textarea
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
-                      placeholder={language === 'ar' ? 'اكتب تعليقاً...' : 'Write a comment...'}
+                      placeholder={t.writeComment}
                       className="input-surface w-full min-h-[100px] bg-[var(--bg-main)]"
                     />
 
@@ -1175,14 +1175,14 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                               className="w-4 h-4 rounded border-[var(--border-main)] text-warning-amber focus:ring-warning-amber" 
                             />
                             <span className="text-xs font-bold text-[var(--text-muted)] group-hover:text-warning-amber transition-all uppercase tracking-widest">
-                              Internal Note
+                              {t.internalNote}
                             </span>
                           </label>
                         )}
                         <label className="flex items-center gap-2 cursor-pointer text-[var(--text-muted)] hover:text-primary-blue transition-all">
                           <input type="file" className="hidden" onChange={handleCommentFileUpload} disabled={uploading} />
                           <Paperclip size={18} />
-                          <span className="text-xs font-bold uppercase tracking-widest">{uploading ? '...' : (language === 'ar' ? 'إرفاق' : 'Attach')}</span>
+                          <span className="text-xs font-bold uppercase tracking-widest">{uploading ? '...' : t.attach}</span>
                         </label>
                       </div>
                       <button
@@ -1191,7 +1191,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                         className="flex items-center gap-2 bg-primary-blue text-white px-6 py-2 rounded-xl font-bold hover:bg-blue-800 transition-all disabled:opacity-50"
                       >
                         <Send size={18} />
-                        {language === 'ar' ? 'إرسال' : 'Send'}
+                        {t.send}
                       </button>
                     </div>
                   </form>
@@ -1205,36 +1205,36 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-bold text-[var(--text-main)]">
-                          {log.action === 'STATUS_CHANGED' ? (language === 'ar' ? 'تغيير الحالة' : 'Status Changed') :
-                           log.action === 'ASSIGNED' ? (language === 'ar' ? 'تم التعيين' : 'Assigned') :
-                           log.action === 'TRANSFERRED' ? (language === 'ar' ? 'تم التحويل' : 'Transferred') :
-                           log.action === 'DUE_DATE_CHANGED' ? (language === 'ar' ? 'تغيير موعد الاستحقاق' : 'Due Date Changed') :
-                           log.action === 'TICKET_LINKED' ? (language === 'ar' ? 'تم ربط تذكرة' : 'Ticket Linked') :
-                           log.action === 'TICKET_UNLINKED' ? (language === 'ar' ? 'تم إلغاء ربط تذكرة' : 'Ticket Unlinked') :
+                          {log.action === 'STATUS_CHANGED' ? t.statusChanged :
+                           log.action === 'ASSIGNED' ? t.assigned :
+                           log.action === 'TRANSFERRED' ? t.transferred :
+                           log.action === 'DUE_DATE_CHANGED' ? t.dueDateChanged :
+                           log.action === 'TICKET_LINKED' ? t.ticketLinked :
+                           log.action === 'TICKET_UNLINKED' ? t.ticketUnlinked :
                            log.action}
                         </p>
                         <div className="mt-1 space-y-1">
                           {log.newData?.status && (
                             <p className="text-xs text-[var(--text-secondary)]">
-                              {language === 'ar' ? 'الحالة الجديدة: ' : 'New Status: '}
+                              {t.newStatus}
                               <span className="font-bold text-primary-blue">{log.newData.status}</span>
                             </p>
                           )}
                           {log.newData?.assignedToName && (
                             <p className="text-xs text-[var(--text-secondary)]">
-                              {language === 'ar' ? 'تم التعيين لـ: ' : 'Assigned to: '}
+                              {t.assignedToLabel}
                               <span className="font-bold text-primary-blue">{log.newData.assignedToName}</span>
                             </p>
                           )}
                           {log.newData?.departmentName && (
                             <p className="text-xs text-[var(--text-secondary)]">
-                              {language === 'ar' ? 'تم التحويل لـ: ' : 'Transferred to: '}
+                              {t.transferredTo}
                               <span className="font-bold text-primary-blue">{log.newData.departmentName}</span>
                             </p>
                           )}
                           {log.newData?.dueDate && (
                             <p className="text-xs text-[var(--text-secondary)]">
-                              {language === 'ar' ? 'موعد الاستحقاق الجديد: ' : 'New Due Date: '}
+                              {t.newDueDate}
                               <span className="font-bold text-primary-blue">{new Date(log.newData.dueDate).toLocaleDateString()}</span>
                             </p>
                           )}
@@ -1262,7 +1262,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
         <div className="space-y-6">
           {/* Creator Info */}
           <div className="bg-[var(--bg-surface)]/50 dark:backdrop-blur-sm rounded-2xl border border-[var(--border-main)] p-6 shadow-sm">
-            <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-6">{language === 'ar' ? 'معلومات المنشئ' : 'Creator Info'}</h3>
+            <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-6">{t.creatorInfo}</h3>
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 rounded-2xl bg-[var(--bg-elevated)] flex items-center justify-center text-[var(--text-muted)] overflow-hidden">
                 {ticket.createdBy?.avatarUrl ? (
@@ -1295,26 +1295,26 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
 
           {/* Location Info */}
           <div className="bg-[var(--bg-surface)]/50 dark:backdrop-blur-sm rounded-2xl border border-[var(--border-main)] p-6 shadow-sm">
-            <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-6">{language === 'ar' ? 'الموقع' : 'Location'}</h3>
+            <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-6">{t.location}</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-3 text-[var(--text-muted)]">
                   <Building2 size={16} />
-                  <span>{language === 'ar' ? 'المبنى' : 'Building'}</span>
+                  <span>{t.building}</span>
                 </div>
                 <span className="font-bold text-[var(--text-main)]">{ticket.buildingName || 'N/A'}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-3 text-[var(--text-muted)]">
                   <Layers size={16} />
-                  <span>{language === 'ar' ? 'الطابق' : 'Floor'}</span>
+                  <span>{t.floor}</span>
                 </div>
                 <span className="font-bold text-[var(--text-main)]">{ticket.floorName || 'N/A'}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-3 text-[var(--text-muted)]">
                   <Hash size={16} />
-                  <span>{language === 'ar' ? 'الغرفة' : 'Room'}</span>
+                  <span>{t.room}</span>
                 </div>
                 <span className="font-bold text-[var(--text-main)]">{ticket.roomExtension || 'N/A'}</span>
               </div>
@@ -1323,12 +1323,12 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
 
           {/* Ticket Info */}
           <div className="premium-card p-6">
-            <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-6">{language === 'ar' ? 'تفاصيل التذكرة' : 'Ticket Details'}</h3>
+            <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-6">{t.ticketDetails}</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-3 text-[var(--text-muted)]">
                   <Tag size={16} />
-                  <span>{language === 'ar' ? 'النوع' : 'Type'}</span>
+                  <span>{t.type}</span>
                 </div>
                 {isAgent ? (
                   <select
@@ -1336,14 +1336,14 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                     onChange={(e) => handleUpdateTicketType(e.target.value)}
                     className="bg-transparent font-bold text-[var(--text-main)] outline-none border-b border-dashed border-[var(--border-main)] hover:border-primary-blue cursor-pointer"
                   >
-                    <option value="">{language === 'ar' ? 'عام' : 'General'}</option>
+                    <option value="">{t.general}</option>
                     {ticketTypes
                       .filter(tt => !tt.departmentId || tt.departmentId === ticket.departmentId)
                       .map(tt => <option key={tt.id} value={tt.id}>{language === 'ar' ? tt.nameAr : tt.nameEn}</option>)}
                   </select>
                 ) : (
                   <span className="font-bold text-[var(--text-main)]">
-                    {ticket.ticketType ? (language === 'ar' ? ticket.ticketType.nameAr : ticket.ticketType.nameEn) : 'General'}
+                    {ticket.ticketType ? (language === 'ar' ? ticket.ticketType.nameAr : ticket.ticketType.nameEn) : t.general}
                   </span>
                 )}
               </div>
@@ -1351,13 +1351,13 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-3 text-[var(--text-muted)]">
                     <CheckCircle2 size={16} />
-                    <span>{language === 'ar' ? 'نوع الحل' : 'Resolution'}</span>
+                    <span>{t.resolution}</span>
                   </div>
                   <span className={`font-bold text-sm flex items-center gap-1 ${ticket.requiresExternalResource ? 'text-warning-amber' : 'text-success-green'}`}>
                     {ticket.requiresExternalResource ? (
-                      <>{language === 'ar' ? 'خارجي' : 'External'}{ticket.externalResourceCost ? ` (${ticket.externalResourceCost})` : ''}</>
+                      <>{t.external}{ticket.externalResourceCost ? ` (${ticket.externalResourceCost})` : ''}</>
                     ) : (
-                      <>{language === 'ar' ? 'داخلي' : 'Internal'}</>
+                      <>{t.internal}</>
                     )}
                   </span>
                 </div>
@@ -1365,14 +1365,14 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-3 text-[var(--text-muted)]">
                   <Clock size={16} />
-                  <span>{language === 'ar' ? 'تاريخ الإنشاء' : 'Created At'}</span>
+                  <span>{t.createdAt}</span>
                 </div>
                 <span className="font-bold text-[var(--text-main)]">{new Date(ticket.createdAt).toLocaleDateString()}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-3 text-[var(--text-muted)]">
                   <AlertCircle size={16} />
-                  <span>{language === 'ar' ? 'الأولوية' : 'Priority'}</span>
+                  <span>{t.priority}</span>
                 </div>
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${
                   ticket.priority === 'urgent' ? 'bg-danger-red/10 text-danger-red dark:bg-danger-red/20' : 
@@ -1389,7 +1389,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
           <div className="premium-card p-6 space-y-6">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'موعد الاستحقاق' : 'Due Date'}</h3>
+                <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.dueDate}</h3>
                 {isAgent && (
                   <button 
                     onClick={() => {
@@ -1398,7 +1398,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                     }}
                     className="text-[10px] font-bold text-primary-blue hover:underline uppercase tracking-widest"
                   >
-                    {language === 'ar' ? 'تعديل' : 'Edit'}
+                    {t.edit}
                   </button>
                 )}
               </div>
@@ -1408,10 +1408,10 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                 </div>
                 <div>
                   <p className="font-bold text-[var(--text-main)]">
-                    {ticket.dueDate ? new Date(ticket.dueDate).toLocaleDateString() : (language === 'ar' ? 'لم يحدد' : 'Not Set')}
+                    {ticket.dueDate ? new Date(ticket.dueDate).toLocaleDateString() : t.notSet}
                   </p>
                   {ticket.dueDate && new Date(ticket.dueDate) < new Date() && (
-                    <p className="text-[10px] font-bold text-danger-red uppercase tracking-widest">{language === 'ar' ? 'متأخرة' : 'Overdue'}</p>
+                    <p className="text-[10px] font-bold text-danger-red uppercase tracking-widest">{t.overdue}</p>
                   )}
                 </div>
               </div>
@@ -1419,20 +1419,20 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
 
             <div className="pt-6 border-t border-[var(--border-dim)]">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'تذاكر ذات صلة' : 'Related Tickets'}</h3>
+                <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.relatedTickets}</h3>
                 {isAgent && (
                   <button 
                     onClick={() => setShowLinkModal(true)}
                     className="text-[10px] font-bold text-primary-blue hover:underline uppercase tracking-widest"
                   >
-                    {language === 'ar' ? 'ربط تذكرة' : 'Link Ticket'}
+                    {t.linkTicket}
                   </button>
                 )}
               </div>
               
               <div className="space-y-3">
                 {relatedTicketsData.length === 0 ? (
-                  <p className="text-xs text-[var(--text-muted)] italic">{language === 'ar' ? 'لا توجد تذاكر مرتبطة' : 'No related tickets'}</p>
+                  <p className="text-xs text-[var(--text-muted)] italic">{t.noRelatedTickets}</p>
                 ) : relatedTicketsData.map(rt => (
                   <div key={rt.id} className="flex items-center justify-between group">
                     <button 
@@ -1467,7 +1467,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
             className="premium-card p-8 max-w-md w-full shadow-2xl"
           >
             <h3 className="text-xl font-bold text-[var(--text-main)] mb-6">
-              {language === 'ar' ? 'تحديد موعد الاستحقاق' : 'Set Due Date'}
+              {t.setDueDate}
             </h3>
             <input 
               type="date" 
@@ -1503,7 +1503,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
           >
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-[var(--text-main)]">
-                {language === 'ar' ? 'ربط تذكرة' : 'Link Ticket'}
+                {t.linkTicket}
               </h3>
               <button onClick={() => setShowLinkModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
                 <X size={24} />
@@ -1514,7 +1514,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
               <input
                 type="text"
-                placeholder={language === 'ar' ? 'ابحث عن رقم التذكرة أو الموضوع...' : 'Search ticket # or subject...'}
+                placeholder={t.linkTicketSearch}
                 value={linkSearchTerm}
                 onChange={(e) => setLinkSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--border-dim)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
@@ -1524,7 +1524,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
             <div className="max-h-[300px] overflow-y-auto space-y-2 mb-6">
               {linkSearchResults.length === 0 ? (
                 <p className="text-center py-8 text-[var(--text-muted)] text-sm italic">
-                  {language === 'ar' ? 'لا توجد نتائج' : 'No results found'}
+                  {t.noResults}
                 </p>
               ) : linkSearchResults.map(res => (
                 <div key={res.id} className="flex items-center justify-between p-3 rounded-xl border border-[var(--border-dim)] hover:bg-[var(--border-dim)] transition-all">
@@ -1536,7 +1536,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                     onClick={() => handleLinkTicket(res.id)}
                     className="bg-primary-blue/10 text-primary-blue px-3 py-1 rounded-lg text-xs font-bold hover:bg-primary-blue hover:text-white transition-all"
                   >
-                    {language === 'ar' ? 'ربط' : 'Link'}
+                    {t.link}
                   </button>
                 </div>
               ))}

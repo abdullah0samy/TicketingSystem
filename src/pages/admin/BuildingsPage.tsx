@@ -91,10 +91,10 @@ export default function BuildingsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-main)]">
-            {language === 'ar' ? 'إدارة المباني' : 'Buildings Management'}
+            {t.buildingsManagement}
           </h2>
           <p className="text-[var(--text-secondary)]">
-            {language === 'ar' ? 'إضافة وتعديل مباني المستشفى' : 'Add and edit hospital buildings'}
+            {t.buildingsManagementDesc}
           </p>
         </div>
         <button
@@ -106,7 +106,7 @@ export default function BuildingsPage() {
           className="flex items-center gap-2 bg-primary-blue text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-800 transition-all"
         >
           <Plus size={20} />
-          {language === 'ar' ? 'إضافة مبنى' : 'Add Building'}
+          {t.addBuilding}
         </button>
       </div>
 
@@ -152,12 +152,12 @@ export default function BuildingsPage() {
             
             <div className="flex items-center justify-between pt-4 border-t border-[var(--border-dim)]">
               <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest">
-                {building._count?.floors || 0} {language === 'ar' ? 'طوابق' : 'Floors'}
+                {building._count?.floors || 0} {t.floors}
               </span>
               <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                 building.isActive ? 'bg-success-green/10 text-success-green' : 'bg-[var(--bg-elevated)] text-[var(--text-muted)]'
               }`}>
-                {building.isActive ? (language === 'ar' ? 'نشط' : 'Active') : (language === 'ar' ? 'غير نشط' : 'Inactive')}
+                {building.isActive ? t.active : t.inactive}
               </span>
             </div>
           </motion.div>
@@ -174,7 +174,7 @@ export default function BuildingsPage() {
           >
             <div className="p-6 border-b border-[var(--border-dim)] flex items-center justify-between">
               <h3 className="text-xl font-bold text-[var(--text-main)]">
-                {editingBuilding ? (language === 'ar' ? 'تعديل مبنى' : 'Edit Building') : (language === 'ar' ? 'إضافة مبنى جديد' : 'Add New Building')}
+                {editingBuilding ? t.editBuilding : t.addNewBuilding}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
                 <X size={24} />
@@ -184,7 +184,7 @@ export default function BuildingsPage() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                  {language === 'ar' ? 'الاسم بالعربية' : 'Name (Arabic)'}
+                  {t.nameArabic}
                 </label>
                 <input
                   type="text"
@@ -196,7 +196,7 @@ export default function BuildingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                  {language === 'ar' ? 'الاسم بالإنجليزية' : 'Name (English)'}
+                  {t.nameEnglish}
                 </label>
                 <input
                   type="text"
@@ -215,7 +215,7 @@ export default function BuildingsPage() {
                   className="w-5 h-5 rounded border-[var(--border-main)] text-primary-blue focus:ring-primary-blue"
                 />
                 <label htmlFor="isActive" className="text-sm font-bold text-[var(--text-secondary)]">
-                  {language === 'ar' ? 'نشط' : 'Active'}
+                  {t.active}
                 </label>
               </div>
               
@@ -225,13 +225,13 @@ export default function BuildingsPage() {
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1 px-4 py-2 rounded-xl border border-[var(--border-main)] text-[var(--text-secondary)] font-bold hover:bg-[var(--border-dim)] transition-all"
                 >
-                  {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  {t.cancel}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 px-4 py-2 rounded-xl bg-primary-blue text-white font-bold hover:bg-blue-800 transition-all"
                 >
-                  {language === 'ar' ? 'حفظ' : 'Save'}
+                  {t.save}
                 </button>
               </div>
             </form>

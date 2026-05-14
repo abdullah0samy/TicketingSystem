@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
+import { translations } from '../../core/translations.ts';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface Permission {
@@ -31,6 +32,7 @@ interface Role {
 export const RoleManagementPage: React.FC = () => {
   const { accessToken } = useAuthStore();
   const { language } = useSettingsStore();
+  const t = translations[language];
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +106,7 @@ export const RoleManagementPage: React.FC = () => {
   };
   
   const handleDelete = async (id: number) => {
-    if (!confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا الدور؟' : 'Are you sure you want to delete this role?')) return;
+    if (!confirm(t.deleteRoleConfirm)) return;
     try {
       const res = await fetch(`/api/admin/roles/${id}`, {
         method: 'DELETE',
@@ -127,10 +129,10 @@ export const RoleManagementPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-3">
             <Shield className="text-primary-blue" />
-            {language === 'ar' ? 'الأدوار والصلاحيات' : 'Roles & Permissions'}
+            {t.rolesPermissions}
           </h1>
           <p className="text-[var(--text-secondary)] mt-1">
-            {language === 'ar' ? 'تخصيص الصلاحيات للأدوار المختلفة في النظام' : 'Customize permissions for different system roles'}
+            {t.rolesPermissionsDesc}
           </p>
         </div>
         <button 
@@ -142,7 +144,7 @@ export const RoleManagementPage: React.FC = () => {
           className="bg-primary-blue hover:bg-blue-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-lg shadow-blue-500/20"
         >
           <Plus size={20} />
-          {language === 'ar' ? 'إضافة دور جديد' : 'Add New Role'}
+          {t.addNewRole}
         </button>
       </div>
 
@@ -194,7 +196,7 @@ export const RoleManagementPage: React.FC = () => {
 
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
-                <span>{language === 'ar' ? 'الصلاحيات' : 'Permissions'}</span>
+                <span>{t.permissions}</span>
                 <span>{role.permissions.length}</span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -213,7 +215,7 @@ export const RoleManagementPage: React.FC = () => {
 
             <div className="mt-6 pt-6 border-t border-[var(--border-dim)] flex items-center justify-between">
               <div className="text-xs text-[var(--text-muted)]">
-                {role._count?.users || 0} {language === 'ar' ? 'مستخدم' : 'users assigned'}
+                {role._count?.users || 0} {t.usersAssigned.replace('{count}', (role._count?.users || 0).toString())}
               </div>
               <div className="flex -space-x-2">
                 {[1, 2, 3].map(i => (
@@ -240,7 +242,7 @@ export const RoleManagementPage: React.FC = () => {
               <div className="p-6 border-b border-[var(--border-dim)] flex items-center justify-between">
                 <h2 className="text-xl font-bold text-[var(--text-main)] flex items-center gap-2">
                   <Shield className="text-primary-blue" />
-                  {currentRole?.id ? (language === 'ar' ? 'تعديل الدور' : 'Edit Role') : (language === 'ar' ? 'إضافة دور جديد' : 'Add New Role')}
+                  {currentRole?.id ? t.editRole : t.addNewRole}
                 </h2>
                 <button onClick={() => setShowModal(false)} className="p-2 hover:bg-[var(--bg-elevated)] rounded-full transition-colors">
                   <X size={24} className="text-[var(--text-muted)]" />
@@ -252,7 +254,7 @@ export const RoleManagementPage: React.FC = () => {
                   <div className="space-y-4">
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
-                        {language === 'ar' ? 'اسم الدور' : 'Role Name'}
+                        {t.roleName}
                       </label>
                       <input 
                         required
@@ -265,7 +267,7 @@ export const RoleManagementPage: React.FC = () => {
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
-                        {language === 'ar' ? 'الوصف' : 'Description'}
+                        {t.description}
                       </label>
                       <textarea 
                         rows={3}
@@ -280,9 +282,7 @@ export const RoleManagementPage: React.FC = () => {
                       <div className="flex gap-3">
                         <Info className="text-primary-blue flex-shrink-0" size={20} />
                         <p className="text-xs text-blue-700 dark:text-blue-400 leading-relaxed">
-                          {language === 'ar' 
-                            ? 'سيتم تطبيق هذه الصلاحيات على جميع المستخدمين المسندين لهذا الدور.'
-                            : 'These permissions will be applied to all users assigned to this role.'}
+                          {t.permissionsInfo}
                         </p>
                       </div>
                     </div>
@@ -290,7 +290,7 @@ export const RoleManagementPage: React.FC = () => {
 
                   <div className="space-y-4">
                     <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
-                      {language === 'ar' ? 'تحديد الصلاحيات' : 'Select Permissions'}
+                      {t.selectPermissions}
                     </label>
                     <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                       {permissions.map(p => (
@@ -321,13 +321,13 @@ export const RoleManagementPage: React.FC = () => {
                     onClick={() => setShowModal(false)}
                     className="px-6 py-2.5 text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] rounded-xl transition-colors"
                   >
-                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                    {t.cancel}
                   </button>
                   <button 
                     disabled={isSubmitting}
                     className="bg-primary-blue hover:bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50"
                   >
-                    {isSubmitting ? (language === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (language === 'ar' ? 'حفظ الدور' : 'Save Role')}
+                    {isSubmitting ? t.saving : t.saveRole}
                   </button>
                 </div>
               </form>

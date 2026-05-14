@@ -68,7 +68,6 @@ export default function InboxPage() {
       try {
         const data = await apiFetch('/api/admin/users');
         if (isMounted) {
-          // Filter agents by department if not super admin
           if (user?.role !== 'super_admin') {
             setAgents(data.filter((u: any) => u.departmentId === user?.departmentId));
           } else {
@@ -195,7 +194,7 @@ export default function InboxPage() {
 
   const handleBulkArchive = async () => {
     if (selectedTickets.length === 0) return;
-    if (!confirm(language === 'ar' ? 'هل أنت متأكد من أرشفة التذاكر المختارة؟' : 'Are you sure you want to archive selected tickets?')) return;
+    if (!confirm(t.confirmBulkArchive)) return;
     
     setBulkActionLoading(true);
     try {
@@ -250,14 +249,14 @@ export default function InboxPage() {
   }, [tickets, sortConfig]);
 
   const columns = [
-    { id: 'ticketNumber', label: language === 'ar' ? 'رقم التذكرة' : 'Ticket #' },
-    { id: 'subject', label: language === 'ar' ? 'الموضوع' : 'Subject' },
-    { id: 'creator', label: language === 'ar' ? 'المنشئ' : 'Creator' },
-    { id: 'priority', label: language === 'ar' ? 'الأولوية' : 'Priority' },
-    { id: 'status', label: language === 'ar' ? 'الحالة' : 'Status' },
-    { id: 'date', label: language === 'ar' ? 'التاريخ' : 'Date' },
-    { id: 'dueDate', label: language === 'ar' ? 'موعد الاستحقاق' : 'Due Date' },
-    { id: 'assignedTo', label: language === 'ar' ? 'مسندة إلى' : 'Assigned To' },
+    { id: 'ticketNumber', label: t.ticketNumber },
+    { id: 'subject', label: t.subject },
+    { id: 'creator', label: t.creator },
+    { id: 'priority', label: t.priority },
+    { id: 'status', label: t.status },
+    { id: 'date', label: t.date },
+    { id: 'dueDate', label: t.dueDate },
+    { id: 'assignedTo', label: t.assignedTo },
   ];
 
   const getPriorityColor = (priority: string) => {
@@ -271,11 +270,11 @@ export default function InboxPage() {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'pending': return language === 'ar' ? 'قيد الانتظار' : 'Pending';
-      case 'open': return language === 'ar' ? 'مفتوحة' : 'Open';
-      case 'in_progress': return language === 'ar' ? 'قيد التنفيذ' : 'In Progress';
-      case 'resolved': return language === 'ar' ? 'تم الحل' : 'Resolved';
-      case 'closed': return language === 'ar' ? 'مغلقة' : 'Closed';
+      case 'pending': return t.pending;
+      case 'open': return t.open;
+      case 'in_progress': return t.inProgress;
+      case 'resolved': return t.resolved;
+      case 'closed': return t.closed;
       default: return status;
     }
   };
@@ -286,10 +285,10 @@ export default function InboxPage() {
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-3">
             <Inbox className="text-primary-blue" />
-            {language === 'ar' ? 'صندوق الوارد للقسم' : 'Department Inbox'}
+            {t.departmentInbox}
           </h2>
           <p className="text-[var(--text-secondary)]">
-            {language === 'ar' ? `تذاكر قسم ${user?.department?.nameAr || ''}` : `Tickets for ${user?.department?.nameEn || ''} department`}
+            {t.ticketsFor.replace('{department}', language === 'ar' ? (user?.department?.nameAr || '') : (user?.department?.nameEn || ''))}
           </p>
         </div>
 
@@ -310,12 +309,12 @@ export default function InboxPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="input-surface px-4 py-2 bg-[var(--bg-surface)]/50"
           >
-            <option value="all">{language === 'ar' ? 'كل الحالات' : 'All Statuses'}</option>
-            <option value="pending">{language === 'ar' ? 'قيد الانتظار' : 'Pending'}</option>
-            <option value="open">{language === 'ar' ? 'مفتوحة' : 'Open'}</option>
-            <option value="in_progress">{language === 'ar' ? 'قيد التنفيذ' : 'In Progress'}</option>
-            <option value="resolved">{language === 'ar' ? 'تم الحل' : 'Resolved'}</option>
-            <option value="closed">{language === 'ar' ? 'مغلقة' : 'Closed'}</option>
+            <option value="all">{t.allStatuses}</option>
+            <option value="pending">{t.pending}</option>
+            <option value="open">{t.open}</option>
+            <option value="in_progress">{t.inProgress}</option>
+            <option value="resolved">{t.resolved}</option>
+            <option value="closed">{t.closed}</option>
           </select>
 
           <select
@@ -323,7 +322,7 @@ export default function InboxPage() {
             onChange={(e) => setPriorityFilter(e.target.value)}
             className="input-surface px-4 py-2 bg-[var(--bg-surface)]/50"
           >
-            <option value="all">{language === 'ar' ? 'كل الأولويات' : 'All Priorities'}</option>
+            <option value="all">{t.allPriorities}</option>
             <option value="low">Low</option>
             <option value="normal">Normal</option>
             <option value="high">High</option>
@@ -348,7 +347,7 @@ export default function InboxPage() {
 
           <input
             type="text"
-            placeholder={language === 'ar' ? 'اسم المنشئ' : 'Creator Name'}
+            placeholder={t.creatorName}
             value={creatorNameFilter}
             onChange={(e) => setCreatorNameFilter(e.target.value)}
             className="input-surface px-4 py-2 w-40 bg-[var(--bg-surface)]/50"
@@ -359,7 +358,7 @@ export default function InboxPage() {
             onChange={(e) => setAgentIdFilter(e.target.value)}
             className="input-surface px-4 py-2 bg-[var(--bg-surface)]/50"
           >
-            <option value="all">{language === 'ar' ? 'كل الوكلاء' : 'All Agents'}</option>
+            <option value="all">{t.allAgents}</option>
             {agents.map(agent => (
               <option key={agent.id} value={agent.id}>
                 {language === 'ar' ? agent.fullNameAr : agent.fullNameEn}
@@ -388,7 +387,7 @@ export default function InboxPage() {
                 className="flex items-center gap-2 px-4 py-2 premium-card shadow-sm text-sm font-bold text-[var(--text-secondary)] transition-all"
               >
                 <Columns size={18} />
-                <span>{language === 'ar' ? 'الأعمدة' : 'Columns'}</span>
+                <span>{t.columns}</span>
                 <ChevronDown size={14} className={`transition-transform ${showColumnToggle ? 'rotate-180' : ''}`} />
               </button>
 
@@ -426,13 +425,13 @@ export default function InboxPage() {
           <div className="bg-primary-blue/10 px-6 py-4 flex items-center justify-between border-b border-primary-blue/20">
             <div className="flex items-center gap-4">
               <span className="text-sm font-bold text-primary-blue">
-                {language === 'ar' ? `${selectedTickets.length} تذكرة مختارة` : `${selectedTickets.length} tickets selected`}
+                {t.ticketsSelected.replace('{count}', String(selectedTickets.length))}
               </span>
               <button 
                 onClick={() => setSelectedTickets([])}
                 className="text-xs font-bold text-[var(--text-secondary)] hover:text-danger-red transition-all uppercase tracking-widest"
               >
-                {language === 'ar' ? 'إلغاء التحديد' : 'Clear Selection'}
+                {t.clearSelection}
               </button>
             </div>
 
@@ -444,7 +443,7 @@ export default function InboxPage() {
                   disabled={bulkActionLoading}
                   className="bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-primary-blue"
                 >
-                  <option value="">{language === 'ar' ? 'تغيير الحالة' : 'Change Status'}</option>
+                  <option value="">{t.changeStatus}</option>
                   <option value="open">Open</option>
                   <option value="in_progress">In Progress</option>
                   <option value="resolved">Resolved</option>
@@ -459,8 +458,8 @@ export default function InboxPage() {
                   disabled={bulkActionLoading}
                   className="bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-primary-blue"
                 >
-                  <option value="">{language === 'ar' ? 'تعيين إلى' : 'Assign To'}</option>
-                  <option value="unassign">{language === 'ar' ? 'إلغاء التعيين' : 'Unassign'}</option>
+                  <option value="">{t.assignTo}</option>
+                  <option value="unassign">{t.unassign}</option>
                   {agents.map(agent => (
                     <option key={agent.id} value={agent.id}>
                       {language === 'ar' ? agent.fullNameAr : agent.fullNameEn}
@@ -475,7 +474,7 @@ export default function InboxPage() {
                 className="flex items-center gap-2 bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-lg px-3 py-1.5 text-xs font-bold text-warning-amber hover:bg-warning-amber/5 transition-all outline-none"
               >
                 <Archive size={14} />
-                <span>{language === 'ar' ? 'أرشفة' : 'Archive'}</span>
+                <span>{t.archiveAction}</span>
               </button>
             </div>
           </div>
@@ -494,7 +493,7 @@ export default function InboxPage() {
                   {visibleColumns.includes('ticketNumber') && (
                     <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('ticketNumber')}>
                       <div className="flex items-center gap-1">
-                        {language === 'ar' ? 'رقم التذكرة' : 'Ticket #'}
+                        {t.ticketNumber}
                         <ArrowUpDown size={12} />
                       </div>
                     </th>
@@ -502,7 +501,7 @@ export default function InboxPage() {
                   {visibleColumns.includes('subject') && (
                     <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('subject')}>
                       <div className="flex items-center gap-1">
-                        {language === 'ar' ? 'الموضوع' : 'Subject'}
+                        {t.subject}
                         <ArrowUpDown size={12} />
                       </div>
                     </th>
@@ -510,7 +509,7 @@ export default function InboxPage() {
                   {visibleColumns.includes('creator') && (
                     <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('creator')}>
                       <div className="flex items-center gap-1">
-                        {language === 'ar' ? 'المنشئ' : 'Creator'}
+                        {t.creator}
                         <ArrowUpDown size={12} />
                       </div>
                     </th>
@@ -518,7 +517,7 @@ export default function InboxPage() {
                   {visibleColumns.includes('priority') && (
                     <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('priority')}>
                       <div className="flex items-center gap-1">
-                        {language === 'ar' ? 'الأولوية' : 'Priority'}
+                        {t.priority}
                         <ArrowUpDown size={12} />
                       </div>
                     </th>
@@ -526,7 +525,7 @@ export default function InboxPage() {
                   {visibleColumns.includes('status') && (
                     <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('status')}>
                       <div className="flex items-center gap-1">
-                        {language === 'ar' ? 'الحالة' : 'Status'}
+                        {t.status}
                         <ArrowUpDown size={12} />
                       </div>
                     </th>
@@ -534,7 +533,7 @@ export default function InboxPage() {
                   {visibleColumns.includes('date') && (
                     <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('createdAt')}>
                       <div className="flex items-center gap-1">
-                        {language === 'ar' ? 'التاريخ' : 'Date'}
+                        {t.date}
                         <ArrowUpDown size={12} />
                       </div>
                     </th>
@@ -542,14 +541,14 @@ export default function InboxPage() {
                   {visibleColumns.includes('dueDate') && (
                     <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest cursor-pointer hover:text-primary-blue transition-all" onClick={() => handleSort('dueDate')}>
                       <div className="flex items-center gap-1">
-                        {language === 'ar' ? 'الاستحقاق' : 'Due Date'}
+                        {t.dueDate}
                         <ArrowUpDown size={12} />
                       </div>
                     </th>
                   )}
                   {visibleColumns.includes('assignedTo') && (
                     <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
-                      {language === 'ar' ? 'مسندة إلى' : 'Assigned To'}
+                      {t.assignedTo}
                     </th>
                   )}
                   <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest"></th>
@@ -557,9 +556,9 @@ export default function InboxPage() {
               </thead>
               <tbody className="divide-y divide-[var(--border-dim)]">
                 {loading ? (
-                  <tr><td colSpan={10} className="px-6 py-12 text-center text-[var(--text-muted)]">Loading tickets...</td></tr>
+                  <tr><td colSpan={10} className="px-6 py-12 text-center text-[var(--text-muted)]">{t.loading}</td></tr>
                 ) : sortedTickets.length === 0 ? (
-                  <tr><td colSpan={10} className="px-6 py-12 text-center text-[var(--text-muted)]">No tickets found</td></tr>
+                  <tr><td colSpan={10} className="px-6 py-12 text-center text-[var(--text-muted)]">{t.noResults}</td></tr>
                 ) : sortedTickets.map((ticket) => (
                   <tr 
                     key={ticket.id} 
@@ -613,7 +612,7 @@ export default function InboxPage() {
                           {ticket.slaDeadline && new Date(ticket.slaDeadline) < new Date() && ticket.status !== 'resolved' && ticket.status !== 'closed' && (
                             <span className="text-[9px] font-bold text-danger-red dark:text-rose-400 uppercase tracking-tighter flex items-center gap-1 justify-center">
                               <AlertCircle size={10} />
-                              {language === 'ar' ? 'متأخرة' : 'Overdue'}
+                              {t.overdue}
                             </span>
                           )}
                         </div>
@@ -724,7 +723,7 @@ export default function InboxPage() {
                   </div>
                   {ticket.dueDate && (
                     <div className={`mt-3 pt-3 border-t border-[var(--border-dim)] flex items-center justify-between ${new Date(ticket.dueDate) < new Date() && ticket.status !== 'resolved' && ticket.status !== 'closed' ? 'text-danger-red' : 'text-indigo-500'}`}>
-                      <span className="text-[10px] font-bold uppercase tracking-widest">{language === 'ar' ? 'موعد الاستحقاق' : 'Due Date'}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest">{t.dueDateLabel}</span>
                       <span className="text-xs font-bold">{new Date(ticket.dueDate).toLocaleDateString()}</span>
                     </div>
                   )}
@@ -738,7 +737,7 @@ export default function InboxPage() {
         {pagination.pages > 1 && (
           <div className="px-6 py-4 bg-[var(--border-dim)]/50 border-t border-[var(--border-dim)] flex items-center justify-between">
             <span className="text-xs text-[var(--text-secondary)]">
-              {language === 'ar' ? `إجمالي ${pagination.total} تذكرة` : `Total ${pagination.total} tickets`}
+              {t.total} {pagination.total} {t.tickets}
             </span>
             <div className="flex items-center gap-2">
               <button 

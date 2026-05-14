@@ -194,7 +194,7 @@ export default function DashboardPage() {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
-  if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">Loading dashboard data...</div>;
+  if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">{t.loadingDashboard}</div>;
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
@@ -205,7 +205,7 @@ export default function DashboardPage() {
             {t.welcome}, {user?.fullNameEn || user?.fullNameAr} 👋
           </h1>
           <p className="text-[var(--text-secondary)]">
-            {language === 'ar' ? 'إليك نظرة سريعة على نشاط اليوم' : "Here's a quick look at today's activity"}
+            {t.todayActivity}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -214,13 +214,13 @@ export default function DashboardPage() {
               onClick={() => setActiveTab('overview')}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'overview' ? 'bg-primary-blue text-white shadow-md' : 'text-[var(--text-secondary)] hover:text-primary-blue'}`}
             >
-              {language === 'ar' ? 'نظرة عامة' : 'Overview'}
+              {t.overview}
             </button>
             <button 
               onClick={() => setActiveTab('exports')}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'exports' ? 'bg-primary-blue text-white shadow-md' : 'text-[var(--text-secondary)] hover:text-primary-blue'}`}
             >
-              {language === 'ar' ? 'سجل التصدير' : 'Export History'}
+              {t.exportHistory}
             </button>
           </div>
           <div className="flex items-center gap-3 premium-card p-2 shadow-sm">
@@ -228,8 +228,8 @@ export default function DashboardPage() {
               <Activity size={20} />
             </div>
             <div className="pr-4">
-              <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الحالة' : 'System Status'}</p>
-              <p className="text-sm font-bold text-[var(--color-success-green)]">{language === 'ar' ? 'يعمل بشكل جيد' : 'Operational'}</p>
+              <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.systemStatus}</p>
+              <p className="text-sm font-bold text-[var(--color-success-green)]">{t.operational}</p>
             </div>
           </div>
         </div>
@@ -238,13 +238,13 @@ export default function DashboardPage() {
       {/* Knowledge Base Quick Search */}
       <div className="bg-gradient-to-r from-primary-blue to-blue-700 p-8 rounded-[2rem] shadow-xl shadow-primary-blue/20 text-white">
         <div className="max-w-2xl">
-          <h2 className="text-2xl font-bold mb-2">{language === 'ar' ? 'كيف يمكننا مساعدتك اليوم؟' : 'How can we help you today?'}</h2>
-          <p className="text-blue-100 mb-6">{language === 'ar' ? 'ابحث في قاعدة المعرفة عن حلول سريعة لمشاكلك' : 'Search our knowledge base for quick solutions to your problems'}</p>
+          <h2 className="text-2xl font-bold mb-2">{t.kbHelpTitle}</h2>
+          <p className="text-blue-100 mb-6">{t.kbSearchDesc}</p>
           <div className="relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-white transition-colors" size={20} />
             <input 
               type="text"
-              placeholder={language === 'ar' ? 'ابحث عن مقالات، أدلة، أو حلول...' : 'Search for articles, guides, or solutions...'}
+              placeholder={t.kbSearchPlaceholder}
               className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder:text-blue-200 outline-none focus:ring-2 focus:ring-white/50 transition-all"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -261,11 +261,11 @@ export default function DashboardPage() {
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {[
-              { label: language === 'ar' ? 'إجمالي التذاكر' : 'Total Tickets', value: stats?.total, icon: Ticket, color: 'text-primary-blue', bg: 'bg-primary-blue/10' },
-              { label: language === 'ar' ? 'قيد الانتظار' : 'Pending', value: stats?.pending, icon: Clock, color: 'text-warning-amber', bg: 'bg-warning-amber/10' },
-              { label: language === 'ar' ? 'تم الحل' : 'Resolved', value: stats?.resolved, icon: CheckCircle2, color: 'text-success-green', bg: 'bg-success-green/10' },
-              { label: language === 'ar' ? 'تجاوز المهلة' : 'Overdue', value: stats?.overdue, icon: AlertCircle, color: 'text-danger-red', bg: 'bg-danger-red/10' },
-              { label: language === 'ar' ? 'متوسط الحل' : 'Avg Resolution', value: `${stats?.avgResolutionTimeHours}h`, icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+              { label: t.totalTickets, value: stats?.total, icon: Ticket, color: 'text-primary-blue', bg: 'bg-primary-blue/10' },
+              { label: t.pending, value: stats?.pending, icon: Clock, color: 'text-warning-amber', bg: 'bg-warning-amber/10' },
+              { label: t.resolved, value: stats?.resolved, icon: CheckCircle2, color: 'text-success-green', bg: 'bg-success-green/10' },
+              { label: t.overdue, value: stats?.overdue, icon: AlertCircle, color: 'text-danger-red', bg: 'bg-danger-red/10' },
+              { label: t.avgResolution, value: `${stats?.avgResolutionTimeHours}h`, icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-500/10' },
             ].map((kpi, i) => (
               <motion.div 
                 key={i}
@@ -300,8 +300,8 @@ export default function DashboardPage() {
                   <PlusCircle size={24} />
                 </div>
               </div>
-              <div className="text-lg font-bold text-[var(--text-main)]">{language === 'ar' ? 'تذكرة جديدة' : 'New Ticket'}</div>
-              <div className="text-xs text-[var(--text-secondary)] mt-1">{language === 'ar' ? 'افتح تذكرة دعم جديدة' : 'Open a new support ticket'}</div>
+              <div className="text-lg font-bold text-[var(--text-main)]">{t.newTicket}</div>
+              <div className="text-xs text-[var(--text-secondary)] mt-1">{t.newSupportTicket}</div>
             </div>
 
             <div 
@@ -313,8 +313,8 @@ export default function DashboardPage() {
                   <Users size={24} />
                 </div>
               </div>
-              <div className="text-lg font-bold text-[var(--text-main)]">{language === 'ar' ? 'ساحة الفريق' : 'Team Feed'}</div>
-              <div className="text-xs text-[var(--text-secondary)] mt-1">{language === 'ar' ? 'تواصل مع زملائك وشارك المعرفة' : 'Connect with colleagues and share knowledge'}</div>
+              <div className="text-lg font-bold text-[var(--text-main)]">{t.teamFeed}</div>
+              <div className="text-xs text-[var(--text-secondary)] mt-1">{t.teamFeedDesc}</div>
             </div>
 
             <div 
@@ -326,8 +326,8 @@ export default function DashboardPage() {
                   <BookOpen size={24} />
                 </div>
               </div>
-              <div className="text-lg font-bold text-[var(--text-main)]">{language === 'ar' ? 'قاعدة المعرفة' : 'Knowledge Base'}</div>
-              <div className="text-xs text-[var(--text-secondary)] mt-1">{language === 'ar' ? 'ابحث عن حلول وأدلة' : 'Search for solutions and guides'}</div>
+              <div className="text-lg font-bold text-[var(--text-main)]">{t.knowledgeBase}</div>
+              <div className="text-xs text-[var(--text-secondary)] mt-1">{t.knowledgeBaseDesc}</div>
             </div>
           </div>
 
@@ -338,11 +338,11 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-8">
                 <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2">
                   <Activity size={18} className="text-primary-blue" />
-                  {language === 'ar' ? 'توزيع الحالات' : 'Status Distribution'}
+                  {t.statusDistribution}
                 </h3>
                 <select className="text-xs font-bold text-[var(--text-muted)] bg-transparent outline-none">
                   <option>Last 7 Days</option>
-                  <option>Last 30 Days</option>
+                  <option>{t.last30Days}</option>
                 </select>
               </div>
               <div className="h-[300px]">
@@ -381,7 +381,7 @@ export default function DashboardPage() {
             <div className="premium-card p-6">
               <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2 mb-8">
                 <AlertCircle size={18} className="text-danger-red" />
-                {language === 'ar' ? 'الأولوية' : 'Priority Breakdown'}
+                {t.priorityBreakdown}
               </h3>
               <div className="h-[300px] relative">
                 <ResponsiveContainer width="100%" height="100%">
@@ -413,7 +413,7 @@ export default function DashboardPage() {
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <span className="text-2xl font-bold text-[var(--text-main)]">{stats?.total}</span>
-                  <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">Total</span>
+                  <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.total}</span>
                 </div>
               </div>
               <div className="mt-4 space-y-2">
@@ -435,7 +435,7 @@ export default function DashboardPage() {
             <div className="premium-card p-6">
               <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2 mb-8">
                 <Building2 size={18} className="text-primary-blue" />
-                {language === 'ar' ? 'أداء الأقسام' : 'Department Tickets'}
+                {t.departmentTickets}
               </h3>
               <div className="space-y-6">
                 {deptPerf.map((dept, i) => (
@@ -462,11 +462,11 @@ export default function DashboardPage() {
             <div className="premium-card p-6">
               <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2 mb-8">
                 <CheckCircle2 size={18} className="text-success-green" />
-                {language === 'ar' ? 'نوع الحل' : 'Resolution Type'}
+                {t.resolutionType}
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-2xl bg-success-green/5 border border-success-green/10">
-                  <p className="text-[10px] font-bold text-success-green uppercase tracking-widest mb-1">{language === 'ar' ? 'داخلي' : 'Internal'}</p>
+                  <p className="text-[10px] font-bold text-success-green uppercase tracking-widest mb-1">{t.internal}</p>
                   <p className="text-2xl font-bold text-success-green">{stats?.resolvedInternal || 0}</p>
                   <p className="text-[10px] text-[var(--text-muted)] mt-1">
                     {stats && (stats.resolvedInternal + stats.resolvedExternal) > 0
@@ -475,7 +475,7 @@ export default function DashboardPage() {
                   </p>
                 </div>
                 <div className="p-4 rounded-2xl bg-warning-amber/5 border border-warning-amber/10">
-                  <p className="text-[10px] font-bold text-warning-amber uppercase tracking-widest mb-1">{language === 'ar' ? 'خارجي' : 'External'}</p>
+                  <p className="text-[10px] font-bold text-warning-amber uppercase tracking-widest mb-1">{t.external}</p>
                   <p className="text-2xl font-bold text-warning-amber">{stats?.resolvedExternal || 0}</p>
                   <p className="text-[10px] text-[var(--text-muted)] mt-1">
                     {stats && (stats.resolvedInternal + stats.resolvedExternal) > 0
@@ -486,9 +486,7 @@ export default function DashboardPage() {
               </div>
               {(stats?.resolvedExternal || 0) > 0 && (
                 <div className="mt-4 p-3 rounded-xl bg-warning-amber/5 border border-warning-amber/10 text-xs text-warning-amber font-medium">
-                  {language === 'ar' 
-                    ? `إجمالي تكلفة الموارد الخارجية: ${stats?.resolvedExternal || 0} تذكرة` 
-                    : `Total external resources: ${stats?.resolvedExternal || 0} tickets`}
+                  {t.externalResources.replace('{count}', String(stats?.resolvedExternal || 0))}
                 </div>
               )}
             </div>
@@ -497,13 +495,13 @@ export default function DashboardPage() {
             <div className="premium-card p-6">
               <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2 mb-8">
                 <Clock size={18} className="text-primary-blue" />
-                {language === 'ar' ? 'متوسط وقت المعالجة حسب الأولوية' : 'Avg Handling Time by Priority'}
+                {t.ahtByPriority}
               </h3>
               {ahtData && ahtData.ahtByPriority.length > 0 ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-3 rounded-2xl bg-primary-blue/5 border border-primary-blue/10 mb-4">
                     <span className="text-sm font-bold text-[var(--text-secondary)]">
-                      {language === 'ar' ? 'المعدل العام' : 'Overall AHT'}
+                      {t.overallAht}
                     </span>
                     <span className="text-lg font-bold text-primary-blue">{ahtData.overallAhtHours}h</span>
                   </div>
@@ -534,7 +532,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="text-center py-8 text-sm text-[var(--text-muted)] italic">
-                  {language === 'ar' ? 'لا توجد بيانات كافية' : 'Not enough data yet'}
+                  {t.notEnoughData}
                 </div>
               )}
             </div>
@@ -543,23 +541,23 @@ export default function DashboardPage() {
             <div className="premium-card p-6">
               <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2 mb-8">
                 <Package size={18} className="text-primary-blue" />
-                {language === 'ar' ? 'ملخص الأصول' : 'Asset Summary'}
+                {t.assetSummary}
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-2xl bg-[var(--border-dim)]/50 border border-[var(--border-dim)]">
-                  <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">{language === 'ar' ? 'إجمالي الأصول' : 'Total Assets'}</p>
+                  <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">{t.totalAssets}</p>
                   <p className="text-2xl font-bold text-[var(--text-main)]">{assetSummary?.total || 0}</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-success-green/5 border border-success-green/10">
-                  <p className="text-[10px] font-bold text-success-green uppercase tracking-widest mb-1">{language === 'ar' ? 'نشط' : 'Active'}</p>
+                  <p className="text-[10px] font-bold text-success-green uppercase tracking-widest mb-1">{t.active}</p>
                   <p className="text-2xl font-bold text-success-green">{assetSummary?.active || 0}</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-warning-amber/5 border border-warning-amber/10">
-                  <p className="text-[10px] font-bold text-warning-amber uppercase tracking-widest mb-1">{language === 'ar' ? 'صيانة' : 'Maintenance'}</p>
+                  <p className="text-[10px] font-bold text-warning-amber uppercase tracking-widest mb-1">{t.maintenance}</p>
                   <p className="text-2xl font-bold text-warning-amber">{assetSummary?.maintenance || 0}</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-danger-red/5 border border-danger-red/10">
-                  <p className="text-[10px] font-bold text-danger-red uppercase tracking-widest mb-1">{language === 'ar' ? 'متقاعد' : 'Retired'}</p>
+                  <p className="text-[10px] font-bold text-danger-red uppercase tracking-widest mb-1">{t.retired}</p>
                   <p className="text-2xl font-bold text-danger-red">{assetSummary?.retired || 0}</p>
                 </div>
               </div>
@@ -567,7 +565,7 @@ export default function DashboardPage() {
                 onClick={() => window.location.href = '/admin/assets'}
                 className="w-full mt-6 py-3 rounded-xl border border-[var(--border-main)] text-sm font-bold text-[var(--text-secondary)] hover:bg-[var(--border-dim)] transition-all flex items-center justify-center gap-2"
               >
-                {language === 'ar' ? 'إدارة الأصول' : 'Manage Assets'}
+                {t.manageAssets}
                 <ExternalLink size={14} />
               </button>
             </div>
@@ -579,18 +577,18 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-8">
                 <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2">
                   <TrendingUp size={18} className="text-primary-blue" />
-                  {language === 'ar' ? 'أداء الوكلاء' : 'Agent Performance'}
+                  {t.agentPerformance}
                 </h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
                     <tr className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest border-b border-[var(--border-dim)]">
-                      <th className="pb-4">{language === 'ar' ? 'الوكيل' : 'Agent'}</th>
-                      <th className="pb-4">{language === 'ar' ? 'تم الحل' : 'Resolved'}</th>
-                      <th className="pb-4">{language === 'ar' ? 'متوسط الاستجابة' : 'Avg Response'}</th>
-                      <th className="pb-4">{language === 'ar' ? 'متوسط الحل' : 'Avg Resolution'}</th>
-                      <th className="pb-4">{language === 'ar' ? 'الالتزام بـ SLA' : 'SLA Adherence'}</th>
+                      <th className="pb-4">{t.agent}</th>
+                      <th className="pb-4">{t.resolved}</th>
+                      <th className="pb-4">{t.avgResponse}</th>
+                      <th className="pb-4">{t.avgResolution}</th>
+                      <th className="pb-4">{t.slaAdherence}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border-dim)]">
@@ -632,7 +630,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-8">
                 <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2">
                   <Activity size={18} className="text-primary-blue" />
-                  {language === 'ar' ? 'النشاط الأخير' : 'Recent Activity'}
+                  {t.recentActivity}
                 </h3>
               </div>
               <div className="space-y-6">
@@ -666,7 +664,7 @@ export default function DashboardPage() {
               <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                    {language === 'ar' ? 'من تاريخ' : 'From Date'}
+                    {t.fromDate}
                   </label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
@@ -680,7 +678,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
-                    {language === 'ar' ? 'إلى تاريخ' : 'To Date'}
+                    {t.toDate}
                   </label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
@@ -698,15 +696,13 @@ export default function DashboardPage() {
                 className="flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-primary-blue text-white font-bold hover:bg-blue-800 transition-all shadow-lg shadow-primary-blue/20"
               >
                 <FileSpreadsheet size={20} />
-                {language === 'ar' ? 'تصدير الآن' : 'Export Now'}
+                {t.exportNow}
               </button>
             </div>
             <div className="mt-6 p-4 bg-warning-amber/5 border border-warning-amber/10 rounded-2xl flex items-center gap-3">
               <AlertCircle className="text-warning-amber" size={18} />
               <p className="text-xs text-warning-amber font-medium">
-                {language === 'ar' 
-                  ? 'ملاحظة: يتم حذف جميع التقارير المصدرة تلقائياً كل يوم الساعة 3:00 فجراً.' 
-                  : 'Note: All exported reports are automatically deleted every day at 3:00 AM.'}
+                {t.exportNote}
               </p>
             </div>
           </div>
@@ -716,18 +712,18 @@ export default function DashboardPage() {
             <div className="p-6 border-b border-[var(--border-dim)] flex items-center gap-3">
               <History className="text-primary-blue" size={20} />
               <h3 className="font-bold text-[var(--text-main)]">
-                {language === 'ar' ? 'سجل التقارير المصدرة' : 'Export History'}
+                {t.exportHistory}
               </h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-[var(--border-dim)]/50 border-b border-[var(--border-dim)]">
-                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'اسم الملف' : 'File Name'}</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'الفترة' : 'Period'}</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'التذاكر' : 'Tickets'}</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'بواسطة' : 'Exported By'}</th>
-                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{language === 'ar' ? 'التاريخ' : 'Date'}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.fileName}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.period}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.tickets}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.exportedBy}</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.date}</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest"></th>
                   </tr>
                 </thead>
@@ -735,7 +731,7 @@ export default function DashboardPage() {
                   {exportHistory.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center text-[var(--text-muted)] text-sm italic">
-                        {language === 'ar' ? 'لا يوجد سجل تصدير متاح' : 'No export history available'}
+                        {t.noExportHistory}
                       </td>
                     </tr>
                   ) : exportHistory.map((exp) => (
@@ -771,7 +767,7 @@ export default function DashboardPage() {
                           className="inline-flex items-center gap-2 text-primary-blue hover:underline text-xs font-bold uppercase tracking-widest"
                         >
                           <Download size={14} />
-                          {language === 'ar' ? 'تحميل' : 'Download'}
+                          {t.download}
                         </a>
                       </td>
                     </tr>

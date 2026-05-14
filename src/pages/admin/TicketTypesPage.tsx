@@ -115,10 +115,10 @@ export default function TicketTypesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-main)]">
-            {language === 'ar' ? 'أنواع التذاكر' : 'Ticket Types'}
+            {t.ticketTypes}
           </h2>
           <p className="text-[var(--text-secondary)]">
-            {language === 'ar' ? 'تصنيف التذاكر وتحديد ألوانها' : 'Categorize tickets and define their colors'}
+            {t.ticketTypesDesc}
           </p>
         </div>
         <button
@@ -130,7 +130,7 @@ export default function TicketTypesPage() {
           className="flex items-center gap-2 bg-primary-blue text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-800 transition-all"
         >
           <Plus size={20} />
-          {language === 'ar' ? 'إضافة نوع' : 'Add Type'}
+          {t.addType}
         </button>
       </div>
 
@@ -178,7 +178,7 @@ export default function TicketTypesPage() {
               {language === 'ar' ? type.nameAr : type.nameEn}
             </h3>
             <p className="text-xs text-[var(--text-secondary)] mb-4">
-              {type.department ? (language === 'ar' ? type.department.nameAr : type.department.nameEn) : (language === 'ar' ? 'عام' : 'General')}
+              {type.department ? (language === 'ar' ? type.department.nameAr : type.department.nameEn) : t.general}
             </p>
             
             <div className="flex items-center justify-between pt-4 border-t border-[var(--border-dim)]">
@@ -189,7 +189,7 @@ export default function TicketTypesPage() {
               <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                 type.isActive ? 'bg-success-green/10 text-success-green' : 'bg-[var(--bg-elevated)] text-[var(--text-muted)]'
               }`}>
-                {type.isActive ? (language === 'ar' ? 'نشط' : 'Active') : (language === 'ar' ? 'غير نشط' : 'Inactive')}
+                {type.isActive ? t.active : t.inactive}
               </span>
             </div>
           </motion.div>
@@ -206,7 +206,7 @@ export default function TicketTypesPage() {
           >
             <div className="p-6 border-b border-[var(--border-dim)] flex items-center justify-between">
               <h3 className="text-xl font-bold text-[var(--text-main)]">
-                {editingType ? (language === 'ar' ? 'تعديل نوع' : 'Edit Type') : (language === 'ar' ? 'إضافة نوع جديد' : 'Add New Type')}
+                {editingType ? t.editType : t.addNewType}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
                 <X size={24} />
@@ -217,7 +217,7 @@ export default function TicketTypesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                    {language === 'ar' ? 'الاسم بالعربية' : 'Name (Arabic)'}
+                    {t.nameArabic}
                   </label>
                   <input
                     type="text"
@@ -229,7 +229,7 @@ export default function TicketTypesPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                    {language === 'ar' ? 'الاسم بالإنجليزية' : 'Name (English)'}
+                    {t.nameEnglish}
                   </label>
                   <input
                     type="text"
@@ -243,14 +243,14 @@ export default function TicketTypesPage() {
 
               <div>
                 <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                  {language === 'ar' ? 'القسم المسؤول' : 'Responsible Department'}
+                  {t.responsibleDepartment}
                 </label>
                 <select
                   value={formData.departmentId}
                   onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
                   className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
                 >
-                  <option value="">{language === 'ar' ? 'عام (بدون قسم محدد)' : 'General (No specific department)'}</option>
+                  <option value="">{t.generalNoDepartment}</option>
                   {departments.map(d => (
                     <option key={d.id} value={d.id}>{language === 'ar' ? d.nameAr : d.nameEn}</option>
                   ))}
@@ -260,7 +260,7 @@ export default function TicketTypesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                    {language === 'ar' ? 'اللون' : 'Color'}
+                    {t.color}
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -279,7 +279,7 @@ export default function TicketTypesPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">
-                    {language === 'ar' ? 'الترتيب' : 'Order'}
+                    {t.order}
                   </label>
                   <input
                     type="number"
@@ -299,7 +299,7 @@ export default function TicketTypesPage() {
                   className="w-5 h-5 rounded border-[var(--border-main)] text-primary-blue focus:ring-primary-blue"
                 />
                 <label htmlFor="isActive" className="text-sm font-bold text-[var(--text-secondary)]">
-                  {language === 'ar' ? 'نشط' : 'Active'}
+                  {t.active}
                 </label>
               </div>
               
@@ -309,13 +309,13 @@ export default function TicketTypesPage() {
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1 px-4 py-2 rounded-xl border border-[var(--border-main)] text-[var(--text-secondary)] font-bold hover:bg-[var(--border-dim)] transition-all"
                 >
-                  {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                  {t.cancel}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 px-4 py-2 rounded-xl bg-primary-blue text-white font-bold hover:bg-blue-800 transition-all"
                 >
-                  {language === 'ar' ? 'حفظ' : 'Save'}
+                  {t.save}
                 </button>
               </div>
             </form>
