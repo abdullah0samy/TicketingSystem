@@ -33,6 +33,7 @@ import {
   Mic
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useNotifications } from '../../core/NotificationProvider.tsx';
 
 interface Attachment {
   id: number;
@@ -156,6 +157,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
   const { accessToken, user } = useAuthStore();
   const { language } = useSettingsStore();
   const t = translations[language];
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
     let isMounted = true;
@@ -163,9 +165,9 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
 
     const fetch = async () => {
       try {
-        await fetchTicket(controller.signal);
-        if (isMounted) {
-          await fetchAgents(controller.signal);
+        const ticketData = await fetchTicket(controller.signal);
+        if (isMounted && ticketData) {
+          await fetchAgents(ticketData, controller.signal);
           await fetchDepartments(controller.signal);
           await fetchTicketTypes(controller.signal);
         }
@@ -358,28 +360,30 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
           console.error(`Error fetching ticket ${ticketId}: ${res.status} ${res.statusText}`, text);
           setTicket(null);
         }
-        return;
+        return null;
       }
 
       const data = await res.json();
       setTicket(data);
+      return data;
     } catch (error: any) {
-      if (error.name === 'AbortError') return;
+      if (error.name === 'AbortError') return null;
       console.error('Error fetching ticket:', error);
+      return null;
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
   };
 
-  const fetchAgents = async (signal?: AbortSignal) => {
+  const fetchAgents = async (ticketData: any, signal?: AbortSignal) => {
     try {
       const res = await fetch('/api/admin/users', {
         headers: { Authorization: `Bearer ${accessToken}` },
         signal
       });
       const data = await res.json();
-      if (res.ok && ticket && !signal?.aborted) {
-        setAgents(data.filter((u: any) => u.departmentId === ticket.departmentId));
+      if (res.ok && ticketData && !signal?.aborted) {
+        setAgents(data.filter((u: any) => u.departmentId === ticketData.departmentId));
       }
     } catch (error: any) {
       if (error.name === 'AbortError') return;
@@ -628,9 +632,16 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
         },
         body: JSON.stringify({ agentId })
       });
-      if (res.ok) fetchTicket();
+      if (res.ok) {
+        fetchTicket();
+        addNotification({ title: t.assigned, message: '', type: 'success' });
+      } else {
+        const err = await res.json();
+        addNotification({ title: t.error, message: err.message || 'Operation failed', type: 'error' });
+      }
     } catch (error) {
       console.error('Error assigning ticket:', error);
+      addNotification({ title: t.error, message: 'Operation failed', type: 'error' });
     }
   };
 
