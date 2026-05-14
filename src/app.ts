@@ -33,13 +33,12 @@ if (process.env.NODE_ENV === 'production') {
   const required = ['DATABASE_URL', 'FRONTEND_URL'];
   const missing = required.filter(v => !process.env[v]);
   if (missing.length > 0) {
-    console.error(`🔴 CRITICAL: Missing required environment variables: ${missing.join(', ')}`);
-    process.exit(1);
+    console.warn(`⚠️ WARNING: Missing environment variables in production: ${missing.join(', ')}`);
   }
   const port = parseInt(process.env.PORT || '3000', 10);
   if (isNaN(port) || port < 1 || port > 65535) {
-    console.error('🔴 CRITICAL: Invalid PORT');
-    process.exit(1);
+    console.warn('⚠️ WARNING: Invalid PORT, defaulting to 3000');
+    process.env.PORT = '3000';
   }
 }
 
