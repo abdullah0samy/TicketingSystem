@@ -278,6 +278,8 @@ model TicketAttachment {
   fileUrl      String   @map("file_url")
   fileSize     BigInt?  @map("file_size")
   mimeType     String?  @map("mime_type")
+  isVoiceNote  Boolean  @default(false) @map("is_voice_note")
+  voiceDuration Int?    @map("voice_duration")
   createdAt    DateTime @default(now()) @map("created_at")
   ticket       Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
@@ -310,6 +312,8 @@ model MessageAttachment {
   fileUrl      String        @map("file_url")
   fileSize     BigInt?       @map("file_size")
   mimeType     String?       @map("mime_type")
+  isVoiceNote  Boolean       @default(false) @map("is_voice_note")
+  voiceDuration Int?         @map("voice_duration")
   createdAt    DateTime      @default(now()) @map("created_at")
   message      TicketMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 

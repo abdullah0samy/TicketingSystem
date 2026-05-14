@@ -26,13 +26,13 @@ const storage = multer.diskStorage({
 // BUG FIX: Regex-based mimetype check fails for complex MIME types like
 // application/vnd.openxmlformats-officedocument.spreadsheetml.sheet (xlsx)
 // Use explicit allowlists instead.
-const ALLOWED_EXTENSIONS = ['.jpeg', '.jpg', '.png', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.wav', '.mp3'];
+const ALLOWED_EXTENSIONS = ['.jpeg', '.jpg', '.png', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.wav', '.mp3', '.webm'];
 const ALLOWED_MIMETYPES = [
   'image/jpeg', 'image/png',
   'application/pdf',
   'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'audio/wav', 'audio/mpeg'
+  'audio/wav', 'audio/mpeg', 'audio/webm'
 ];
 
 const upload = multer({ 
@@ -43,7 +43,7 @@ const upload = multer({
     if (ALLOWED_EXTENSIONS.includes(ext) && ALLOWED_MIMETYPES.includes(file.mimetype)) {
       return cb(null, true);
     }
-    cb(new Error('Invalid file type. Allowed: JPEG, PNG, PDF, DOC, DOCX, XLS, XLSX, WAV, MP3'));
+    cb(new Error('Invalid file type. Allowed: JPEG, PNG, PDF, DOC, DOCX, XLS, XLSX, WAV, MP3, WEBM'));
   }
 });
 router.post('/', authenticate as any, upload.single('file'), (req: any, res) => {

@@ -16,7 +16,9 @@ export const createTicketSchema = z.object({
     fileName: z.string(),
     fileUrl: z.string(),
     fileSize: z.number(),
-    mimeType: z.string()
+    mimeType: z.string(),
+    isVoiceNote: z.boolean().optional(),
+    voiceDuration: z.number().optional()
   })).optional()
 });
 

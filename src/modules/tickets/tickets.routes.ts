@@ -139,7 +139,9 @@ router.post('/', validate(createTicketSchema), async (req: AuthRequest, res: Res
             fileName: a.fileName,
             fileUrl: a.fileUrl,
             fileSize: a.fileSize,
-            mimeType: a.mimeType
+            mimeType: a.mimeType,
+            isVoiceNote: a.isVoiceNote ?? false,
+            voiceDuration: a.voiceDuration ?? null
           }))
         } : undefined,
         auditLogs: {
@@ -1003,7 +1005,9 @@ router.post('/:id/comments', async (req: AuthRequest, res: Response) => {
             fileName: a.fileName,
             fileUrl: a.fileUrl,
             fileSize: a.fileSize,
-            mimeType: a.mimeType
+            mimeType: a.mimeType,
+            isVoiceNote: a.isVoiceNote ?? false,
+            voiceDuration: a.voiceDuration ?? null
           }))
         } : undefined
       },

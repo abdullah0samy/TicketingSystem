@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 // BUG FIX #2: Removed direct `import { io }` — TicketDetailsPage no longer creates
 // its own socket. Real-time updates come via the global NotificationProvider socket,
 // which re-emits ticket-specific events via custom DOM events.
@@ -29,7 +29,8 @@ import {
   Search,
   File as FileIcon,
   Archive,
-  Share2
+  Share2,
+  Mic
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -40,7 +41,15 @@ interface Attachment {
   fileSize: number;
   mimeType: string;
   createdAt: string;
+  isVoiceNote?: boolean;
+  voiceDuration?: number | null;
 }
+
+const formatDuration = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
 
 interface Comment {
   id: number;
@@ -123,6 +132,11 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
   const [transferReason, setTransferReason] = useState('');
   const [commentAttachments, setCommentAttachments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [isRecordingComment, setIsRecordingComment] = useState(false);
+  const [commentRecordingDuration, setCommentRecordingDuration] = useState(0);
+  const commentMediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const commentAudioChunksRef = useRef<Blob[]>([]);
+  const commentTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [rating, setRating] = useState(5);
   const [feedback, setFeedback] = useState('');
@@ -170,6 +184,13 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
     return () => {
       controller.abort();
       isMounted = false;
+      if (commentTimerRef.current) clearInterval(commentTimerRef.current);
+      if (commentMediaRecorderRef.current) {
+        if (commentMediaRecorderRef.current.state !== 'inactive') {
+          commentMediaRecorderRef.current.stop();
+        }
+        commentMediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      }
     };
   }, [ticketId]);
 
@@ -472,6 +493,61 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
     }
   };
 
+  const startCommentVoiceRecording = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      commentMediaRecorderRef.current = mediaRecorder;
+      commentAudioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        commentAudioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(commentAudioChunksRef.current, { type: 'audio/webm' });
+        const file = new File([audioBlob], `voice-note-${Date.now()}.webm`, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const res = await fetch('/api/uploads', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${accessToken}` },
+            body: formData
+          });
+          const data = await res.json();
+          if (res.ok) {
+            setCommentAttachments([...commentAttachments, { ...data, isVoiceNote: true, voiceDuration: commentRecordingDuration }]);
+          }
+        } catch (err) {
+          console.error('Voice upload error:', err);
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecordingComment(true);
+      setCommentRecordingDuration(0);
+      commentTimerRef.current = setInterval(() => {
+        setCommentRecordingDuration(prev => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Microphone error:', err);
+    }
+  };
+
+  const stopCommentVoiceRecording = () => {
+    if (commentMediaRecorderRef.current && isRecordingComment) {
+      commentMediaRecorderRef.current.stop();
+      setIsRecordingComment(false);
+      if (commentTimerRef.current) clearInterval(commentTimerRef.current);
+      commentMediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
+  };
+
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!comment.trim() && commentAttachments.length === 0) return;
@@ -588,7 +664,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
   const isArchived = ticket.isArchived;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -596,7 +672,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
             onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: '/inbox' }))}
             className="p-2 hover:bg-[var(--bg-elevated)] rounded-xl transition-all text-[var(--text-muted)]"
           >
-            <ArrowLeft size={24} />
+            <ArrowLeft size={24} className={language === 'ar' ? 'rotate-180' : ''} />
           </button>
           <div>
             <div className="flex items-center gap-3 mb-1">
@@ -1050,20 +1126,32 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                   {t.attachments}
                 </h4>
                 <div className="flex flex-wrap gap-3">
-                  {ticket.attachments.map((file) => (
-                    <a 
-                      key={file.id}
-                      href={`/api/uploads/download/${file.fileName}`} 
-                      download
-                      className="flex items-center gap-3 p-3 rounded-xl bg-[var(--border-dim)] border border-[var(--border-dim)] hover:border-primary-blue transition-all group"
-                    >
-                      <FileIcon size={18} className="text-primary-blue" />
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-[var(--text-secondary)] group-hover:text-primary-blue transition-all">{file.fileName}</span>
-                        <span className="text-[10px] text-[var(--text-muted)]">{(file.fileSize / 1024).toFixed(1)} KB</span>
+                  {ticket.attachments.map((file) =>
+                    (file as any).isVoiceNote ? (
+                      <div key={file.id} className="flex items-center gap-3 p-3 rounded-xl bg-[var(--border-dim)] border border-[var(--border-dim)] min-w-[260px]">
+                        <div className="w-8 h-8 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">
+                          <Mic size={16} className="text-rose-500" />
+                        </div>
+                        <audio controls src={file.fileUrl} className="h-8 flex-1 min-w-0" />
+                        <span className="text-[10px] font-mono font-bold text-[var(--text-secondary)] shrink-0">
+                          {formatDuration((file as any).voiceDuration || 0)}
+                        </span>
                       </div>
-                    </a>
-                  ))}
+                    ) : (
+                      <a 
+                        key={file.id}
+                        href={file.fileUrl}
+                        download
+                        className="flex items-center gap-3 p-3 rounded-xl bg-[var(--border-dim)] border border-[var(--border-dim)] hover:border-primary-blue transition-all group"
+                      >
+                        <FileIcon size={18} className="text-primary-blue" />
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-[var(--text-secondary)] group-hover:text-primary-blue transition-all">{file.fileName}</span>
+                          <span className="text-[10px] text-[var(--text-muted)]">{(file.fileSize / 1024).toFixed(1)} KB</span>
+                        </div>
+                      </a>
+                    )
+                  )}
                 </div>
               </div>
             )}
@@ -1115,17 +1203,29 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                           <p className="text-sm text-[var(--text-secondary)]">{c.body}</p>
                           {c.attachments && c.attachments.length > 0 && (
                             <div className="flex flex-wrap gap-2 mt-3">
-                              {c.attachments.map((file) => (
-                                <a 
-                                  key={file.id}
-                                  href={`/api/uploads/download/${file.fileName}`} 
-                                  download
-                                  className="flex items-center gap-2 p-2 rounded-lg bg-[var(--border-dim)] border border-[var(--border-dim)] hover:border-primary-blue transition-all group"
-                                >
-                                  <FileIcon size={14} className="text-primary-blue" />
-                                  <span className="text-[10px] font-bold text-[var(--text-secondary)] group-hover:text-primary-blue transition-all line-clamp-1 max-w-[100px]">{file.fileName}</span>
-                                </a>
-                              ))}
+                              {c.attachments.map((file) =>
+                                (file as any).isVoiceNote ? (
+                                  <div key={file.id} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--border-dim)] border border-[var(--border-dim)] min-w-[200px]">
+                                    <div className="w-6 h-6 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">
+                                      <Mic size={12} className="text-rose-500" />
+                                    </div>
+                                    <audio controls src={file.fileUrl} className="h-7 flex-1 min-w-0" />
+                                    <span className="text-[10px] font-mono font-bold text-[var(--text-secondary)] shrink-0">
+                                      {formatDuration((file as any).voiceDuration || 0)}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <a 
+                                    key={file.id}
+                                    href={file.fileUrl}
+                                    download
+                                    className="flex items-center gap-2 p-2 rounded-lg bg-[var(--border-dim)] border border-[var(--border-dim)] hover:border-primary-blue transition-all group"
+                                  >
+                                    <FileIcon size={14} className="text-primary-blue" />
+                                    <span className="text-[10px] font-bold text-[var(--text-secondary)] group-hover:text-primary-blue transition-all line-clamp-1 max-w-[100px]">{file.fileName}</span>
+                                  </a>
+                                )
+                              )}
                             </div>
                           )}
                           {c.messageType === 'internal_note' && (
@@ -1150,8 +1250,20 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                       <div className="flex flex-wrap gap-2">
                         {commentAttachments.map((file, idx) => (
                           <div key={idx} className="relative group bg-[var(--bg-elevated)] p-2 rounded-lg border border-[var(--border-main)] flex items-center gap-2">
-                            <FileIcon size={14} className="text-primary-blue" />
-                            <span className="text-[10px] font-bold text-[var(--text-secondary)] line-clamp-1 max-w-[100px]">{file.fileName}</span>
+                            {file.isVoiceNote ? (
+                              <>
+                                <div className="w-6 h-6 rounded-full bg-rose-500/10 flex items-center justify-center">
+                                  <Mic size={12} className="text-rose-500" />
+                                </div>
+                                <audio controls src={file.fileUrl} className="h-7 w-28" />
+                                <span className="text-[10px] font-mono font-bold text-[var(--text-secondary)]">{formatDuration(file.voiceDuration || 0)}</span>
+                              </>
+                            ) : (
+                              <>
+                                <FileIcon size={14} className="text-primary-blue" />
+                                <span className="text-[10px] font-bold text-[var(--text-secondary)] line-clamp-1 max-w-[100px]">{file.fileName}</span>
+                              </>
+                            )}
                             <button 
                               type="button"
                               onClick={() => setCommentAttachments(commentAttachments.filter((_, i) => i !== idx))}
@@ -1184,6 +1296,22 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                           <Paperclip size={18} />
                           <span className="text-xs font-bold uppercase tracking-widest">{uploading ? '...' : t.attach}</span>
                         </label>
+                        <button
+                          type="button"
+                          onClick={isRecordingComment ? stopCommentVoiceRecording : startCommentVoiceRecording}
+                          disabled={uploading}
+                          className={`flex items-center gap-2 transition-all ${
+                            isRecordingComment
+                              ? 'text-rose-500 animate-pulse'
+                              : 'text-[var(--text-muted)] hover:text-rose-500'
+                          }`}
+                        >
+                          {isRecordingComment ? (
+                            <><Mic size={18} /><span className="text-[10px] font-mono font-bold">{formatDuration(commentRecordingDuration)}</span></>
+                          ) : (
+                            <Mic size={18} />
+                          )}
+                        </button>
                       </div>
                       <button
                         type="submit"
