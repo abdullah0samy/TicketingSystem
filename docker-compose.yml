@@ -6,9 +6,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER:-abch_user}:${POSTGRES_PASSWORD:-change_me}@db:5432/${POSTGRES_DB:-abch_db}}
-      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://johndoe:randompassword@db:5432/abch_db?schema=public}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:-change-this-in-production}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-change-this-refresh-secret}
       - NODE_ENV=production
       - FRONTEND_URL=${FRONTEND_URL:-https://ticket.abchospitaleg.com}
       - PORT=3000
@@ -28,8 +28,8 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_USER=${POSTGRES_USER:-abch_user}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change_me}
+      - POSTGRES_USER=${POSTGRES_USER:-johndoe}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-randompassword}
       - POSTGRES_DB=${POSTGRES_DB:-abch_db}
     ports:
       - "5432:5432"
