@@ -57,6 +57,8 @@ router.get('/articles', authenticate, async (req, res) => {
         { titleEn: { contains: searchStr, mode: 'insensitive' } },
         { contentAr: { contains: searchStr, mode: 'insensitive' } },
         { contentEn: { contains: searchStr, mode: 'insensitive' } },
+        { category: { nameAr: { contains: searchStr, mode: 'insensitive' } } },
+        { category: { nameEn: { contains: searchStr, mode: 'insensitive' } } },
       ];
     }
 

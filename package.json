@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate dev --name syntr_init",
     "db:seed": "tsx prisma/seed.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "load-test": "tsx scripts/load-test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

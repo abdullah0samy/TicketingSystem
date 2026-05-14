@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuthStore } from '../store/authStore.ts';
 import { useSettingsStore } from '../store/settingsStore.ts';
+import { translations } from '../core/translations.ts';
 import { apiFetch } from '../core/api.ts';
 import { 
   Search, 
@@ -49,23 +50,23 @@ interface Category {
 export default function KnowledgeBasePage() {
   const { accessToken, user } = useAuthStore();
   const { language } = useSettingsStore();
+  const t = translations[language];
 
   const hasKbPermission = useMemo(() => {
     if (!user) return false;
     if (user.role === 'super_admin') return true;
     
-    // Check override
     if (user.permissionsOverride?.canManageKnowledgeBase !== null && user.permissionsOverride?.canManageKnowledgeBase !== undefined) {
       return user.permissionsOverride.canManageKnowledgeBase;
     }
     
-    // Check dept default
     return user.department?.defaultPermissions?.canManageKnowledgeBase || false;
   }, [user]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
@@ -75,15 +76,22 @@ export default function KnowledgeBasePage() {
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-  // New Article Form State
   const [articleForm, setArticleForm] = useState({
     titleAr: '', titleEn: '', contentAr: '', contentEn: '', categoryId: ''
   });
 
-  // New Category Form State
   const [categoryForm, setCategoryForm] = useState({
     nameAr: '', nameEn: ''
   });
+
+  const filteredCategories = useMemo(() => {
+    if (!categorySearchTerm.trim()) return categories;
+    const term = categorySearchTerm.toLowerCase();
+    return categories.filter(cat => 
+      cat.nameAr.toLowerCase().includes(term) || 
+      cat.nameEn.toLowerCase().includes(term)
+    );
+  }, [categories, categorySearchTerm]);
 
   useEffect(() => {
     let isMounted = true;
@@ -275,9 +283,7 @@ export default function KnowledgeBasePage() {
     return snippet;
   };
 
-
-
-  if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">Loading knowledge base...</div>;
+  if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">{t.loadingKnowledgeBase}</div>;
 
   return (
     <div className="max-w-7xl mx-auto pb-20">
@@ -295,12 +301,11 @@ export default function KnowledgeBasePage() {
               className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-primary-blue transition-all font-bold"
             >
               <ArrowLeft size={20} />
-              {language === 'ar' ? 'العودة للمركز المعرفي' : 'Back to Knowledge Base'}
+              {t.backToKnowledgeBase}
             </button>
 
-            {/* Breadcrumbs */}
             <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
-              <span className="hover:text-primary-blue cursor-pointer transition-colors" onClick={() => setSelectedArticle(null)}>{language === 'ar' ? 'المركز المعرفي' : 'Knowledge Base'}</span>
+              <span className="hover:text-primary-blue cursor-pointer transition-colors" onClick={() => setSelectedArticle(null)}>{t.knowledgeBase}</span>
               <ChevronRight size={12} className={language === 'ar' ? 'rotate-180' : ''} />
               <span className="text-primary-blue">{language === 'ar' ? selectedArticle.category.nameAr : selectedArticle.category.nameEn}</span>
               <ChevronRight size={12} className={language === 'ar' ? 'rotate-180' : ''} />
@@ -319,7 +324,7 @@ export default function KnowledgeBasePage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <Eye size={14} />
-                    {selectedArticle.views} {language === 'ar' ? 'مشاهدة' : 'Views'}
+                    {selectedArticle.views} {t.views}
                   </div>
                 </div>
 
@@ -335,7 +340,7 @@ export default function KnowledgeBasePage() {
                     <p className="text-sm font-bold text-[var(--text-main)]">
                       {language === 'ar' ? selectedArticle.author.fullNameAr : selectedArticle.author.fullNameEn}
                     </p>
-                    <p className="text-xs text-[var(--text-secondary)]">Author</p>
+                    <p className="text-xs text-[var(--text-secondary)]">{t.author}</p>
                   </div>
                 </div>
 
@@ -347,7 +352,7 @@ export default function KnowledgeBasePage() {
                   <div className="flex items-center gap-4">
                     <button className="flex items-center gap-2 px-4 py-2 premium-card shadow-sm text-[var(--text-secondary)] hover:text-primary-blue transition-all">
                       <ThumbsUp size={18} />
-                      <span className="text-sm font-bold">Helpful</span>
+                      <span className="text-sm font-bold">{t.helpful}</span>
                     </button>
                     <button className="flex items-center gap-2 px-4 py-2 premium-card shadow-sm text-[var(--text-secondary)] hover:text-primary-blue transition-all">
                       <Share2 size={18} />
@@ -355,7 +360,7 @@ export default function KnowledgeBasePage() {
                   </div>
                   <button className="flex items-center gap-2 text-primary-blue font-bold hover:underline">
                     <MessageSquare size={18} />
-                    {language === 'ar' ? 'طرح سؤال' : 'Ask a Question'}
+                    {t.askQuestion}
                   </button>
                 </div>
               </div>
@@ -369,16 +374,15 @@ export default function KnowledgeBasePage() {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-12"
           >
-            {/* Hero Search */}
             <div className="text-center space-y-6 pt-12 pb-6">
               <h1 className="text-4xl md:text-5xl font-bold text-[var(--text-main)]">
-                {language === 'ar' ? 'كيف يمكننا مساعدتك اليوم؟' : 'How can we help you today?'}
+                {t.kbHelpTitle}
               </h1>
               <div className="max-w-2xl mx-auto relative group">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-primary-blue transition-colors" size={24} />
                   <input 
                   type="text"
-                  placeholder={language === 'ar' ? 'ابحث عن حلول، مقالات، أو أدلة...' : 'Search for solutions, articles, or guides...'}
+                  placeholder={t.kbSearchPlaceholder}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="input-surface w-full pl-14 pr-6 py-5 text-lg shadow-xl shadow-slate-200/20 dark:shadow-none bg-[var(--bg-surface)] border-[var(--border-main)] text-[var(--text-main)]"
@@ -396,33 +400,41 @@ export default function KnowledgeBasePage() {
                     className="flex items-center gap-2 px-6 py-3 bg-primary-blue text-white rounded-2xl font-bold shadow-lg shadow-primary-blue/20 hover:scale-105 transition-all text-sm"
                   >
                     <Plus size={20} />
-                    {language === 'ar' ? 'إضافة مقال جديد' : 'Write New Article'}
+                    {t.writeNewArticle}
                   </button>
                   <button 
                     onClick={() => setShowCategoryForm(true)}
                     className="flex items-center gap-2 px-6 py-3 premium-card shadow-sm text-[var(--text-main)] font-bold transition-all text-sm"
                   >
                     <PlusCircle size={20} />
-                    {language === 'ar' ? 'إدارة التصنيفات' : 'Manage Categories'}
+                    {t.manageCategories}
                   </button>
                 </div>
               )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              {/* Sidebar Categories */}
               <div className="space-y-6">
                 <h3 className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest px-4">
-                  {language === 'ar' ? 'التصنيفات' : 'Categories'}
+                  {t.categories}
                 </h3>
+                <div className="px-4">
+                  <input
+                    type="text"
+                    placeholder={t.categorySearch}
+                    value={categorySearchTerm}
+                    onChange={(e) => setCategorySearchTerm(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-sm text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue transition-all"
+                  />
+                </div>
                 <div className="space-y-1">
                   <button 
                     onClick={() => { setSelectedCategory(null); setPage(1); }}
                     className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all ${!selectedCategory ? 'bg-primary-blue text-white shadow-lg shadow-primary-blue/20' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]'}`}
                   >
-                    <span className="font-bold">{language === 'ar' ? 'الكل' : 'All Articles'}</span>
+                    <span className="font-bold">{t.allArticles}</span>
                   </button>
-                  {categories.map(cat => (
+                  {filteredCategories.map(cat => (
                     <button 
                       key={cat.id}
                       onClick={() => { setSelectedCategory(cat.id); setPage(1); }}
@@ -435,19 +447,16 @@ export default function KnowledgeBasePage() {
                 </div>
 
                 <div className="p-6 bg-primary-blue/5 rounded-3xl border border-primary-blue/10 space-y-4">
-                  <h4 className="font-bold text-primary-blue">Need more help?</h4>
+                  <h4 className="font-bold text-primary-blue">{t.needMoreHelp}</h4>
                   <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                    If you can't find what you're looking for, our support team is ready to assist you.
+                    {t.supportText}
                   </p>
                   <button className="w-full py-2 rounded-xl bg-primary-blue text-white text-xs font-bold hover:bg-blue-800 transition-all">
-                    Create a Ticket
+                    {t.createTicket}
                   </button>
                 </div>
-
-
               </div>
 
-              {/* Articles Grid */}
               <div className="lg:col-span-3 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {articles.map((article) => (
@@ -518,7 +527,6 @@ export default function KnowledgeBasePage() {
                   ))}
                 </div>
                 
-                {/* Pagination Controls */}
                 {totalPages > 1 && (
                   <div className="flex items-center justify-center gap-4 pt-8">
                     <button 
@@ -526,7 +534,7 @@ export default function KnowledgeBasePage() {
                       onClick={() => { setPage(p => p - 1); window.scrollTo({ top: 300, behavior: 'smooth' }); }}
                       className="p-3 rounded-2xl border border-[var(--border-main)] text-[var(--text-secondary)] hover:text-primary-blue disabled:opacity-30 transition-all bg-[var(--bg-surface)]"
                     >
-                      {language === 'ar' ? <ChevronLeft size={24} /> : <ChevronLeft size={24} />}
+                      <ChevronLeft size={24} />
                     </button>
                     <div className="flex items-center gap-1">
                       {Array.from({ length: totalPages }).map((_, i) => (
@@ -552,7 +560,7 @@ export default function KnowledgeBasePage() {
                 {articles.length === 0 && (
                   <div className="text-center py-20 bg-[var(--bg-main)] rounded-3xl border-2 border-dashed border-[var(--border-main)]">
                     <BookOpen size={48} className="mx-auto text-[var(--text-muted)] mb-4" />
-                    <p className="text-[var(--text-secondary)] font-bold">No articles found matching your search.</p>
+                    <p className="text-[var(--text-secondary)] font-bold">{t.noArticlesFound}</p>
                   </div>
                 )}
               </div>
@@ -561,7 +569,6 @@ export default function KnowledgeBasePage() {
         )}
       </AnimatePresence>
 
-      {/* Article Management Modal */}
       {showArticleForm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <motion.div 
@@ -572,9 +579,9 @@ export default function KnowledgeBasePage() {
             <div className="px-8 py-6 border-b border-[var(--border-dim)] flex items-center justify-between bg-[var(--border-dim)]">
               <div>
                 <h3 className="text-xl font-bold text-[var(--text-main)]">
-                  {editingArticle ? (language === 'ar' ? 'تعديل مقال' : 'Edit Article') : (language === 'ar' ? 'مقال جديد' : 'New Article')}
+                  {editingArticle ? t.editArticle : t.newArticle}
                 </h3>
-                <p className="text-xs text-[var(--text-muted)] mt-1">Fill in the details for both Arabic and English versions</p>
+                <p className="text-xs text-[var(--text-muted)] mt-1">{t.fillBothDetails}</p>
               </div>
               <button 
                 onClick={() => { setShowArticleForm(false); setEditingArticle(null); }}
@@ -586,7 +593,6 @@ export default function KnowledgeBasePage() {
 
             <form onSubmit={editingArticle ? handleUpdateArticle : handleCreateArticle} className="p-8 overflow-y-auto space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Arabic Side */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-[10px] font-bold bg-green-500/10 text-green-500 px-2 py-0.5 rounded uppercase tracking-widest">AR</span>
@@ -616,7 +622,6 @@ export default function KnowledgeBasePage() {
                   </div>
                 </div>
 
-                {/* English Side */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-[10px] font-bold bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded uppercase tracking-widest">EN</span>
@@ -667,13 +672,13 @@ export default function KnowledgeBasePage() {
                       onClick={() => { setShowArticleForm(false); setEditingArticle(null); }}
                       className="px-8 py-3 rounded-2xl font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] transition-all"
                     >
-                      Cancel
+                      {t.cancel}
                     </button>
                     <button 
                       type="submit"
                       className="px-12 py-3 bg-primary-blue text-white rounded-2xl font-bold shadow-xl shadow-primary-blue/20 hover:scale-105 transition-all"
                     >
-                      {editingArticle ? 'Update Article' : 'Publish Article'}
+                      {editingArticle ? t.updateArticle : t.publishArticle}
                     </button>
                   </div>
                 </div>
@@ -683,7 +688,6 @@ export default function KnowledgeBasePage() {
         </div>
       )}
 
-      {/* Category Management Modal */}
       {showCategoryForm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <motion.div 
@@ -692,7 +696,7 @@ export default function KnowledgeBasePage() {
             className="bg-[var(--bg-surface)] w-full max-w-md rounded-3xl shadow-2xl overflow-hidden"
           >
             <div className="px-6 py-4 border-b border-[var(--border-dim)] flex items-center justify-between">
-              <h3 className="font-bold text-[var(--text-main)]">Manage Categories</h3>
+              <h3 className="font-bold text-[var(--text-main)]">{t.manageCategories}</h3>
               <button 
                 onClick={() => { setShowCategoryForm(false); setEditingCategory(null); }}
                 className="p-1 hover:bg-[var(--bg-elevated)] rounded-lg"
@@ -721,7 +725,7 @@ export default function KnowledgeBasePage() {
                   className="w-full px-4 py-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] outline-none focus:ring-2 focus:ring-primary-blue"
                 />
                 <button type="submit" className="w-full py-2 bg-primary-blue text-white rounded-xl font-bold">
-                  {editingCategory ? 'Update' : 'Add Category'}
+                  {editingCategory ? t.updateCategory : t.addCategory}
                 </button>
               </form>
 
