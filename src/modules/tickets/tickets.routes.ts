@@ -1,5 +1,6 @@
 import express from 'express';
 import type { Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import prisma from '../../core/db.ts';
 import { authenticate, type AuthRequest } from '../../core/middleware/auth.middleware.ts';
 import { emitToDept, emitToUser, emitToTicket } from '../../core/socket.ts';
@@ -9,6 +10,12 @@ import { validate, validateQuery } from '../../core/utils/api.utils.ts';
 import { createTicketSchema, ticketSearchSchema } from './tickets.schema.ts';
 
 const router = express.Router();
+
+const searchLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 20 : 1000000,
+  message: { message: 'Too many search requests. Please slow down.' }
+});
 
 // Apply authentication to all ticket routes
 router.use(authenticate as any);
@@ -93,8 +100,6 @@ router.post('/', validate(createTicketSchema), async (req: AuthRequest, res: Res
   if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
 
   try {
-    const ticketNumber = await generateTicketNumber();
-
     // Fetch related names for denormalization (as per schema requirements)
     const [fullUser, targetDept, bld, flr] = await Promise.all([
       prisma.user.findUnique({ where: { id: req.user.id }, include: { department: true } }),
@@ -111,56 +116,70 @@ router.post('/', validate(createTicketSchema), async (req: AuthRequest, res: Res
     const baseSlaHours = ticketType?.slaHours || targetDept.slaHours || 24;
     const slaDeadline = calculateSLADeadline(baseSlaHours, (priority as any) || 'normal');
 
-    const ticket = await prisma.ticket.create({
-      data: {
-        ticketNumber,
-        subject: subject || 'No Subject',
-        description,
-        departmentId: parseInt(departmentId),
-        ticketTypeId: ticketTypeId && !isNaN(parseInt(ticketTypeId)) ? parseInt(ticketTypeId) : null,
-        priority: priority || 'normal',
-        buildingId: buildingId && !isNaN(parseInt(buildingId)) ? parseInt(buildingId) : null,
-        buildingName: bld ? bld.nameEn : null,
-        floorId: floorId && !isNaN(parseInt(floorId)) ? parseInt(floorId) : null,
-        floorName: flr ? flr.nameEn : null,
-        assetId: assetId && !isNaN(parseInt(assetId)) ? parseInt(assetId) : null,
-        roomExtension,
-        createdById: fullUser.id,
-        creatorName: fullUser.fullNameEn || fullUser.fullNameAr,
-        creatorPhone,
-        creatorExtension,
-        creatorDeptId: fullUser.departmentId,
-        creatorDeptName: fullUser.department?.nameEn || null,
-        status: 'pending',
-        slaDeadline,
-        attachments: attachments ? {
-          create: attachments.map((a: any) => ({
-            uploadedById: fullUser.id,
-            fileName: a.fileName,
-            fileUrl: a.fileUrl,
-            fileSize: a.fileSize,
-            mimeType: a.mimeType,
-            isVoiceNote: a.isVoiceNote ?? false,
-            voiceDuration: a.voiceDuration ?? null
-          }))
-        } : undefined,
-        auditLogs: {
-          create: {
-            userId: fullUser.id,
-            action: 'TICKET_CREATED',
-            departmentId: parseInt(departmentId),
-            newData: {
-              ticketNumber,
+    // Race-condition-safe ticket creation: retry on unique constraint violation
+    const MAX_RETRIES = 5;
+    let ticket: any;
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        ticket = await prisma.$transaction(async (tx) => {
+          const tn = await generateTicketNumber(tx);
+          return tx.ticket.create({
+            data: {
+              ticketNumber: tn,
               subject: subject || 'No Subject',
+              description,
               departmentId: parseInt(departmentId),
+              ticketTypeId: ticketTypeId && !isNaN(parseInt(ticketTypeId)) ? parseInt(ticketTypeId) : null,
               priority: priority || 'normal',
+              buildingId: buildingId && !isNaN(parseInt(buildingId)) ? parseInt(buildingId) : null,
               buildingName: bld ? bld.nameEn : null,
-              floorName: flr ? flr.nameEn : null
+              floorId: floorId && !isNaN(parseInt(floorId)) ? parseInt(floorId) : null,
+              floorName: flr ? flr.nameEn : null,
+              assetId: assetId && !isNaN(parseInt(assetId)) ? parseInt(assetId) : null,
+              roomExtension,
+              createdById: fullUser.id,
+              creatorName: fullUser.fullNameEn || fullUser.fullNameAr,
+              creatorPhone,
+              creatorExtension,
+              creatorDeptId: fullUser.departmentId,
+              creatorDeptName: fullUser.department?.nameEn || null,
+              status: 'pending',
+              slaDeadline,
+              attachments: attachments ? {
+                create: attachments.map((a: any) => ({
+                  uploadedById: fullUser.id,
+                  fileName: a.fileName,
+                  fileUrl: a.fileUrl,
+                  fileSize: a.fileSize,
+                  mimeType: a.mimeType,
+                  isVoiceNote: a.isVoiceNote ?? false,
+                  voiceDuration: a.voiceDuration ?? null
+                }))
+              } : undefined,
+              auditLogs: {
+                create: {
+                  userId: fullUser.id,
+                  action: 'TICKET_CREATED',
+                  departmentId: parseInt(departmentId),
+                  newData: {
+                    ticketNumber: tn,
+                    subject: subject || 'No Subject',
+                    departmentId: parseInt(departmentId),
+                    priority: priority || 'normal',
+                    buildingName: bld ? bld.nameEn : null,
+                    floorName: flr ? flr.nameEn : null
+                  }
+                }
+              }
             }
-          }
-        }
+          });
+        });
+        break;
+      } catch (txError: any) {
+        if (txError.code === 'P2002' && attempt < MAX_RETRIES - 1) continue;
+        throw txError;
       }
-    });
+    }
 
     // Emit real-time notification to department agents
     emitToDept(parseInt(departmentId), 'new-ticket', {
@@ -353,7 +372,7 @@ router.get('/department', async (req: AuthRequest, res: Response) => {
 });
 
 // --- GLOBAL SEARCH ---
-router.get('/search', validateQuery(ticketSearchSchema), async (req: AuthRequest, res: Response) => {
+router.get('/search', searchLimiter, validateQuery(ticketSearchSchema), async (req: AuthRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
   
   const { q, page = '1', limit = '20' } = req.query as any;
@@ -1207,6 +1226,12 @@ router.post('/bulk-update-status', async (req: AuthRequest, res: Response) => {
       return updated;
     });
 
+    // Emit real-time notifications for each updated ticket
+    for (const t of results) {
+      emitToTicket(t.id, 'ticket-status-updated', { id: t.id, ticketNumber: t.ticketNumber, status });
+      if (t.createdById) emitToUser(t.createdById, 'ticket-status-updated', { id: t.id, ticketNumber: t.ticketNumber, status });
+    }
+
     res.json({ message: `Successfully updated ${results.length} tickets`, count: results.length });
   } catch (error) {
     res.status(500).json({ message: 'Error performing bulk update' });
@@ -1281,6 +1306,12 @@ router.post('/bulk-assign', async (req: AuthRequest, res: Response) => {
       }
       return updated;
     });
+
+    // Emit real-time notifications for each assigned ticket
+    for (const t of results) {
+      emitToTicket(t.id, 'ticket-assigned', { id: t.id, ticketNumber: t.ticketNumber });
+      if (t.createdById) emitToUser(t.createdById, 'ticket-assigned', { id: t.id, ticketNumber: t.ticketNumber });
+    }
 
     res.json({ message: `Successfully assigned ${results.length} tickets`, count: results.length });
   } catch (error: any) {

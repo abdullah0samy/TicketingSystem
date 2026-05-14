@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 // its own socket. Real-time updates come via the global NotificationProvider socket,
 // which re-emits ticket-specific events via custom DOM events.
 import { useAuthStore } from '../../store/authStore.ts';
+import { apiFetch } from '../../core/api.ts';
 
 import { useSettingsStore } from '../../store/settingsStore.ts';
 import { translations } from '../../core/translations.ts';
@@ -154,7 +155,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
   const [linkSearchTerm, setLinkSearchTerm] = useState('');
   const [linkSearchResults, setLinkSearchResults] = useState<any[]>([]);
 
-  const { accessToken, user } = useAuthStore();
+  const { user } = useAuthStore();
   const { language } = useSettingsStore();
   const t = translations[language];
   const { addNotification } = useNotifications();
@@ -260,14 +261,8 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
         return;
       }
       
-      const res = await fetch(`/api/tickets/department?status=all`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        signal
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setRelatedTicketsData(data.tickets.filter((t: any) => ids.includes(t.id.toString())));
-      }
+      const data = await apiFetch(`/api/tickets/department?status=all`, { signal });
+      setRelatedTicketsData(data.tickets.filter((t: any) => ids.includes(t.id.toString())));
     } catch (error: any) {
       if (error.name === 'AbortError') return;
       console.error('Error fetching related tickets:', error);
@@ -278,13 +273,8 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
     e.preventDefault();
     if (!linkSearchTerm.trim()) return;
     try {
-      const res = await fetch(`/api/tickets/department?search=${linkSearchTerm}&status=all`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setLinkSearchResults(data.tickets.filter((t: any) => t.id !== ticket?.id));
-      }
+      const data = await apiFetch(`/api/tickets/department?search=${linkSearchTerm}&status=all`, {});
+      setLinkSearchResults(data.tickets.filter((t: any) => t.id !== ticket?.id));
     } catch (error) {
       console.error('Error searching for tickets to link:', error);
     }
@@ -292,18 +282,12 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
 
   const handleLinkTicket = async (targetId: number) => {
     try {
-      const res = await fetch(`/api/tickets/${ticketId}/link`, {
+      await apiFetch(`/api/tickets/${ticketId}/link`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}` 
-        },
         body: JSON.stringify({ targetTicketId: targetId })
       });
-      if (res.ok) {
-        setShowLinkModal(false);
-        fetchTicket();
-      }
+      setShowLinkModal(false);
+      fetchTicket();
     } catch (error) {
       console.error('Error linking ticket:', error);
     }
@@ -311,17 +295,11 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
 
   const handleUnlinkTicket = async (targetId: number) => {
     try {
-      const res = await fetch(`/api/tickets/${ticketId}/unlink`, {
+      await apiFetch(`/api/tickets/${ticketId}/unlink`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}` 
-        },
         body: JSON.stringify({ targetTicketId: targetId })
       });
-      if (res.ok) {
-        fetchTicket();
-      }
+      fetchTicket();
     } catch (error) {
       console.error('Error unlinking ticket:', error);
     }
@@ -329,18 +307,12 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
 
   const handleUpdateDueDate = async () => {
     try {
-      const res = await fetch(`/api/tickets/${ticketId}/due-date`, {
+      await apiFetch(`/api/tickets/${ticketId}/due-date`, {
         method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}` 
-        },
         body: JSON.stringify({ dueDate: newDueDate || null })
       });
-      if (res.ok) {
-        setShowDueDateModal(false);
-        fetchTicket();
-      }
+      setShowDueDateModal(false);
+      fetchTicket();
     } catch (error) {
       console.error('Error updating due date:', error);
     }
@@ -348,26 +320,16 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
 
   const fetchTicket = async (signal?: AbortSignal) => {
     try {
-      const res = await fetch(`/api/tickets/${ticketId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        signal
-      });
-      
-      const contentType = res.headers.get('content-type');
-      if (!res.ok || !contentType || !contentType.includes('application/json')) {
-        if (!signal?.aborted) {
-          const text = await res.text();
-          console.error(`Error fetching ticket ${ticketId}: ${res.status} ${res.statusText}`, text);
-          setTicket(null);
-        }
-        return null;
-      }
-
-      const data = await res.json();
+      const data = await apiFetch(`/api/tickets/${ticketId}`, { signal });
       setTicket(data);
       return data;
     } catch (error: any) {
       if (error.name === 'AbortError') return null;
+      if (error?.status === 'error') {
+        console.error(`Error fetching ticket ${ticketId}:`, error.message);
+        setTicket(null);
+        return null;
+      }
       console.error('Error fetching ticket:', error);
       return null;
     } finally {
@@ -377,12 +339,8 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
 
   const fetchAgents = async (ticketData: any, signal?: AbortSignal) => {
     try {
-      const res = await fetch('/api/admin/users', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        signal
-      });
-      const data = await res.json();
-      if (res.ok && ticketData && !signal?.aborted) {
+      const data = await apiFetch('/api/admin/users', { signal });
+      if (ticketData && !signal?.aborted) {
         setAgents(data.filter((u: any) => u.departmentId === ticketData.departmentId));
       }
     } catch (error: any) {
@@ -393,12 +351,8 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
 
   const fetchDepartments = async (signal?: AbortSignal) => {
     try {
-      const res = await fetch('/api/admin/departments', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        signal
-      });
-      const data = await res.json();
-      if (res.ok && !signal?.aborted) setDepartments(data);
+      const data = await apiFetch('/api/admin/departments', { signal });
+      if (!signal?.aborted) setDepartments(data);
     } catch (error: any) {
       if (error.name === 'AbortError') return;
       console.error('Error fetching departments:', error);
@@ -407,12 +361,8 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
 
   const fetchTicketTypes = async (signal?: AbortSignal) => {
     try {
-      const res = await fetch('/api/admin/ticket-types', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        signal
-      });
-      const data = await res.json();
-      if (res.ok && !signal?.aborted) setTicketTypes(data.filter((tt: any) => tt.isActive));
+      const data = await apiFetch('/api/admin/ticket-types', { signal });
+      if (!signal?.aborted) setTicketTypes(data.filter((tt: any) => tt.isActive));
     } catch (error: any) {
       if (error.name === 'AbortError') return;
       console.error('Error fetching ticket types:', error);
@@ -423,18 +373,12 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
     if (!transferDeptId) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/tickets/${ticketId}/transfer`, {
+      await apiFetch(`/api/tickets/${ticketId}/transfer`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`
-        },
         body: JSON.stringify({ targetDeptId: transferDeptId, reason: transferReason })
       });
-      if (res.ok) {
-        setShowTransferModal(false);
-        fetchTicket();
-      }
+      setShowTransferModal(false);
+      fetchTicket();
     } catch (error) {
       console.error('Error transferring ticket:', error);
     } finally {
@@ -446,18 +390,10 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
     if (!window.confirm(t.archiveConfirm)) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/tickets/${ticketId}/archive`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      if (res.ok) {
-        fetchTicket();
-      } else {
-        const data = await res.json();
-        alert(data.message || 'Error archiving ticket');
-      }
-    } catch (error) {
-      console.error('Error archiving ticket:', error);
+      await apiFetch(`/api/tickets/${ticketId}/archive`, { method: 'PUT' });
+      fetchTicket();
+    } catch (error: any) {
+      alert(error?.message || 'Error archiving ticket');
     } finally {
       setSubmitting(false);
     }
@@ -481,15 +417,11 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
     formData.append('file', file);
 
     try {
-      const res = await fetch('/api/uploads', {
+      const data = await apiFetch('/api/uploads', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}` },
         body: formData
       });
-      const data = await res.json();
-      if (res.ok) {
-        setCommentAttachments([...commentAttachments, data]);
-      }
+      setCommentAttachments([...commentAttachments, data]);
     } catch (err) {
       console.error('Upload error:', err);
     } finally {
@@ -518,15 +450,11 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
         formData.append('file', file);
 
         try {
-          const res = await fetch('/api/uploads', {
+          const data = await apiFetch('/api/uploads', {
             method: 'POST',
-            headers: { Authorization: `Bearer ${accessToken}` },
             body: formData
           });
-          const data = await res.json();
-          if (res.ok) {
-            setCommentAttachments([...commentAttachments, { ...data, isVoiceNote: true, voiceDuration: commentRecordingDuration }]);
-          }
+          setCommentAttachments([...commentAttachments, { ...data, isVoiceNote: true, voiceDuration: commentRecordingDuration }]);
         } catch (err) {
           console.error('Voice upload error:', err);
         }
@@ -557,20 +485,13 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
     if (!comment.trim() && commentAttachments.length === 0) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/tickets/${ticketId}/comments`, {
+      const newMessage = await apiFetch(`/api/tickets/${ticketId}/comments`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`
-        },
         body: JSON.stringify({ content: comment, isInternal, attachments: commentAttachments })
       });
-      if (res.ok) {
-        const newMessage = await res.json();
-        setTicket(prev => prev ? { ...prev, messages: [...prev.messages, newMessage] } : null);
-        setComment('');
-        setCommentAttachments([]);
-      }
+      setTicket(prev => prev ? { ...prev, messages: [...prev.messages, newMessage] } : null);
+      setComment('');
+      setCommentAttachments([]);
     } catch (error) {
       console.error('Error adding comment:', error);
     } finally {
@@ -582,41 +503,29 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
     try {
       const body: Record<string, any> = { status: newStatus };
       if (extraFields) Object.assign(body, extraFields);
-      const res = await fetch(`/api/tickets/${ticketId}/status`, {
+      await apiFetch(`/api/tickets/${ticketId}/status`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`
-        },
         body: JSON.stringify(body)
       });
-      
-      const data = await res.json();
-      if (res.ok) {
-        fetchTicket();
+      fetchTicket();
+    } catch (error: any) {
+      if (error?.code === 'ISSUE_TYPE_REQUIRED') {
+        alert(t.issueTypeRequired);
+      } else if (error?.message) {
+        alert(error.message);
       } else {
-        if (data.code === 'ISSUE_TYPE_REQUIRED') {
-          alert(t.issueTypeRequired);
-        } else {
-          alert(data.message || 'Error updating status');
-        }
+        console.error('Error updating status:', error);
       }
-    } catch (error) {
-      console.error('Error updating status:', error);
     }
   };
 
   const handleUpdateTicketType = async (typeId: string) => {
     try {
-      const res = await fetch(`/api/tickets/${ticketId}/type`, {
+      await apiFetch(`/api/tickets/${ticketId}/type`, {
         method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}` 
-        },
         body: JSON.stringify({ ticketTypeId: typeId || null })
       });
-      if (res.ok) fetchTicket();
+      fetchTicket();
     } catch (error) {
       console.error('Error updating issue type:', error);
     }
@@ -624,42 +533,27 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
 
   const handleAssign = async (agentId: string) => {
     try {
-      const res = await fetch(`/api/tickets/${ticketId}/assign`, {
+      await apiFetch(`/api/tickets/${ticketId}/assign`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`
-        },
         body: JSON.stringify({ agentId })
       });
-      if (res.ok) {
-        fetchTicket();
-        addNotification({ title: t.assigned, message: '', type: 'success' });
-      } else {
-        const err = await res.json();
-        addNotification({ title: t.error, message: err.message || 'Operation failed', type: 'error' });
-      }
-    } catch (error) {
+      fetchTicket();
+      addNotification({ title: t.assigned, message: '', type: 'success' });
+    } catch (error: any) {
       console.error('Error assigning ticket:', error);
-      addNotification({ title: t.error, message: 'Operation failed', type: 'error' });
+      addNotification({ title: t.error, message: error?.message || 'Operation failed', type: 'error' });
     }
   };
 
   const handleConfirmResolution = async () => {
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/tickets/${ticketId}/confirm`, {
+      await apiFetch(`/api/tickets/${ticketId}/confirm`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`
-        },
         body: JSON.stringify({ rating, feedback })
       });
-      if (res.ok) {
-        setShowConfirmModal(false);
-        fetchTicket();
-      }
+      setShowConfirmModal(false);
+      fetchTicket();
     } catch (error) {
       console.error('Error confirming resolution:', error);
     } finally {
@@ -671,7 +565,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
   if (!ticket) return <div className="p-8 text-center text-danger-red">Ticket not found or access denied</div>;
 
   const isAgent = ticket.departmentId === (user?.departmentId || user?.department?.id) || user?.role === 'super_admin';
-  const isLocked = (ticket.status === 'resolved' || ticket.status === 'closed') && user?.role !== 'super_admin' && user?.role !== 'supervisor';
+  const isLocked = (ticket.status === 'resolved' || ticket.status === 'closed') && user?.role !== 'super_admin';
   const isArchived = ticket.isArchived;
 
   return (

@@ -151,7 +151,8 @@ app.use('/api/auth', loginLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/tickets', ticketRoutes);
-app.use('/api/tickets/search', searchLimiter); // Extra protection for search
+// Search rate limiter must be mounted BEFORE ticketRoutes or inside the router
+// Moved inside tickets.routes.ts as middleware on the search route
 app.use('/api/analytics', analyticsLimiter, analyticsRoutes);
 app.use('/api/uploads', uploadLimiter, uploadRoutes);
 app.use('/api/assets', assetRoutes);
