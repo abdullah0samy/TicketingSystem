@@ -60,7 +60,7 @@ export default function UserProfilePage() {
           method: 'POST',
           body: formData,
         });
-        body.avatarUrl = uploadResult.url || uploadResult.path;
+        body.avatarUrl = uploadResult.fileUrl;
       }
 
       if (about !== (user?.about || '')) {
