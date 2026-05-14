@@ -12,7 +12,6 @@ import {
   Award,
   Zap
 } from 'lucide-react';
-import { useAuthStore } from '../store/authStore.ts';
 import { useSettingsStore } from '../store/settingsStore.ts';
 import { translations } from '../core/translations.ts';
 import { motion } from 'motion/react';
@@ -52,7 +51,6 @@ interface AgentPerformance {
 }
 
 export const AnalyticsPage: React.FC = () => {
-  const { accessToken } = useAuthStore();
   const { language } = useSettingsStore();
   const t = translations[language];
   const [stats, setStats] = useState<Stats | null>(null);
@@ -111,20 +109,16 @@ export const AnalyticsPage: React.FC = () => {
           <button 
             onClick={async () => {
               try {
-                const res = await fetch('/api/analytics/export', {
-                  headers: { Authorization: `Bearer ${accessToken}` }
-                });
-                if (res.ok) {
-                  const blob = await res.blob();
-                  const url = window.URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `tickets_report_${new Date().toISOString().split('T')[0]}.xlsx`;
-                  document.body.appendChild(a);
-                  a.click();
-                  a.remove();
-                  window.URL.revokeObjectURL(url);
-                }
+                const response = await apiFetch('/api/analytics/export');
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `tickets_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
               } catch (error) {
                 console.error('Export error:', error);
               }
