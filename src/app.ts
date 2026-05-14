@@ -28,6 +28,21 @@ if (!ACCESS_SECRET || !REFRESH_SECRET) {
   process.exit(1);
 }
 
+// Validate required environment variables for production
+if (process.env.NODE_ENV === 'production') {
+  const required = ['DATABASE_URL', 'FRONTEND_URL'];
+  const missing = required.filter(v => !process.env[v]);
+  if (missing.length > 0) {
+    console.error(`🔴 CRITICAL: Missing required environment variables: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+  const port = parseInt(process.env.PORT || '3000', 10);
+  if (isNaN(port) || port < 1 || port > 65535) {
+    console.error('🔴 CRITICAL: Invalid PORT');
+    process.exit(1);
+  }
+}
+
 // Modules
 import authRoutes from './modules/auth/auth.routes.ts';
 import userRoutes from './modules/users/users.routes.ts';
@@ -66,24 +81,24 @@ const loginLimiter = rateLimit({
   message: { message: 'Too many login attempts. Please try again in 15 minutes.' }
 });
 
-// Analytics
+// Analytics (env-configurable, default 300 per 15min)
 const analyticsLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 100 : 1000000,
+  max: parseInt(process.env.RATE_LIMIT_ANALYTICS || '300', 10),
   message: { message: 'Analytics rate limit exceeded. Please wait a few minutes.' }
 });
 
-// Search
+// Search (env-configurable, default 60 per min)
 const searchLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 20 : 1000000,
+  max: parseInt(process.env.RATE_LIMIT_SEARCH || '60', 10),
   message: { message: 'Too many search requests. Please slow down.' }
 });
 
-// Uploads
+// Uploads (env-configurable, default 100 per hour)
 const uploadLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 30 : 1000000,
+  max: parseInt(process.env.RATE_LIMIT_UPLOAD || '100', 10),
   message: { message: 'Upload limit reached. Please try again later.' }
 });
 
@@ -106,6 +121,11 @@ app.use(helmet({
     },
   },
   crossOriginEmbedderPolicy: false,
+  hsts: process.env.NODE_ENV === 'production' ? {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  } : false,
 }));
 app.use(cors({
   origin: corsOrigins,
@@ -121,16 +141,27 @@ app.use('/api/', globalLimiter, requestLogger);
 // Serve static files from uploads
 app.use('/uploads', express.static(UPLOADS_DIR));
 
+const serverStartTime = Date.now();
+
 // API Health Check
 app.get('/api/health', async (req: Request, res: Response) => {
+  const start = Date.now();
   try {
-    // Test DB connection
     await prisma.$queryRaw`SELECT 1`;
+    const mem = process.memoryUsage();
     res.json({
       status: 'ok',
       service: 'ABCH Ticketing System API',
+      version: process.env.npm_package_version || '1.0.0',
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor((Date.now() - serverStartTime) / 1000),
       database: 'connected',
-      timestamp: new Date().toISOString()
+      memory: {
+        used: Math.round(mem.heapUsed / 1024 / 1024),
+        total: Math.round(mem.heapTotal / 1024 / 1024),
+        unit: 'MB'
+      },
+      responseTime: `${Date.now() - start}ms`
     });
   } catch (error) {
     res.status(500).json({
