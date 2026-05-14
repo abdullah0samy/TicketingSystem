@@ -77,6 +77,13 @@ interface AgentPerformance {
   slaAdherenceRate: number;
 }
 
+interface AhtData {
+  overallAhtHours: number;
+  totalResolved: number;
+  ahtByPriority: { priority: string; avgHours: number; count: number }[];
+  ahtByDepartment: { departmentId: number; departmentName: string; avgHours: number; count: number }[];
+}
+
 interface AssetSummary {
   total: number;
   active: number;
@@ -91,6 +98,7 @@ export default function DashboardPage() {
   const [deptPerf, setDeptPerf] = useState<DeptPerformance[]>([]);
   const [agentPerf, setAgentPerf] = useState<AgentPerformance[]>([]);
   const [assetSummary, setAssetSummary] = useState<AssetSummary | null>(null);
+  const [ahtData, setAhtData] = useState<AhtData | null>(null);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [exportHistory, setExportHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,9 +140,18 @@ export default function DashboardPage() {
       setAgentPerf(data.agentPerformance);
       setExportHistory(data.exportHistory || []);
       setAssetSummary(data.assetSummary || null);
+      setAssetSummary(data.assetSummary || null);
     } catch (error: any) {
       if (error.name === 'AbortError') return;
       console.error('Error fetching dashboard data:', error);
+    }
+
+    try {
+      const aht = await apiFetch('/api/analytics/aht', { signal });
+      setAhtData(aht);
+    } catch (error: any) {
+      if (error.name === 'AbortError') return;
+      console.error('Error fetching AHT data:', error);
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
@@ -472,6 +489,52 @@ export default function DashboardPage() {
                   {language === 'ar' 
                     ? `إجمالي تكلفة الموارد الخارجية: ${stats?.resolvedExternal || 0} تذكرة` 
                     : `Total external resources: ${stats?.resolvedExternal || 0} tickets`}
+                </div>
+              )}
+            </div>
+
+            {/* AHT by Priority */}
+            <div className="premium-card p-6">
+              <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2 mb-8">
+                <Clock size={18} className="text-primary-blue" />
+                {language === 'ar' ? 'متوسط وقت المعالجة حسب الأولوية' : 'Avg Handling Time by Priority'}
+              </h3>
+              {ahtData && ahtData.ahtByPriority.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 rounded-2xl bg-primary-blue/5 border border-primary-blue/10 mb-4">
+                    <span className="text-sm font-bold text-[var(--text-secondary)]">
+                      {language === 'ar' ? 'المعدل العام' : 'Overall AHT'}
+                    </span>
+                    <span className="text-lg font-bold text-primary-blue">{ahtData.overallAhtHours}h</span>
+                  </div>
+                  {ahtData.ahtByPriority.map((item, i) => {
+                    const maxHours = Math.max(...ahtData.ahtByPriority.map(p => p.avgHours), 1);
+                    const barPercent = (item.avgHours / maxHours) * 100;
+                    const barColor = item.priority === 'high' || item.priority === 'urgent' 
+                      ? 'bg-danger-red' 
+                      : item.priority === 'medium' 
+                        ? 'bg-warning-amber' 
+                        : 'bg-success-green';
+                    return (
+                      <div key={i}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs font-bold text-[var(--text-secondary)] capitalize">{item.priority}</span>
+                          <span className="text-xs font-bold text-[var(--text-main)]">{item.avgHours}h ({item.count})</span>
+                        </div>
+                        <div className="w-full h-2 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${barPercent}%` }}
+                            className={`h-full rounded-full ${barColor}`}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-sm text-[var(--text-muted)] italic">
+                  {language === 'ar' ? 'لا توجد بيانات كافية' : 'Not enough data yet'}
                 </div>
               )}
             </div>
