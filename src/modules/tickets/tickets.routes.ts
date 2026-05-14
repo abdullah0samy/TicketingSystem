@@ -97,6 +97,38 @@ async function generateTicketNumber(txClient: any = prisma): Promise<string> {
 }
 
 // --- CREATE TICKET ---
+/**
+ * @openapi
+ * /api/tickets:
+ *   post:
+ *     summary: Create a new ticket
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [subject, departmentId]
+ *             properties:
+ *               subject: { type: string }
+ *               description: { type: string }
+ *               departmentId: { type: integer }
+ *               priority: { type: string, enum: [low, normal, high, critical] }
+ *     responses:
+ *       201:
+ *         description: Ticket created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Ticket'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
 router.post('/', validate(createTicketSchema), async (req: AuthRequest, res: Response) => {
   const { 
     subject, 
@@ -266,6 +298,32 @@ router.get('/my', async (req: AuthRequest, res: Response) => {
 });
 
 // --- LIST DEPARTMENT TICKETS ---
+/**
+ * @openapi
+ * /api/tickets/department:
+ *   get:
+ *     summary: List tickets for the user's department
+ *     tags: [Tickets]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 50 }
+ *       - in: query
+ *         name: status
+ *         schema: { type: string }
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Paginated ticket list
+ *       401:
+ *         description: Unauthorized
+ */
 router.get('/department', async (req: AuthRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
   if (!req.user.departmentId && req.user.role !== 'super_admin') {
@@ -575,6 +633,30 @@ router.get('/transferred', async (req: AuthRequest, res: Response) => {
 });
 
 // --- GET TICKET DETAILS ---
+/**
+ * @openapi
+ * /api/tickets/{id}:
+ *   get:
+ *     summary: Get ticket details by ID
+ *     tags: [Tickets]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: integer }
+ *     responses:
+ *       200:
+ *         description: Ticket details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Ticket'
+ *       404:
+ *         description: Ticket not found
+ *       403:
+ *         description: Access denied
+ */
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
   const { id } = req.params;

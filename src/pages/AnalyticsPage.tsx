@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ErrorBanner from '../components/ErrorBanner.tsx';
 import { apiFetch } from '../core/api.ts';
 import { 
   BarChart3, 
@@ -55,6 +56,7 @@ export const AnalyticsPage: React.FC = () => {
   const t = translations[language];
   const [stats, setStats] = useState<Stats | null>(null);
   const [agentPerformance, setAgentPerformance] = useState<AgentPerformance[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -74,6 +76,7 @@ export const AnalyticsPage: React.FC = () => {
       }
     } catch (error: any) {
       if (error.name === 'AbortError') return;
+      setError(error?.message || 'Something went wrong');
       console.error('Error fetching analytics:', error);
     } finally {
       setLoading(false);
@@ -89,7 +92,11 @@ export const AnalyticsPage: React.FC = () => {
     { name: 'Overdue', value: stats.overdue, color: '#ef4444' },
   ] : [];
 
+  if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">{t.loadingDashboard}</div>;
+
   return (
+    <>
+    <ErrorBanner error={error} onRetry={() => { setError(null); fetchData(); }} onDismiss={() => setError(null)} />
     <div className="p-6 space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -120,6 +127,7 @@ export const AnalyticsPage: React.FC = () => {
                 a.remove();
                 window.URL.revokeObjectURL(url);
               } catch (error) {
+                setError(error?.message || 'Something went wrong');
                 console.error('Export error:', error);
               }
             }}
@@ -322,6 +330,7 @@ export const AnalyticsPage: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

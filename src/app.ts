@@ -42,6 +42,8 @@ import teamNoteRoutes from './modules/team-notes/team-notes.routes.ts';
 import auditRoutes from './modules/audit/audit.routes.ts';
 import profileRoutes from './modules/profile/profile.routes.ts';
 import { requestLogger } from './core/middleware/request_logger.ts';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './core/swagger.ts';
 
 const app = express();
 
@@ -145,6 +147,12 @@ app.get('/api/test-bigint', (req, res) => {
     value: BigInt(9007199254740991) + BigInt(1)
   });
 });
+
+// API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customSiteTitle: 'ABCH API Docs',
+  customfavIcon: '/favicon.ico',
+}));
 
 // API Routes
 app.use('/api/auth', loginLimiter, authRoutes);

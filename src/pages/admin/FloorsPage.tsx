@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ErrorBanner from '../../components/ErrorBanner.tsx';
 import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
 import { translations } from '../../core/translations.ts';
@@ -32,6 +33,7 @@ export default function FloorsPage() {
   const { language } = useSettingsStore();
   const t = translations[language];
   const isMounted = useRef(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     return () => { isMounted.current = false; };
@@ -52,6 +54,7 @@ export default function FloorsPage() {
       if (isMounted.current) setFloors(floorsData);
       if (isMounted.current) setBuildings(buildingsData);
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       if (isMounted.current) console.error('Error fetching data:', error);
     } finally {
       if (isMounted.current) setLoading(false);
@@ -80,6 +83,7 @@ export default function FloorsPage() {
         setFormData({ nameAr: '', nameEn: '', buildingId: '', isActive: true });
       }
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error saving floor:', error);
     }
   };
@@ -93,12 +97,14 @@ export default function FloorsPage() {
       });
       if (res.ok) fetchData();
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error deleting floor:', error);
     }
   };
 
   return (
     <div className="space-y-6">
+      <ErrorBanner error={error} onDismiss={() => setError(null)} />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-main)]">

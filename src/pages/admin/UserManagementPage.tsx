@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ErrorBanner from '../../components/ErrorBanner.tsx';
 import { 
   Users, 
   UserPlus, 
@@ -67,6 +68,7 @@ export const UserManagementPage: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'info' | 'permissions'>('info');
+  const [error, setError] = useState<string | null>(null);
 
   const permissionKeys = [
     { key: 'canArchiveTickets', labelAr: 'أرشفة التذاكر', labelEn: 'Archive Tickets' },
@@ -98,6 +100,7 @@ export const UserManagementPage: React.FC = () => {
       if (deptsRes.ok) setDepartments(await deptsRes.json());
     } catch (error: any) {
       if (error.name === 'AbortError') return;
+      setError(error?.message || 'Something went wrong');
       console.error('Error fetching data:', error);
     } finally {
       if (!signal?.aborted) setLoading(false);
@@ -128,6 +131,7 @@ export const UserManagementPage: React.FC = () => {
         alert(data.message || 'Error saving user');
       }
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error saving user:', error);
     } finally {
       setIsSubmitting(false);
@@ -157,6 +161,7 @@ export const UserManagementPage: React.FC = () => {
         alert('Error resetting password');
       }
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error resetting password:', error);
     } finally {
       setIsSubmitting(false);
@@ -178,6 +183,7 @@ export const UserManagementPage: React.FC = () => {
 
       if (res.ok) fetchData();
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error toggling status:', error);
     }
   };
@@ -191,6 +197,7 @@ export const UserManagementPage: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
+      <ErrorBanner error={error} onDismiss={() => setError(null)} />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-3">

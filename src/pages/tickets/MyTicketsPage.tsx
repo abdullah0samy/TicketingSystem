@@ -3,6 +3,7 @@ import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
 import { translations } from '../../core/translations.ts';
 import { apiFetch } from '../../core/api.ts';
+import ErrorBanner from '../../components/ErrorBanner.tsx';
 import { 
   Send, 
   Search, 
@@ -36,6 +37,7 @@ interface Ticket {
 export default function MyTicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -61,6 +63,7 @@ export default function MyTicketsPage() {
       setTotalCount(data.pagination.total);
     } catch (error: any) {
       if (error.name === 'AbortError') return;
+      setError(error?.message || 'Something went wrong');
       console.error('Error fetching tickets:', error);
     } finally {
       if (!signal?.aborted) setLoading(false);
@@ -133,6 +136,7 @@ export default function MyTicketsPage() {
 
   return (
     <div className="space-y-6">
+      <ErrorBanner error={error} onRetry={() => { setError(null); fetchTickets?.(); }} onDismiss={() => setError(null)} />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-3">

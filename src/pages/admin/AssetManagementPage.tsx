@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ErrorBanner from '../../components/ErrorBanner.tsx';
 import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
 import { translations } from '../../core/translations.ts';
@@ -58,6 +59,7 @@ export default function AssetManagementPage() {
     warrantyExpiry: ''
   });
   const isMounted = useRef(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     return () => { isMounted.current = false; };
@@ -80,6 +82,7 @@ export default function AssetManagementPage() {
         setDepartments(await deptsRes.json());
       }
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       if (isMounted.current) console.error('Error fetching data:', error);
     } finally {
       if (isMounted.current) setLoading(false);
@@ -117,6 +120,7 @@ export default function AssetManagementPage() {
         fetchData();
       }
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error saving asset:', error);
     }
   };
@@ -130,6 +134,7 @@ export default function AssetManagementPage() {
       });
       if (res.ok) fetchData();
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error deleting asset:', error);
     }
   };
@@ -143,6 +148,7 @@ export default function AssetManagementPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      <ErrorBanner error={error} onDismiss={() => setError(null)} />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

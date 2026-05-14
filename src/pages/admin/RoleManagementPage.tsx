@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ErrorBanner from '../../components/ErrorBanner.tsx';
 import { 
   Shield, 
   Plus, 
@@ -41,6 +42,7 @@ export const RoleManagementPage: React.FC = () => {
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isMounted = useRef(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     return () => { isMounted.current = false; };
@@ -61,6 +63,7 @@ export const RoleManagementPage: React.FC = () => {
       if (isMounted.current && rolesRes.ok) setRoles(await rolesRes.json());
       if (isMounted.current && permsRes.ok) setPermissions(await permsRes.json());
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       if (isMounted.current) console.error('Error fetching data:', error);
     } finally {
       if (isMounted.current) setLoading(false);
@@ -93,6 +96,7 @@ export const RoleManagementPage: React.FC = () => {
         alert('Error saving role');
       }
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error saving role:', error);
     } finally {
       setIsSubmitting(false);
@@ -119,12 +123,14 @@ export const RoleManagementPage: React.FC = () => {
         alert(data.message || 'Error deleting role');
       }
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error deleting role:', error);
     }
   };
 
   return (
     <div className="p-6 space-y-6">
+      <ErrorBanner error={error} onDismiss={() => setError(null)} />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-3">

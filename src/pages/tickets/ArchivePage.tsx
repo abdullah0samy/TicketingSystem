@@ -3,6 +3,7 @@ import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
 import { translations } from '../../core/translations.ts';
 import { apiFetch } from '../../core/api.ts';
+import ErrorBanner from '../../components/ErrorBanner.tsx';
 import { Search, RefreshCw, ArrowUpDown, Archive } from 'lucide-react';
 
 interface Ticket {
@@ -20,6 +21,7 @@ interface Ticket {
 export default function ArchivePage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 20, pages: 1 });
@@ -39,6 +41,7 @@ export default function ArchivePage() {
       setPagination(data.pagination);
     } catch (err: any) {
       if (err.name === 'AbortError') return;
+      setError(err?.message || 'Something went wrong');
       console.error('Failed to fetch archived tickets:', err);
     } finally {
       if (!signal?.aborted) setLoading(false);
@@ -99,6 +102,7 @@ export default function ArchivePage() {
 
   return (
     <div className="p-6">
+      <ErrorBanner error={error} onRetry={() => { setError(null); fetchTickets?.(pagination.page); }} onDismiss={() => setError(null)} />
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Archive size={28} className="text-[var(--text-muted)]" />

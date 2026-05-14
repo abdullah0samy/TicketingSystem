@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ErrorBanner from '../components/ErrorBanner.tsx';
 import { useAuthStore } from '../store/authStore.ts';
 import { useSettingsStore } from '../store/settingsStore.ts';
 import { translations } from '../core/translations.ts';
@@ -66,6 +67,7 @@ export default function TeamFeedPage() {
   const { language } = useSettingsStore();
   const t = translations[language];
   const { addNotification } = useNotifications();
+  const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState<TeamNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [newNoteBody, setNewNoteBody] = useState('');
@@ -105,6 +107,7 @@ export default function TeamFeedPage() {
       if (!signal?.aborted) setNotes(data);
     } catch (err: any) {
       if (err.name === 'AbortError') return;
+      setError(err?.message || 'Something went wrong');
       console.error('Error fetching notes:', err);
     } finally {
       if (!signal?.aborted) setLoading(false);
@@ -126,6 +129,7 @@ export default function TeamFeedPage() {
       });
       setAttachments([...attachments, { ...data, isVoiceNote: false }]);
     } catch (err) {
+      setError(err?.message || 'Something went wrong');
       console.error('Upload error:', err);
     } finally {
       setUploading(false);
@@ -166,6 +170,7 @@ export default function TeamFeedPage() {
           });
           setAttachments([...attachments, { ...data, isVoiceNote: true, voiceDuration: recordingDuration }]);
         } catch (err) {
+          setError(err?.message || 'Something went wrong');
           console.error('Voice upload error:', err);
         }
       };
@@ -227,6 +232,7 @@ export default function TeamFeedPage() {
       setAttachments([]);
       fetchNotes();
     } catch (err) {
+      setError(err?.message || 'Something went wrong');
       console.error('Error creating note:', err);
     }
   };
@@ -238,6 +244,7 @@ export default function TeamFeedPage() {
       });
       fetchNotes();
     } catch (err) {
+      setError(err?.message || 'Something went wrong');
       console.error('Error liking note:', err);
     }
   };
@@ -255,6 +262,7 @@ export default function TeamFeedPage() {
       setCommentingOn(null);
       fetchNotes();
     } catch (err) {
+      setError(err?.message || 'Something went wrong');
       console.error('Error adding comment:', err);
     }
   };
@@ -284,11 +292,14 @@ export default function TeamFeedPage() {
         });
       }
     } catch (err) {
+      setError(err?.message || 'Something went wrong');
       console.error('Error sharing:', err);
     }
   };
 
   return (
+    <>
+    <ErrorBanner error={error} onRetry={() => { setError(null); fetchNotes(); }} onDismiss={() => setError(null)} />
     <div className="max-w-2xl mx-auto space-y-6 pb-20">
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -519,5 +530,6 @@ export default function TeamFeedPage() {
         )}
       </div>
     </div>
+    </>
   );
 }

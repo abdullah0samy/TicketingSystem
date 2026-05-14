@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ErrorBanner from '../../components/ErrorBanner.tsx';
 import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
 import { translations } from '../../core/translations.ts';
@@ -41,6 +42,7 @@ export default function TicketTypesPage() {
   const { language } = useSettingsStore();
   const t = translations[language];
   const isMounted = useRef(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     return () => { isMounted.current = false; };
@@ -61,6 +63,7 @@ export default function TicketTypesPage() {
       if (isMounted.current) setTypes(typesData);
       if (isMounted.current) setDepartments(deptsData);
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       if (isMounted.current) console.error('Error fetching data:', error);
     } finally {
       if (isMounted.current) setLoading(false);
@@ -93,6 +96,7 @@ export default function TicketTypesPage() {
         setFormData({ nameAr: '', nameEn: '', departmentId: '', color: '#6B7280', displayOrder: 0, isActive: true });
       }
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error saving ticket type:', error);
     }
   };
@@ -106,12 +110,14 @@ export default function TicketTypesPage() {
       });
       if (res.ok) fetchData();
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error deleting ticket type:', error);
     }
   };
 
   return (
     <div className="space-y-6">
+      <ErrorBanner error={error} onDismiss={() => setError(null)} />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-main)]">

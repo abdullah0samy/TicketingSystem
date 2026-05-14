@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import ErrorBanner from '../components/ErrorBanner.tsx';
 import { useAuthStore } from '../store/authStore.ts';
 import { useSettingsStore } from '../store/settingsStore.ts';
 import { translations } from '../core/translations.ts';
@@ -101,6 +102,7 @@ export default function DashboardPage() {
   const [ahtData, setAhtData] = useState<AhtData | null>(null);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [exportHistory, setExportHistory] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'exports'>('overview');
   const [exportStartDate, setExportStartDate] = useState('');
@@ -116,8 +118,8 @@ export default function DashboardPage() {
     const fetch = async () => {
       try {
         await fetchDashboardData(controller.signal);
-      } catch (error) {
-        if (isMounted) console.error('Error fetching dashboard data:', error);
+      } catch (error: any) {
+        if (isMounted) { setError(error?.message || 'Something went wrong'); console.error('Error fetching dashboard data:', error); }
       }
     };
     fetch();
@@ -143,6 +145,7 @@ export default function DashboardPage() {
       setAssetSummary(data.assetSummary || null);
     } catch (error: any) {
       if (error.name === 'AbortError') return;
+      setError(error?.message || 'Something went wrong');
       console.error('Error fetching dashboard data:', error);
     }
 
@@ -151,6 +154,7 @@ export default function DashboardPage() {
       setAhtData(aht);
     } catch (error: any) {
       if (error.name === 'AbortError') return;
+      setError(error?.message || 'Something went wrong');
       console.error('Error fetching AHT data:', error);
     } finally {
       if (!signal?.aborted) setLoading(false);
@@ -163,6 +167,7 @@ export default function DashboardPage() {
       setExportHistory(data);
     } catch (error: any) {
       if (error.name === 'AbortError') return;
+      setError(error?.message || 'Something went wrong');
       console.error('Error fetching export history:', error);
     }
   };
@@ -188,6 +193,7 @@ export default function DashboardPage() {
         fetchExportHistory();
       }
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Export error:', error);
     }
   };
@@ -197,6 +203,8 @@ export default function DashboardPage() {
   if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">{t.loadingDashboard}</div>;
 
   return (
+    <>
+    <ErrorBanner error={error} onRetry={() => { setError(null); fetchDashboardData(); }} onDismiss={() => setError(null)} />
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -779,5 +787,6 @@ export default function DashboardPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

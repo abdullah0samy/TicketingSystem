@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ErrorBanner from '../components/ErrorBanner.tsx';
 import { useAuthStore } from '../store/authStore.ts';
 import { useSettingsStore } from '../store/settingsStore.ts';
 import { translations } from '../core/translations.ts';
@@ -16,21 +17,29 @@ export default function UserProfilePage() {
   const [about, setAbout] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadProfile = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch('/api/profile');
+      setUser(data);
+      setAbout(data.about || '');
+      setAuth(data, useAuthStore.getState().accessToken!);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load profile');
+      console.error('Error loading profile:', err);
+      if (authUser) {
+        setUser(authUser);
+        setAbout(authUser.about || '');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const data = await apiFetch('/api/profile');
-        setUser(data);
-        setAbout(data.about || '');
-        setAuth(data, useAuthStore.getState().accessToken!);
-      } catch {
-        if (authUser) {
-          setUser(authUser);
-          setAbout(authUser.about || '');
-        }
-      }
-    };
     loadProfile();
   }, []);
 
@@ -78,12 +87,15 @@ export default function UserProfilePage() {
       setSaved(true);
       setAuth(updatedUser, useAuthStore.getState().accessToken!);
       setTimeout(() => setSaved(false), 3000);
-    } catch {
-      // handled by apiFetch
+    } catch (err: any) {
+      setError(err?.message || 'Failed to save profile');
+      console.error('Error saving profile:', err);
     } finally {
       setSaving(false);
     }
   };
+
+  if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">Loading profile...</div>;
 
   if (!user) return null;
 
@@ -91,6 +103,8 @@ export default function UserProfilePage() {
   const displayName = language === 'ar' ? user.fullNameAr : user.fullNameEn;
 
   return (
+    <>
+    <ErrorBanner error={error} onRetry={() => { setError(null); loadProfile(); }} onDismiss={() => setError(null)} />
     <div className="max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold text-[var(--text-main)] mb-8 flex items-center gap-3">
         <User className="text-primary-blue" />
@@ -182,6 +196,7 @@ export default function UserProfilePage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

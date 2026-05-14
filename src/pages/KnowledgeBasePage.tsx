@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import ErrorBanner from '../components/ErrorBanner.tsx';
 import { useAuthStore } from '../store/authStore.ts';
 import { useSettingsStore } from '../store/settingsStore.ts';
 import { translations } from '../core/translations.ts';
@@ -62,6 +63,7 @@ export default function KnowledgeBasePage() {
     
     return user.department?.defaultPermissions?.canManageKnowledgeBase || false;
   }, [user]);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -99,8 +101,8 @@ export default function KnowledgeBasePage() {
     const fetch = async () => {
       try {
         await fetchCategories(controller.signal);
-      } catch (error) {
-        if (isMounted) console.error('Error fetching categories:', error);
+      } catch (error: any) {
+        if (isMounted) { setError(error?.message || 'Something went wrong'); console.error('Error fetching categories:', error); }
       }
     };
     fetch();
@@ -131,6 +133,7 @@ export default function KnowledgeBasePage() {
       setCategories(data);
     } catch (error: any) {
       if (error.name === 'AbortError') return;
+      setError(error?.message || 'Something went wrong');
       console.error('Error fetching categories:', error);
     }
   };
@@ -150,6 +153,7 @@ export default function KnowledgeBasePage() {
       setTotalPages(data.pagination.totalPages);
     } catch (error: any) {
       if (error.name === 'AbortError') return;
+      setError(error?.message || 'Something went wrong');
       console.error('Error fetching articles:', error);
     } finally {
       if (!signal?.aborted) setLoading(false);
@@ -164,6 +168,7 @@ export default function KnowledgeBasePage() {
         method: 'POST'
       });
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error incrementing views:', error);
     }
   };
@@ -180,6 +185,7 @@ export default function KnowledgeBasePage() {
       fetchArticles();
       fetchCategories(); 
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error creating article:', error);
     }
   };
@@ -196,6 +202,7 @@ export default function KnowledgeBasePage() {
       setShowArticleForm(false);
       fetchArticles();
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error updating article:', error);
     }
   };
@@ -209,6 +216,7 @@ export default function KnowledgeBasePage() {
       fetchArticles();
       fetchCategories();
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error deleting article:', error);
     }
   };
@@ -227,6 +235,7 @@ export default function KnowledgeBasePage() {
       setCategoryForm({ nameAr: '', nameEn: '' });
       fetchCategories();
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error saving category:', error);
     }
   };
@@ -239,6 +248,7 @@ export default function KnowledgeBasePage() {
       });
       fetchCategories();
     } catch (error) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error deleting category:', error);
       alert('Failed to delete. Ensure category is empty.');
     }
@@ -286,6 +296,8 @@ export default function KnowledgeBasePage() {
   if (loading) return <div className="p-8 text-center text-[var(--text-muted)]">{t.loadingKnowledgeBase}</div>;
 
   return (
+    <>
+    <ErrorBanner error={error} onRetry={() => { setError(null); fetchCategories(); fetchArticles(); }} onDismiss={() => setError(null)} />
     <div className="max-w-7xl mx-auto pb-20">
       <AnimatePresence mode="wait">
         {selectedArticle ? (
@@ -761,5 +773,6 @@ export default function KnowledgeBasePage() {
         </div>
       )}
     </div>
+    </>
   );
 }

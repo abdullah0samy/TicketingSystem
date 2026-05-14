@@ -3,6 +3,7 @@ import { useAuthStore } from '../../store/authStore.ts';
 import { useSettingsStore } from '../../store/settingsStore.ts';
 import { translations } from '../../core/translations.ts';
 import { apiFetch } from '../../core/api.ts';
+import ErrorBanner from '../../components/ErrorBanner.tsx';
 import { 
   Inbox, 
   Search, 
@@ -42,6 +43,7 @@ interface Ticket {
 export default function InboxPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('pending');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -74,8 +76,8 @@ export default function InboxPage() {
             setAgents(data);
           }
         }
-      } catch (error) {
-        if (isMounted) console.error('Error fetching agents:', error);
+      } catch (error: any) {
+        if (isMounted) { setError(error?.message || 'Something went wrong'); console.error('Error fetching agents:', error); }
       }
     };
     fetchAgents();
@@ -102,6 +104,7 @@ export default function InboxPage() {
       setPagination(data.pagination);
     } catch (error: any) {
       if (error.name === 'AbortError') return;
+      setError(error?.message || 'Something went wrong');
       console.error('Error fetching tickets:', error);
     } finally {
       if (!signal?.aborted) setLoading(false);
@@ -162,7 +165,8 @@ export default function InboxPage() {
         setSelectedTickets([]);
         fetchTickets();
       }
-    } catch (error) {
+    } catch (error: any) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error in bulk status update:', error);
     } finally {
       setBulkActionLoading(false);
@@ -185,7 +189,8 @@ export default function InboxPage() {
         setSelectedTickets([]);
         fetchTickets();
       }
-    } catch (error) {
+    } catch (error: any) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error in bulk assignment:', error);
     } finally {
       setBulkActionLoading(false);
@@ -210,7 +215,8 @@ export default function InboxPage() {
         setSelectedTickets([]);
         fetchTickets();
       }
-    } catch (error) {
+    } catch (error: any) {
+      setError(error?.message || 'Something went wrong');
       console.error('Error in bulk archive:', error);
     } finally {
       setBulkActionLoading(false);
@@ -281,6 +287,7 @@ export default function InboxPage() {
 
   return (
     <div className="space-y-6">
+      <ErrorBanner error={error} onRetry={() => { setError(null); fetchTickets?.(); }} onDismiss={() => setError(null)} />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-3">
