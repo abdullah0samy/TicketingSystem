@@ -4,6 +4,8 @@ import { authenticate, authorize } from '../../core/middleware/auth.middleware.t
 
 const router = Router();
 
+const MAX_PAGE_SIZE = 100;
+
 // Get all audit logs with filters
 router.get('/', authenticate, authorize(['super_admin']), async (req, res) => {
   try {
@@ -18,8 +20,9 @@ router.get('/', authenticate, authorize(['super_admin']), async (req, res) => {
       limit = 20
     } = req.query;
 
-    const skip = (Number(page) - 1) * Number(limit);
-    const take = Number(limit);
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.min(Math.max(1, Number(limit)), MAX_PAGE_SIZE);
+    const skip = (pageNum - 1) * limitNum;
 
     const where: any = {};
 
@@ -31,7 +34,11 @@ router.get('/', authenticate, authorize(['super_admin']), async (req, res) => {
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate as string);
-      if (endDate) where.createdAt.lte = new Date(endDate as string);
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
     }
 
     const [logs, total] = await Promise.all([
@@ -50,7 +57,7 @@ router.get('/', authenticate, authorize(['super_admin']), async (req, res) => {
         },
         orderBy: { createdAt: 'desc' },
         skip,
-        take
+        take: limitNum
       }),
       prisma.auditLog.count({ where })
     ]);
@@ -59,9 +66,9 @@ router.get('/', authenticate, authorize(['super_admin']), async (req, res) => {
       logs,
       pagination: {
         total,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil(total / Number(limit))
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum)
       }
     });
   } catch (error) {
