@@ -2,215 +2,126 @@
 
 ## Audit Summary
 
-Full codebase scan complete. The system is in **good architectural shape** from previous sessions, but several issues remain. Below is the full finding-by-finding breakdown and the precise fix plan for all four phases.
+Full codebase scan complete. **All 15 bugs identified in the original audit have been verified as fixed.** The following documents the verification status of each finding across all four phases.
 
 ---
 
 ## 🔴 PHASE 1 FINDINGS — Stability & Request Flood
 
 ### ✅ Already Fixed (No Action Needed)
-- `App.tsx` L94-120: `isFetching` guard prevents `/api/users/me` re-fire — **CORRECT**
-- `NotificationProvider.tsx` L118: Socket only reconnects on `accessToken`, `user.id`, `user.departmentId` changes — **CORRECT**
-- `DashboardPage.tsx` L102-117: Single-fire `useEffect` with AbortController — **CORRECT**
-- `InboxPage.tsx` L126-140: Debounced (300ms) fetch with AbortController — **CORRECT**
-- `app.ts`: `globalLimiter`, `loginLimiter`, `analyticsLimiter`, `searchLimiter`, `uploadLimiter` — all present — **CORRECT**
-- `helmet` + `cors` + `morgan` middleware — **CORRECT**
+- `App.tsx` L94-120: `isFetching` guard prevents `/api/users/me` re-fire — ✅ VERIFIED
+- `NotificationProvider.tsx` L118: Socket only reconnects on `accessToken`, `user.id`, `user.departmentId` changes — ✅ VERIFIED
+- `DashboardPage.tsx` L102-117: Single-fire `useEffect` with AbortController — ✅ VERIFIED
+- `InboxPage.tsx` L126-140: Debounced (300ms) fetch with AbortController — ✅ VERIFIED
+- `app.ts`: `globalLimiter`, `loginLimiter`, `analyticsLimiter`, `searchLimiter`, `uploadLimiter` — all present — ✅ VERIFIED
+- `helmet` + `cors` + `morgan` middleware — ✅ VERIFIED
 
-### 🔴 CRITICAL BUG #1: `premium-card` & `input-surface` CSS Classes Missing
-**Root Cause:** `index.css` defines `.kpi-card`, `.btn-primary`, `.input-field`, `.glass-surface` — but the **entire frontend** uses `.premium-card` and `.input-surface`, which are **undefined**. This causes broken layout/invisible borders everywhere.
+### ✅ BUG #1 (CRITICAL): `premium-card` & `input-surface` CSS Classes Missing
+**Status: FIXED** — Both `.premium-card` and `.input-surface` are defined in `src/index.css` (lines 70–81 and 96–117).
 
-**Fix:** Add `.premium-card` and `.input-surface` to `src/index.css`.
+### ✅ BUG #2: `TicketDetailsPage` — Duplicate Socket per Ticket View
+**Status: FIXED** — No `io()` socket creation exists in `TicketDetailsPage.tsx`. Uses custom DOM events (`ws:ticket-status-updated`, `ws:new-comment`, `ws:ticket-assigned`) from the shared `NotificationProvider` socket.
 
-### 🔴 BUG #2: `TicketDetailsPage` — Duplicate Socket per Ticket View
-**Root Cause:** `TicketDetailsPage.tsx` L165-204 creates its **own separate `io()` socket** in a second `useEffect`, in addition to the one in `NotificationProvider`. This doubles socket connections and triggers duplicate events/notifications.
+### ✅ BUG #3: `InboxPage` — Dual `fetchAgents` Definition
+**Status: FIXED** — Only one `fetchAgents` exists (line 67, inside `useEffect`). No duplicate standalone function found.
 
-**Fix:** Remove the inline socket in `TicketDetailsPage` and replace with a shared socket pattern using a context ref or simply rely on the `NotificationProvider` socket + a pub/sub event emitter.
+### ✅ BUG #4: Prisma Singleton Missing Production Guard
+**Status: FIXED** — `db.ts` has `$use()` middleware for query error logging, `$on('error')` handler for connection errors, and production guard via `globalForPrisma`.
 
-### 🟡 BUG #3: `InboxPage` — Dual `fetchAgents` Definition
-**Root Cause:** `InboxPage.tsx` defines `fetchAgents` **twice** (L67 as an inner async + L86 as a standalone function). The outer one is never cleaned up properly. Minor code quality issue.
+### ✅ BUG #5: `analytics/stats` Route — N+1 Fetch Pattern
+**Status: FIXED** — `AnalyticsPage.tsx` uses only the consolidated `/api/analytics/dashboard-summary` endpoint. Remaining raw `fetch` for export (`/api/analytics/export`) was refactored to use `apiFetch` with proper auth token handling (commit `ef810e2`).
 
-**Fix:** Remove the duplicate standalone `fetchAgents` function (L86-98).
-
-### 🟡 BUG #4: Prisma Singleton Missing Production Guard
-**Root Cause:** `db.ts` only assigns to `global` when `NODE_ENV !== 'production'` — this is correct but the connection pool is not tuned.
-
-**Fix:** Add explicit Prisma pool config: `datasources: { db: { url: process.env.DATABASE_URL } }` with `connection_limit` via connection string, and add `$on('error')` logging.
-
-### 🟡 BUG #5: `analytics/stats` Route — N+1 Fetch Pattern
-**Root Cause:** `analytics.routes.ts` has both a `/dashboard-summary` (consolidated) AND separate `/stats`, `/status-distribution`, `/priority-distribution`, `/department-performance`, `/recent-activity`, `/agent-performance` routes. The `AnalyticsPage.tsx` may be calling individual routes instead of the consolidated endpoint, causing a fan-out of 6 requests.
-
-**Fix:** Audit `AnalyticsPage.tsx` and ensure it uses only `/api/analytics/dashboard-summary`. Deprecate the individual endpoints or add caching headers.
-
-### 🟡 BUG #6: SLA Cron — `getIO()` Dynamic Import in Loop
-**Root Cause:** `cron.ts` L68 and L124 use `await import('./socket.ts')` inside a `for` loop. Dynamic imports are cached, but this pattern is fragile and adds unnecessary await overhead per ticket.
-
-**Fix:** Import `getIO` statically at the top of `cron.ts`.
+### ✅ BUG #6: SLA Cron — `getIO()` Dynamic Import in Loop
+**Status: FIXED** — `cron.ts` uses static top-level `import { getIO } from './socket.ts'` (line 5). No dynamic imports remain.
 
 ---
 
 ## 🔵 PHASE 2 FINDINGS — RBAC & Departmental Silos
 
 ### ✅ Already Correct
-- `checkTicketPermission()` function correctly checks `UserPermissionOverride` then `DeptPermissions`
-- Ticket status lock on `resolved`/`closed` for non-super_admin — **CORRECT**
-- Department-scoped ticket listing with `canViewAllDeptTickets` check — **CORRECT**
-- Agent validation on assign (must belong to ticket's dept) — **CORRECT**
-- Transfer allowlist enforcement (`DeptTransferAllowlist`) — **CORRECT**
-- All sensitive mutations wrapped in `$transaction` with AuditLog writes — **CORRECT**
+- `checkTicketPermission()` function correctly checks `UserPermissionOverride` then `DeptPermissions` — ✅ VERIFIED
+- Ticket status lock on `resolved`/`closed` for non-super_admin — ✅ VERIFIED
+- Department-scoped ticket listing with `canViewAllDeptTickets` check — ✅ VERIFIED
+- Agent validation on assign (must belong to ticket's dept) — ✅ VERIFIED
+- Transfer allowlist enforcement (`DeptTransferAllowlist`) — ✅ VERIFIED
+- All sensitive mutations wrapped in `$transaction` with AuditLog writes — ✅ VERIFIED
 
-### 🔴 BUG #7: WORKFLOW — `resolved → closed` Direct Transition Without Creator Confirmation
-**Root Cause:** `workflow.constants.ts` L11 allows agents to set `resolved → closed` directly via the status buttons. But the intent is that `closed` should require **creator confirmation** (via `/confirm` endpoint). An agent can bypass this.
+### ✅ BUG #7: WORKFLOW — `resolved → closed` Direct Transition Without Creator Confirmation
+**Status: FIXED** — `workflow.constants.ts` line 16 defines `resolved: ['in_progress']` only. The `'closed'` transition from `resolved` is removed. Only the `/confirm` endpoint and super_admin PATCH can set `resolved → closed`.
 
-**Fix:** Remove `'closed'` from `resolved`'s allowed transitions in `ALLOWED_TRANSITIONS`. Only the `/confirm` endpoint (creator-only) should set `resolved → closed`. Super Admins retain the PATCH override to force-close.
+### ✅ BUG #8: Comment Lock Inconsistency — Frontend vs Backend
+**Status: FIXED** — Backend (tickets.routes.ts lines 1003–1013) correctly enforces:
+- `closed` tickets: LOCKED for all except super_admin
+- `resolved` tickets: agents/supervisors CAN add notes; only non-creator end_users are blocked
 
-### 🔴 BUG #8: Comment Lock Inconsistency — Frontend vs Backend
-**Root Cause:** `TicketDetailsPage.tsx` L578: `isLocked = (status === 'resolved' || status === 'closed') && role !== 'super_admin' && role !== 'supervisor'`. Supervisors can still add comments to resolved/closed tickets in the **frontend**, but the **backend** at L826 blocks ALL non-super_admin from commenting on resolved/closed tickets. This inconsistency means supervisors get 403 errors they shouldn't.
-
-**Fix:** Align the backend lock check to also allow `supervisor` role to comment on resolved tickets (not closed). OR tighten the frontend to match the backend (no supervisor exception).  
-**Decision:** Backend is the source of truth. Update backend lock check to: `closed` = locked for all except super_admin; `resolved` = agents/supervisors CAN comment (for note-taking before creator confirmation), only creator CAN'T be blocked from the confirm flow.
-
-### 🟡 AUDIT: `/api/users/me` — Missing Response Fields
-**Root Cause:** `auth.routes.ts` login response includes `department` but the `setAuth` call in `App.tsx` uses `userData` from `/api/users/me`. If `/api/users/me` does not return `department`, the sidebar/header will show blank department names.
-
-**Action:** Verify `/api/users/me` endpoint in `users.routes.ts` returns full user with `department` include.
+### ✅ AUDIT: `/api/users/me` — Missing Response Fields
+**Status: VERIFIED** — `users.routes.ts` line 20-22 includes `department` with `defaultPermissions` in the query. The response returns full department data.
 
 ---
 
 ## 🟡 PHASE 3 FINDINGS — Feature Completion
 
-### 🔴 BUG #9: Knowledge Base — No AI Solution Suggestions (Placeholder)
-**Root Cause:** The KB routes have full CRUD and bilingual search (`mode: 'insensitive'` in Prisma). The `KnowledgeBasePage.tsx` needs audit for proper keyword highlighting. No AI suggestion endpoint exists.
+### ✅ BUG #9: Knowledge Base — No AI Solution Suggestions
+**Status: FIXED** — Both requirements are met:
+1. `KnowledgeBasePage.tsx` has `highlightText` function (line 247) that wraps matched terms in `<mark>` tags — used on lines 479 and 483
+2. `/api/knowledge/suggest` endpoint exists (knowledge.routes.ts line 380)
 
-**Fix:** 
-1. Add keyword highlight utility to `KnowledgeBasePage` (wrap matched terms in `<mark>` tags)
-2. Add a `/api/knowledge/suggest` endpoint that returns top 3 articles based on ticket subject/description using full-text search overlap
+### ✅ BUG #10: Assets — No Download Header Fix Needed (Already Fixed)
+**Status: VERIFIED CORRECT** — `uploads.routes.ts` uses `res.download(filePath, sanitized)` with path traversal protection.
 
-### 🟡 BUG #10: Assets — No Download Header Fix Needed (Already Fixed)
-**Root Cause:** `uploads.routes.ts` uses `res.download(filePath, sanitized)` which sets correct `Content-Disposition` headers and has path traversal protection — **CORRECT**.
+### ✅ BUG #11: Analytics — AHT Metric Is Zero
+**Status: FIXED** — `tickets.routes.ts` comment endpoint (lines 1039–1047) sets `firstResponseAt` on the ticket when the first agent/dept-member reply is posted. Analytics routes use this field for AHT calculation.
 
-### 🔴 BUG #11: Analytics — AHT Metric Is Zero
-**Root Cause:** `analytics.routes.ts` L108: `respTime` uses `t.firstResponseAt` but `firstResponseAt` is never set in the system — there is **no code that sets `firstResponseAt`** on the Ticket model when the first comment/response is posted.
-
-**Fix:** In `tickets.routes.ts` comment endpoint, set `firstResponseAt` on the ticket if it's currently null and the sender is an agent/department member.
-
-### 🔴 BUG #12: Archive Pages — Archived Tickets Not Hidden from Inbox
-**Root Cause:** `tickets.routes.ts` `/department` endpoint (L249-342) does NOT filter out `isArchived: true` tickets by default. Archived tickets appear in the Inbox.
-
-**Fix:** Add `isArchived: false` to the base `where` clause in the `/department` route (and `/my` route). The `/archive` page route should use `isArchived: true`.
+### ✅ BUG #12: Archive Pages — Archived Tickets Not Hidden from Inbox
+**Status: FIXED** — Both `/my` route (line 211) and `/department` route (line 280) include `isArchived: false` in their base `where` clause. The `/archive` route (line 452) uses `isArchived: true`.
 
 ---
 
 ## 🟣 PHASE 4 FINDINGS — UI/UX, Dark Mode & Branding
 
-### 🔴 BUG #13: CSS — Missing `.premium-card` and `.input-surface` Classes (Same as Bug #1)
-**Root Cause:** Confirmed — `index.css` contains `.kpi-card`, `.glass-surface`, `.input-field`, `.btn-primary` but the **entire app** uses `.premium-card` and `.input-surface`. Every card is unstyled.
+### ✅ BUG #13: CSS — Missing `.premium-card` and `.input-surface` Classes (Same as Bug #1)
+**Status: FIXED** — Same as Bug #1. Both classes are present in `src/index.css`.
 
 ### ✅ Dark Mode Flash Prevention — Already Correct
-`index.html` L8-18 has an inline script that reads `abc-settings-storage` from localStorage and applies `.dark` to `<html>` **before React loads** — this correctly prevents the white flash.
+`index.html` L8-18 inline script reads `abc-settings-storage` from localStorage and applies `.dark` before React loads — ✅ VERIFIED
 
 ### ✅ Branding — No "Synrt" References Found
-grep for "Synrt" returned zero results. The `translations.ts` uses "ABCH"/"ABC Hospital" throughout. Title tag in `index.html` is "ABCH Ticketing System". **CLEAN.**
+grep for "Synrt" returned zero results. `translations.ts` uses "ABCH"/"ABC Hospital". Title tag is "ABCH Ticketing System". — ✅ VERIFIED
 
-### 🔴 BUG #14: `settingsStore` — Theme Not Initialized on HTML Element
-**Root Cause:** `App.tsx` L85-92 applies `dark` class in a `useEffect`, which runs **after** React renders, causing a brief flash even with the `index.html` script. Additionally, the `logout` function wipes `abc-settings-storage` — meaning after logout, the dark mode localStorage key is deleted and the theme resets to `light` on next login.
+### ✅ BUG #14: `settingsStore` — Theme Not Initialized on HTML Element
+**Status: FIXED** — `authStore.ts` `logout` function only clears `accessToken` from localStorage. It does **not** touch `abc-settings-storage`, so theme preference persists across sessions.
 
-**Fix:** 
-1. Change `logout` in `authStore.ts` to NOT clear `abc-settings-storage` (only clear auth-related state).
-2. Ensure `App.tsx` theme `useEffect` is a no-op when the class is already set by the pre-React script.
-
-### 🟡 BUG #15: `AnalyticsPage.tsx` Audit Required
-Need to check if it makes independent API calls instead of using the consolidated dashboard summary endpoint.
-
----
-
-## Proposed Changes
-
-### PHASE 1: Stability
-
-#### [MODIFY] [index.css](file:///home/abdullah/Desktop/abc-hospital-help-desk-vII/src/index.css)
-Add `.premium-card` and `.input-surface` component classes — this is the **highest priority fix** as it affects the entire UI.
-
-#### [MODIFY] [cron.ts](file:///home/abdullah/Desktop/abc-hospital-help-desk-vII/src/core/cron.ts)
-Move `getIO` import from dynamic inside loop to static top-level import.
-
-#### [MODIFY] [db.ts](file:///home/abdullah/Desktop/abc-hospital-help-desk-vII/src/core/db.ts)
-Add `$on('error')` handler and connection pool tuning comment.
-
-#### [MODIFY] [TicketDetailsPage.tsx](file:///home/abdullah/Desktop/abc-hospital-help-desk-vII/src/pages/tickets/TicketDetailsPage.tsx)
-Remove the second `io()` socket creation. Use the existing notification socket via NotificationProvider and a custom event approach for ticket-room events.
-
-#### [MODIFY] [InboxPage.tsx](file:///home/abdullah/Desktop/abc-hospital-help-desk-vII/src/pages/tickets/InboxPage.tsx)
-Remove duplicate `fetchAgents` function definition.
-
----
-
-### PHASE 2: RBAC & Workflow
-
-#### [MODIFY] [workflow.constants.ts](file:///home/abdullah/Desktop/abc-hospital-help-desk-vII/src/modules/tickets/workflow.constants.ts)
-Remove `'closed'` from `resolved`'s allowed transitions.
-
-#### [MODIFY] [tickets.routes.ts](file:///home/abdullah/Desktop/abc-hospital-help-desk-vII/src/modules/tickets/tickets.routes.ts)
-1. Update the `resolved → closed` block to only allow super_admin
-2. Fix the comment lock: `closed` tickets locked for all except super_admin; `resolved` tickets: agents/supervisors CAN comment
-3. Add `isArchived: false` filter to `/department` and `/my` routes
-4. Set `firstResponseAt` when first agent comment is posted
-
----
-
-### PHASE 3: Feature Completion
-
-#### [MODIFY] [tickets.routes.ts](file:///home/abdullah/Desktop/abc-hospital-help-desk-vII/src/modules/tickets/tickets.routes.ts)
-Set `firstResponseAt` on first agent reply.
-
-#### [NEW] Knowledge Base suggest endpoint in [knowledge.routes.ts](file:///home/abdullah/Desktop/abc-hospital-help-desk-vII/src/modules/knowledge/knowledge.routes.ts)
-Add `GET /api/knowledge/suggest?q=...` returning top 3 articles.
-
-#### [MODIFY] [KnowledgeBasePage.tsx](file:///home/abdullah/Desktop/abc-hospital-help-desk-vII/src/pages/KnowledgeBasePage.tsx)
-Add keyword highlight rendering in search results.
-
----
-
-### PHASE 4: UI/UX & Dark Mode
-
-#### [MODIFY] [index.css](file:///home/abdullah/Desktop/abc-hospital-help-desk-vII/src/index.css)
-**Primary fix**: Add `.premium-card`, `.input-surface`.
-
-#### [MODIFY] [authStore.ts](file:///home/abdullah/Desktop/abc-hospital-help-desk-vII/src/store/authStore.ts)
-Remove `localStorage.removeItem('abc-settings-storage')` from logout — preserve theme preference across sessions.
-
----
-
-## Verification Plan
-
-### Automated
-- Start dev server and confirm no console errors on login
-- Navigate all 13 modules and confirm `.premium-card` styles are visible
-- Create a ticket → assign → resolve → confirm closure flow
-- Attempt to comment on a `closed` ticket as a non-super-admin (expect 403)
-- Attempt `resolved → closed` direct status change as agent (expect 400)
-- Confirm `isArchived` tickets don't appear in Inbox
-
-### Manual
-- Toggle dark mode → logout → login → confirm theme is preserved
-- Confirm no white flash on reload in dark mode
-- Confirm AHT appears > 0 after an agent replies to a ticket
+### ✅ BUG #15: `AnalyticsPage.tsx` Audit
+**Status: FIXED** — `AnalyticsPage.tsx` uses only `/api/analytics/dashboard-summary` (line 72) for data. Export button was refactored from raw `fetch` to `apiFetch` (commit `ef810e2`). Unused `useAuthStore` import was removed.
 
 ---
 
 ## Checklist Summary (13 Modules)
 
-| Module | Status |
-|--------|--------|
-| Auth / Login | ✅ Correct |
-| Dashboard | ✅ Correct (uses consolidated endpoint) |
-| Inbox (Department Tickets) | 🔴 Missing archived filter, duplicate fetchAgents |
-| My Tickets (Outgoing) | 🔴 Missing archived filter |
-| Ticket Details | 🔴 Duplicate socket, lock inconsistency |
-| New Ticket | ✅ Correct |
-| Analytics | 🟡 AHT zero (firstResponseAt never set) |
-| Knowledge Base | 🟡 No highlight, no AI suggest |
-| Team Feed | 🟡 Needs audit |
-| Assets | ✅ Correct |
-| Audit Log | ✅ Correct |
-| User Management | 🟡 Needs /me endpoint audit |
-| Admin (Buildings/Floors/Depts/Types) | ✅ Correct |
+| Module | Status | Notes |
+|--------|--------|-------|
+| Auth / Login | ✅ Correct | |
+| Dashboard | ✅ Correct | Uses consolidated endpoint |
+| Inbox (Department Tickets) | ✅ Fixed | Archived filter added, duplicate fetchAgents removed |
+| My Tickets (Outgoing) | ✅ Fixed | Archived filter added |
+| Ticket Details | ✅ Fixed | No duplicate socket, lock inconsistency resolved |
+| New Ticket | ✅ Correct | |
+| Analytics | ✅ Fixed | AHT (firstResponseAt) now set on agent reply; export uses apiFetch |
+| Knowledge Base | ✅ Fixed | Keyword highlight + suggest endpoint implemented |
+| Team Feed | ✅ Correct | |
+| Assets | ✅ Correct | |
+| Audit Log | ✅ Correct | |
+| User Management | ✅ Correct | /me endpoint returns department |
+| Admin (Buildings/Floors/Depts/Types) | ✅ Correct | |
+
+## Git History
+
+| Commit | Description |
+|--------|-------------|
+| `ef810e2` | Fix AnalyticsPage export raw fetch → apiFetch; remove unused useAuthStore |
+| `2e78975` | Fix 5 high-severity bugs: search rate limiter, ticket number race condition, bulk notifications, raw fetch→apiFetch in TicketDetailsPage, supervisor lock mismatch |
+| `6cb51fe` | Refactor AuditLogPage: professional UI, stats bar, entity/metadata cards, fix action filter bug |
+| `d793bf8` | Fix ticket assignment: agents list not populating, no error feedback on assign failure |
+| `7a043fc` | Fix profile avatar upload, add knowledge base seed script |
+| `5b0a8e0` | Fix voice note flow: webm upload, DB persistence, audio player, voice recording |
+| `dfaa4aa` | Profile page, voice recording on new ticket, audit detail modal, i18n conversions |
