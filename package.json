@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "load-test": "tsx scripts/load-test.ts",
-    "seed-kb": "tsx prisma/seed-kb.ts"
+    "seed-kb": "tsx prisma/seed-kb.ts",
+    "seed-full": "tsx prisma/seed-full.ts && tsx prisma/seed-kb.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
