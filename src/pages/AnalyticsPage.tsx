@@ -109,7 +109,26 @@ export const AnalyticsPage: React.FC = () => {
             {language === 'ar' ? 'آخر 30 يوم' : 'Last 30 Days'}
           </button>
           <button 
-            onClick={() => window.open('/api/analytics/export', '_blank')}
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/analytics/export', {
+                  headers: { Authorization: `Bearer ${accessToken}` }
+                });
+                if (res.ok) {
+                  const blob = await res.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `tickets_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  window.URL.revokeObjectURL(url);
+                }
+              } catch (error) {
+                console.error('Export error:', error);
+              }
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-primary-blue text-white rounded-xl text-sm font-bold hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20"
           >
             <Download size={18} />
