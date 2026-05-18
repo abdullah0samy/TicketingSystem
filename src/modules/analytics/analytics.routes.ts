@@ -29,6 +29,9 @@ const getBaseTicketFilter = (req: any) => {
 router.get('/dashboard-summary', authenticate, async (req: any, res) => {
   try {
     const baseWhere = getBaseTicketFilter(req);
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
     const [
       totalTickets,
       pendingTickets,
@@ -74,7 +77,7 @@ router.get('/dashboard-summary', authenticate, async (req: any, res) => {
           id: true, fullNameEn: true, fullNameAr: true,
           department: { select: { nameEn: true, nameAr: true } },
           ticketsAssigned: {
-            where: { status: { in: ['resolved', 'closed'] } }, // Only fetch what's needed for metrics
+            where: { status: { in: ['resolved', 'closed'] }, completedAt: { gte: ninetyDaysAgo } },
             select: { status: true, createdAt: true, completedAt: true, slaDeadline: true, firstResponseAt: true }
           }
         }
@@ -84,15 +87,15 @@ router.get('/dashboard-summary', authenticate, async (req: any, res) => {
         orderBy: { createdAt: 'desc' },
         include: { exportedBy: { select: { fullNameAr: true, fullNameEn: true } } }
       }),
-      prisma.asset.findMany({}),
+      prisma.asset.findMany({ select: { id: true, status: true } }),
       prisma.ticket.count({
         where: { ...baseWhere, slaBreachSent: true }
       })
     ]);
 
-    // Average resolution time - scoped to user's department/role
+    // Average resolution time - scoped to user's department/role, limited to last 90 days
     const resolvedTicketsForAvg = await prisma.ticket.findMany({
-      where: { ...baseWhere, completedAt: { not: null }, status: { in: ['resolved', 'closed'] } },
+      where: { ...baseWhere, completedAt: { not: null, gte: ninetyDaysAgo }, status: { in: ['resolved', 'closed'] } },
       select: { createdAt: true, completedAt: true }
     });
     let avgResolutionTimeHours = 0;
@@ -303,16 +306,30 @@ router.get('/export', authenticate as any, async (req: any, res: Response) => {
 // Get Export History
 router.get('/exports', authenticate as any, async (req: any, res: Response) => {
   try {
-    const exports = await prisma.exportHistory.findMany({
-      where: {
-        exportedById: req.user.role === 'super_admin' ? undefined : req.user.id
-      },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        exportedBy: { select: { fullNameAr: true, fullNameEn: true } }
-      }
-    });
-    res.json(exports);
+    const { page = '1', limit = '50' } = req.query;
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(parseInt(limit as string) || 50, 100);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [exports, total] = await Promise.all([
+      prisma.exportHistory.findMany({
+        where: {
+          exportedById: req.user.role === 'super_admin' ? undefined : req.user.id
+        },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          exportedBy: { select: { fullNameAr: true, fullNameEn: true } }
+        },
+        skip,
+        take: limitNum
+      }),
+      prisma.exportHistory.count({
+        where: {
+          exportedById: req.user.role === 'super_admin' ? undefined : req.user.id
+        }
+      })
+    ]);
+    res.json({ exports, pagination: { total, page: pageNum, limit: limitNum } });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching export history' });
   }
@@ -351,11 +368,14 @@ router.get('/priority-distribution', authenticate, async (req: any, res) => {
 // Department performance
 router.get('/department-performance', authenticate, authorize(['super_admin', 'supervisor']), async (req, res) => {
   try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
     const depts = await prisma.department.findMany({
       where: { deletedAt: null },
       include: {
         _count: {
-          select: { ticketsIn: true }
+          select: { ticketsIn: { where: { createdAt: { gte: thirtyDaysAgo } } } }
         }
       }
     });
@@ -393,6 +413,9 @@ router.get('/recent-activity', authenticate, authorize(['super_admin']), async (
 // Agent performance
 router.get('/agent-performance', authenticate, authorize(['super_admin', 'supervisor']), async (req, res) => {
   try {
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
     const agents = await prisma.user.findMany({
       where: { 
         role: { in: ['agent', 'supervisor'] },
@@ -404,6 +427,7 @@ router.get('/agent-performance', authenticate, authorize(['super_admin', 'superv
         fullNameAr: true,
         department: { select: { nameEn: true, nameAr: true } },
         ticketsAssigned: {
+          where: { completedAt: { gte: ninetyDaysAgo } },
           select: {
             status: true,
             createdAt: true,
@@ -471,10 +495,11 @@ router.get('/agent-performance', authenticate, authorize(['super_admin', 'superv
 router.get('/aht', authenticate, async (req: any, res) => {
   try {
     const baseWhere = getBaseTicketFilter(req);
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    // Overall AHT (all resolved/closed tickets)
     const resolvedTickets = await prisma.ticket.findMany({
-      where: { ...baseWhere, completedAt: { not: null }, status: { in: ['resolved', 'closed'] } },
+      where: { ...baseWhere, completedAt: { not: null, gte: ninetyDaysAgo }, status: { in: ['resolved', 'closed'] } },
       select: { createdAt: true, completedAt: true, status: true, priority: true, departmentId: true }
     });
 

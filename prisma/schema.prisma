@@ -273,6 +273,9 @@ model Ticket {
   @@index([floorId])
   @@index([assetId])
   @@index([archivedById])
+  @@index([status, departmentId, createdAt])        // Multi-filter inbox queries
+  @@index([status, assignedToId, createdAt])        // Agent workload queries
+  @@index([completedAt])                             // Resolution time analytics
   @@map("tickets")
 }
 

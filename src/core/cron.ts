@@ -244,4 +244,20 @@ export const initCron = () => {
       console.error('❌ Error during notification cleanup:', error);
     }
   });
+
+  // Clean up old audit logs (older than 365 days)
+  cron.schedule('0 6 * * 0', async () => {
+    console.log('🕒 Running audit log cleanup (weekly)...');
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+    try {
+      const { count } = await prisma.auditLog.deleteMany({
+        where: { createdAt: { lt: oneYearAgo } }
+      });
+      console.log(`✅ Cleaned up ${count} old audit logs.`);
+    } catch (error) {
+      console.error('❌ Error during audit log cleanup:', error);
+    }
+  });
 };
