@@ -212,6 +212,26 @@ router.get('/export', authenticate as any, async (req: any, res: Response) => {
   const MAX_EXPORT_ROWS = 10000;
 
   try {
+    // PERMISSION CHECK: Verify canExportData
+    if (req.user.role !== 'super_admin') {
+      const userOverride = await prisma.userPermissionOverride.findUnique({ where: { userId: req.user.id } });
+      let canExport = true; // default
+      if (userOverride && userOverride.canExportData !== null) {
+        canExport = Boolean(userOverride.canExportData);
+      } else if (req.user.departmentId) {
+        const dept = await prisma.department.findUnique({
+          where: { id: Number(req.user.departmentId) },
+          include: { defaultPermissions: true }
+        });
+        if (dept?.defaultPermissions && dept.defaultPermissions.canExportData !== null) {
+          canExport = Boolean(dept.defaultPermissions.canExportData);
+        }
+      }
+      if (!canExport) {
+        return res.status(403).json({ message: 'You do not have permission to export data' });
+      }
+    }
+
     const where: any = getBaseTicketFilter(req);
     if (startDate || endDate) {
       where.createdAt = {};

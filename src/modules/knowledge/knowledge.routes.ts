@@ -1,8 +1,15 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import prisma from '../../core/db.ts';
 import { authenticate, authorize, type AuthRequest } from '../../core/middleware/auth.middleware.ts';
 
 const router = Router();
+
+const viewLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 60 : 1000000,
+  message: { error: 'Too many view requests. Please slow down.' }
+});
 
 // Helper to check for Knowledge Base management permission
 async function checkKbPermission(userId: number, userRole: string, departmentId: number | null): Promise<boolean> {
@@ -41,8 +48,11 @@ router.get('/articles', authenticate, async (req, res) => {
       categoryId 
     } = req.query;
 
-    const skip = (Number(page) - 1) * Number(limit);
-    const take = Number(limit);
+    // SECURITY FIX: Enforce max pagination limit
+    const MAX_PAGE_SIZE = 100;
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.min(Number(limit), MAX_PAGE_SIZE);
+    const skip = (pageNum - 1) * limitNum;
     const searchStr = search as string;
 
     const where: any = { isActive: true };
@@ -73,7 +83,7 @@ router.get('/articles', authenticate, async (req, res) => {
         },
         orderBy: { createdAt: 'desc' },
         skip,
-        take
+        take: limitNum
       }),
       prisma.knowledgeArticle.count({ where })
     ]);
@@ -82,9 +92,9 @@ router.get('/articles', authenticate, async (req, res) => {
       articles,
       pagination: {
         total,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil(total / Number(limit))
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum)
       }
     });
   } catch (error) {
@@ -119,9 +129,20 @@ router.post('/articles', authenticate, async (req: AuthRequest, res) => {
     const hasPerm = await checkKbPermission(req.user.id, req.user.role, req.user.departmentId || null);
     if (!hasPerm) return res.status(403).json({ error: 'Insufficient permissions to manage Knowledge Base' });
 
+    // VALIDATION: Check required fields and max lengths
     if (!titleAr || !titleEn || !contentAr || !contentEn || !categoryId) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
+    if (titleAr.length > 200 || titleEn.length > 200) {
+      return res.status(400).json({ error: 'Title must be 200 characters or less' });
+    }
+    if (contentAr.length > 50000 || contentEn.length > 50000) {
+      return res.status(400).json({ error: 'Content must be 50,000 characters or less' });
+    }
+
+    // VALIDATION: Verify category exists
+    const category = await prisma.knowledgeCategory.findUnique({ where: { id: parseInt(categoryId) } });
+    if (!category) return res.status(400).json({ error: 'Invalid category' });
 
     const article = await prisma.knowledgeArticle.create({
       data: {
@@ -167,15 +188,35 @@ router.put('/articles/:id', authenticate, async (req: AuthRequest, res) => {
     const oldArticle = await prisma.knowledgeArticle.findUnique({ where: { id: parseInt(id) } });
     if (!oldArticle) return res.status(404).json({ error: 'Article not found' });
 
+    // VALIDATION: Max lengths
+    if (titleAr !== undefined && titleAr.length > 200) {
+      return res.status(400).json({ error: 'Title must be 200 characters or less' });
+    }
+    if (titleEn !== undefined && titleEn.length > 200) {
+      return res.status(400).json({ error: 'Title must be 200 characters or less' });
+    }
+    if (contentAr !== undefined && contentAr.length > 50000) {
+      return res.status(400).json({ error: 'Content must be 50,000 characters or less' });
+    }
+    if (contentEn !== undefined && contentEn.length > 50000) {
+      return res.status(400).json({ error: 'Content must be 50,000 characters or less' });
+    }
+
+    // VALIDATION: Verify category exists if changing
+    if (categoryId !== undefined) {
+      const category = await prisma.knowledgeCategory.findUnique({ where: { id: parseInt(categoryId) } });
+      if (!category) return res.status(400).json({ error: 'Invalid category' });
+    }
+
     const article = await prisma.knowledgeArticle.update({
       where: { id: parseInt(id) },
       data: {
-        titleAr,
-        titleEn,
-        contentAr,
-        contentEn,
-        categoryId: categoryId ? parseInt(categoryId) : undefined,
-        isActive,
+        ...(titleAr !== undefined && { titleAr }),
+        ...(titleEn !== undefined && { titleEn }),
+        ...(contentAr !== undefined && { contentAr }),
+        ...(contentEn !== undefined && { contentEn }),
+        ...(categoryId !== undefined && { categoryId: parseInt(categoryId) }),
+        ...(isActive !== undefined && { isActive }),
       },
       include: { category: true }
     });
@@ -233,7 +274,7 @@ router.delete('/articles/:id', authenticate, async (req: AuthRequest, res) => {
 });
 
 // Increment views
-router.post('/articles/:id/view', authenticate, async (req, res) => {
+router.post('/articles/:id/view', authenticate, viewLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.knowledgeArticle.update({
