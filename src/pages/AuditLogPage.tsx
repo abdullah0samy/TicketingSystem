@@ -186,10 +186,10 @@ export default function AuditLogPage() {
       <div className="space-y-2">
         {changes.map((c) => (
           <div key={c.key} className="grid grid-cols-[120px_1fr_auto_1fr] gap-2 items-center text-xs">
-            <span className="font-bold text-[var(--text-main)] capitalize truncate">{c.key}</span>
-            <span className="text-danger-red line-through truncate bg-danger-red/5 px-2 py-1 rounded">{c.old}</span>
+            <span className="font-bold text-[var(--text-main)] capitalize truncate code-ltr">{c.key}</span>
+            <span className="text-danger-red line-through truncate bg-danger-red/5 px-2 py-1 rounded code-ltr">{c.old}</span>
             <ArrowRightLeft size={12} className="text-[var(--text-muted)] shrink-0" />
-            <span className="text-success-green truncate bg-success-green/5 px-2 py-1 rounded">{c.new}</span>
+            <span className="text-success-green truncate bg-success-green/5 px-2 py-1 rounded code-ltr">{c.new}</span>
           </div>
         ))}
       </div>
@@ -220,13 +220,13 @@ export default function AuditLogPage() {
             ))}
           </select>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
+            <Search className={`absolute top-1/2 -translate-y-1/2 text-[var(--text-muted)] ${language === 'ar' ? 'right-3' : 'left-3'}`} size={16} />
             <input 
               type="text"
               placeholder={t.searchTicketId}
               value={filters.ticketId}
               onChange={(e) => setFilters({...filters, ticketId: e.target.value})}
-              className="pl-10 pr-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-blue transition-all w-40"
+              className={`pl-10 pr-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-blue transition-all w-40 ${language === 'ar' ? 'pr-10 pl-4' : ''}`}
             />
           </div>
           <div className="flex items-center gap-2 bg-[var(--bg-surface)] border border-[var(--border-main)] rounded-xl px-3 py-2">
@@ -310,7 +310,7 @@ export default function AuditLogPage() {
                           <p className="text-sm font-bold text-[var(--text-main)]">
                             {language === 'ar' ? log.user.fullNameAr : log.user.fullNameEn}
                           </p>
-                          <p className="text-[10px] text-[var(--text-muted)] font-mono">#{log.user.badgeNumber}</p>
+                          <p className="text-[10px] text-[var(--text-muted)] font-mono code-ltr">#{log.user.badgeNumber}</p>
                         </div>
                       </div>
                     </td>
@@ -323,7 +323,7 @@ export default function AuditLogPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         {log.ticket ? (
-                          <span className="text-[10px] font-bold font-mono text-primary-blue bg-primary-blue/5 px-2 py-1 rounded border border-primary-blue/10">
+                          <span className="text-[10px] font-bold font-mono text-primary-blue bg-primary-blue/5 px-2 py-1 rounded border border-primary-blue/10 code-ltr">
                             {log.ticket.ticketNumber}
                           </span>
                         ) : log.department ? (
@@ -339,7 +339,7 @@ export default function AuditLogPage() {
                       <p className="text-xs font-medium text-[var(--text-secondary)]">
                         {new Date(log.createdAt).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </p>
-                      <p className="text-[10px] text-[var(--text-muted)] font-mono">
+                      <p className="text-[10px] text-[var(--text-muted)] font-mono code-ltr">
                         {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                       </p>
                     </td>
@@ -414,8 +414,8 @@ export default function AuditLogPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-[var(--text-main)]">{getActionLabel(selectedLog.action)}</h3>
-                    <p className="text-[10px] text-[var(--text-muted)] mt-0.5 font-mono">
-                      ID: {selectedLog.id} • {new Date(selectedLog.createdAt).toLocaleString()}
+                    <p className="text-[10px] text-[var(--text-muted)] mt-0.5 font-mono code-ltr">
+                      #{selectedLog.id} • {new Date(selectedLog.createdAt).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -439,8 +439,8 @@ export default function AuditLogPage() {
                     <p className="text-sm font-bold text-[var(--text-main)]">
                       {language === 'ar' ? selectedLog.user.fullNameAr : selectedLog.user.fullNameEn}
                     </p>
-                    <p className="text-xs text-[var(--text-secondary)] font-mono mt-0.5">
-                      {selectedLog.user.badgeNumber} • @{selectedLog.user.username}
+                    <p className="text-xs text-[var(--text-secondary)] font-mono mt-0.5 code-ltr">
+                      #{selectedLog.user.badgeNumber} • @{selectedLog.user.username}
                     </p>
                     {selectedLog.department && (
                       <p className="text-xs text-[var(--text-muted)] mt-1">
@@ -463,7 +463,7 @@ export default function AuditLogPage() {
                       <>
                         <p className="text-sm font-bold text-[var(--text-main)]">{selectedLog.entityType}</p>
                         {selectedLog.entityId && (
-                          <p className="text-xs text-[var(--text-secondary)] font-mono mt-0.5">ID: {selectedLog.entityId}</p>
+                          <p className="text-xs text-[var(--text-secondary)] font-mono mt-0.5 code-ltr">#{selectedLog.entityId}</p>
                         )}
                       </>
                     ) : (
@@ -513,13 +513,13 @@ export default function AuditLogPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                           <div className="space-y-2">
                             <span className="inline-block text-[10px] font-bold text-danger-red uppercase tracking-widest px-2 py-0.5 bg-danger-red/5 rounded">{t.previousState}</span>
-                            <pre className="p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-dim)] text-[10px] text-[var(--text-secondary)] font-mono overflow-auto max-h-48 whitespace-pre-wrap">
+                            <pre className="json-block p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-dim)] text-[10px] text-[var(--text-secondary)] overflow-auto max-h-48">
                               {selectedLog.oldData ? JSON.stringify(selectedLog.oldData, null, 2) : t.noPreviousData}
                             </pre>
                           </div>
                           <div className="space-y-2">
                             <span className="inline-block text-[10px] font-bold text-success-green uppercase tracking-widest px-2 py-0.5 bg-success-green/5 rounded">{t.updatedState}</span>
-                            <pre className="p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-dim)] text-[10px] text-[var(--text-secondary)] font-mono overflow-auto max-h-48 whitespace-pre-wrap">
+                            <pre className="json-block p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-dim)] text-[10px] text-[var(--text-secondary)] overflow-auto max-h-48">
                               {selectedLog.newData ? JSON.stringify(selectedLog.newData, null, 2) : t.noUpdatedData}
                             </pre>
                           </div>

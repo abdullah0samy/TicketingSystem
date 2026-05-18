@@ -317,7 +317,7 @@ export default function TeamFeedPage() {
       <div className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-main)] shadow-sm overflow-hidden">
         <div className="p-6">
           <div className="flex gap-4">
-            <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-slate-800 flex items-center justify-center border border-blue-100 dark:border-slate-700 overflow-hidden shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center border border-[var(--border-dim)] overflow-hidden shrink-0">
               {user?.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full object-cover" /> : <Users className="text-primary-blue" size={20} />}
             </div>
             <textarea
@@ -334,7 +334,7 @@ export default function TeamFeedPage() {
               {attachments.map((a, i) => (
                 <div key={i} className="relative group bg-[var(--border-dim)] p-2 rounded-xl border border-[var(--border-main)] flex items-center gap-2">
                   {a.isVoiceNote ? <Mic size={14} className="text-rose-500" /> : <Paperclip size={14} className="text-primary-blue" />}
-                  <span className="text-[10px] font-bold text-[var(--text-secondary)] max-w-[100px] truncate">
+                  <span className="text-[10px] font-bold text-[var(--text-secondary)] max-w-[100px] truncate code-ltr">
                     {a.isVoiceNote ? `Voice Note (${formatDuration(a.voiceDuration)})` : a.fileName}
                   </span>
                   <button onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))} className="text-[var(--text-muted)] hover:text-danger-red">
@@ -362,7 +362,7 @@ export default function TeamFeedPage() {
             >
               <Mic size={20} />
             </button>
-            {isRecording && <span className="text-xs font-mono text-rose-500 font-bold">{formatDuration(recordingDuration)}</span>}
+            {isRecording && <span className="text-xs font-mono text-rose-500 font-bold code-ltr">{formatDuration(recordingDuration)}</span>}
           </div>
           <button
             onClick={handleCreateNote}
@@ -377,7 +377,7 @@ export default function TeamFeedPage() {
       {/* Feed */}
       <div className="space-y-6">
         {loading ? (
-          <div className="p-8 text-center text-[var(--text-muted)]">Loading feed...</div>
+          <div className="p-8 text-center text-[var(--text-muted)]">{t.loading}</div>
         ) : notes.length === 0 ? (
           <div className="p-20 text-center bg-[var(--bg-surface)] rounded-3xl border border-dashed border-[var(--border-main)]">
             <Users size={48} className="mx-auto text-slate-200 mb-4" />
@@ -421,7 +421,7 @@ export default function TeamFeedPage() {
                         {att.isVoiceNote ? (
                           <div className="bg-[var(--border-dim)]/50 p-3 rounded-2xl flex items-center gap-4 border border-[var(--border-dim)]">
                             <audio controls src={att.fileUrl} className="w-full h-10 rounded-xl" />
-                            <span className="text-[10px] font-mono font-bold text-[var(--text-secondary)]">{formatDuration(att.voiceDuration || 0)}</span>
+                            <span className="text-[10px] font-mono font-bold text-[var(--text-secondary)] code-ltr">{formatDuration(att.voiceDuration || 0)}</span>
                           </div>
                         ) : att.mimeType?.startsWith('image/') ? (
                           <img src={att.fileUrl} className="rounded-2xl w-full max-h-96 object-cover border border-[var(--border-dim)]" />
@@ -498,7 +498,7 @@ export default function TeamFeedPage() {
                       ))}
 
                       <div className="flex gap-3 pt-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-slate-700 shrink-0 flex items-center justify-center border border-blue-100 dark:border-slate-600">
+                        <div className="w-8 h-8 rounded-full bg-[var(--bg-elevated)] shrink-0 flex items-center justify-center border border-[var(--border-dim)]">
                           {user?.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full object-cover rounded-full" /> : <User size={16} className="text-primary-blue" />}
                         </div>
                         <div className="flex-1 relative">
@@ -515,7 +515,7 @@ export default function TeamFeedPage() {
                           />
                           <button 
                             onClick={() => handleAddComment(note.id)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-primary-blue hover:scale-110 transition-transform"
+                            className={`absolute top-1/2 -translate-y-1/2 text-primary-blue hover:scale-110 transition-transform ${language === 'ar' ? 'left-2' : 'right-2'}`}
                           >
                             <Send size={16} />
                           </button>

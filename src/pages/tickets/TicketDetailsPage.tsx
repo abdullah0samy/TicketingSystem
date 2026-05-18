@@ -589,7 +589,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                 {ticket.status}
               </span>
               {ticket.slaDeadline && (
-                <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 ${
+                <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 code-ltr ${
                   new Date(ticket.slaDeadline) < new Date() && ticket.status !== 'resolved' && ticket.status !== 'closed'
                     ? 'bg-danger-red text-white'
                     : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)]'
@@ -599,7 +599,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                 </span>
               )}
               {ticket.dueDate && (
-                <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 ${
+                <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 code-ltr ${
                   new Date(ticket.dueDate) < new Date() && ticket.status !== 'resolved' && ticket.status !== 'closed'
                     ? 'bg-rose-600 text-white animate-pulse'
                     : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
@@ -990,10 +990,10 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                   <RefreshCw size={18} className="text-primary-blue" />
                   <h3 className="font-bold uppercase tracking-widest text-xs">{t.transferHistory}</h3>
                 </div>
-                <div className="space-y-6 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-[var(--border-dim)]">
+                <div className="space-y-6 relative before:absolute before:start-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-[var(--border-dim)]">
                   {ticket.transfers.map((transfer, idx) => (
-                    <div key={transfer.id} className="relative pl-10">
-                      <div className="absolute left-0 w-8 h-8 rounded-full bg-[var(--bg-surface)] border-2 border-primary-blue flex items-center justify-center z-10">
+                    <div key={transfer.id} className="relative ps-10">
+                      <div className="absolute start-0 w-8 h-8 rounded-full bg-[var(--bg-surface)] border-2 border-primary-blue flex items-center justify-center z-10">
                         <ArrowLeft size={14} className={`text-primary-blue ${language === 'ar' ? '' : 'rotate-180'}`} />
                       </div>
                       <div className="bg-[var(--border-dim)]/50 p-4 rounded-2xl border border-[var(--border-dim)] transition-all hover:border-primary-blue/30">
@@ -1005,7 +1005,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                             <span className="font-bold text-[var(--text-muted)]">{t.to}</span>
                             <span className="font-bold text-primary-blue">{language === 'ar' ? transfer.toDepartment.nameAr : transfer.toDepartment.nameEn}</span>
                           </div>
-                          <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
+                          <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest code-ltr">
                             {new Date(transfer.createdAt).toLocaleString()}
                           </span>
                         </div>
@@ -1038,7 +1038,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                           <Mic size={16} className="text-rose-500" />
                         </div>
                         <audio controls src={file.fileUrl} className="h-8 flex-1 min-w-0" />
-                        <span className="text-[10px] font-mono font-bold text-[var(--text-secondary)] shrink-0">
+                        <span className="text-[10px] font-mono font-bold text-[var(--text-secondary)] shrink-0 code-ltr">
                           {formatDuration((file as any).voiceDuration || 0)}
                         </span>
                       </div>
@@ -1115,7 +1115,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                                       <Mic size={12} className="text-rose-500" />
                                     </div>
                                     <audio controls src={file.fileUrl} className="h-7 flex-1 min-w-0" />
-                                    <span className="text-[10px] font-mono font-bold text-[var(--text-secondary)] shrink-0">
+                                    <span className="text-[10px] font-mono font-bold text-[var(--text-secondary)] shrink-0 code-ltr">
                                       {formatDuration((file as any).voiceDuration || 0)}
                                     </span>
                                   </div>
@@ -1161,7 +1161,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                                   <Mic size={12} className="text-rose-500" />
                                 </div>
                                 <audio controls src={file.fileUrl} className="h-7 w-28" />
-                                <span className="text-[10px] font-mono font-bold text-[var(--text-secondary)]">{formatDuration(file.voiceDuration || 0)}</span>
+                                <span className="text-[10px] font-mono font-bold text-[var(--text-secondary)] code-ltr">{formatDuration(file.voiceDuration || 0)}</span>
                               </>
                             ) : (
                               <>
@@ -1212,7 +1212,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                           }`}
                         >
                           {isRecordingComment ? (
-                            <><Mic size={18} /><span className="text-[10px] font-mono font-bold">{formatDuration(commentRecordingDuration)}</span></>
+                            <><Mic size={18} /><span className="text-[10px] font-mono font-bold code-ltr">{formatDuration(commentRecordingDuration)}</span></>
                           ) : (
                             <Mic size={18} />
                           )}
@@ -1249,26 +1249,26 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                         <div className="mt-1 space-y-1">
                           {log.newData?.status && (
                             <p className="text-xs text-[var(--text-secondary)]">
-                              {t.newStatus}
-                              <span className="font-bold text-primary-blue">{log.newData.status}</span>
+                              {t.newStatus}<span className="text-[var(--text-muted)] mx-1">:</span>
+                              <span className="font-bold text-primary-blue code-ltr">{log.newData.status}</span>
                             </p>
                           )}
                           {log.newData?.assignedToName && (
                             <p className="text-xs text-[var(--text-secondary)]">
-                              {t.assignedToLabel}
+                              {t.assignedToLabel}<span className="text-[var(--text-muted)] mx-1">:</span>
                               <span className="font-bold text-primary-blue">{log.newData.assignedToName}</span>
                             </p>
                           )}
                           {log.newData?.departmentName && (
                             <p className="text-xs text-[var(--text-secondary)]">
-                              {t.transferredTo}
+                              {t.transferredTo}<span className="text-[var(--text-muted)] mx-1">:</span>
                               <span className="font-bold text-primary-blue">{log.newData.departmentName}</span>
                             </p>
                           )}
                           {log.newData?.dueDate && (
                             <p className="text-xs text-[var(--text-secondary)]">
-                              {t.newDueDate}
-                              <span className="font-bold text-primary-blue">{new Date(log.newData.dueDate).toLocaleDateString()}</span>
+                              {t.newDueDate}<span className="text-[var(--text-muted)] mx-1">:</span>
+                              <span className="font-bold text-primary-blue code-ltr">{new Date(log.newData.dueDate).toLocaleDateString()}</span>
                             </p>
                           )}
                           {log.newData?.comment && (
@@ -1468,9 +1468,9 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                   <p className="text-xs text-[var(--text-muted)] italic">{t.noRelatedTickets}</p>
                 ) : relatedTicketsData.map(rt => (
                   <div key={rt.id} className="flex items-center justify-between group">
-                    <button 
-                      onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: `/tickets/${rt.id}` }))}
-                      className="flex flex-col text-left hover:text-primary-blue transition-all"
+                      <button 
+                        onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: `/tickets/${rt.id}` }))}
+                        className={`flex flex-col hover:text-primary-blue transition-all ${language === 'ar' ? 'text-right' : 'text-left'}`}
                     >
                       <span className="text-xs font-mono font-bold text-primary-blue">{rt.ticketNumber}</span>
                       <span className="text-xs text-[var(--text-secondary)] line-clamp-1">{rt.subject}</span>
@@ -1544,13 +1544,13 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
             </div>
 
             <form onSubmit={handleLinkSearch} className="relative mb-6">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
+              <Search className={`absolute top-1/2 -translate-y-1/2 text-[var(--text-muted)] ${language === 'ar' ? 'right-3' : 'left-3'}`} size={18} />
               <input
                 type="text"
                 placeholder={t.linkTicketSearch}
                 value={linkSearchTerm}
                 onChange={(e) => setLinkSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--border-dim)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue"
+                className={`w-full pr-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--border-dim)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue ${language === 'ar' ? 'pl-10' : 'pl-10'}`}
               />
             </form>
 

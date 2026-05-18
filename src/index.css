@@ -1,10 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: "Cairo", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: "Cairo", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Inter", "Cairo", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
@@ -205,4 +206,36 @@
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@layer utilities {
+  .code-ltr {
+    direction: ltr !important;
+    text-align: left !important;
+    unicode-bidi: isolate;
+  }
+
+  .code-ltr * {
+    direction: ltr !important;
+    text-align: left !important;
+  }
+
+  .bidi-isolate {
+    unicode-bidi: isolate;
+  }
+
+  pre.json-block {
+    direction: ltr !important;
+    text-align: left !important;
+    font-family: var(--font-mono) !important;
+    unicode-bidi: isolate;
+    tab-size: 2;
+    letter-spacing: -0.01em;
+  }
+
+  .ticket-id, .badge-id, .timestamp-mono {
+    font-family: var(--font-mono) !important;
+    direction: ltr !important;
+    unicode-bidi: isolate;
+  }
 }
