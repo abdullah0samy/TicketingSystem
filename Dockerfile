@@ -19,8 +19,8 @@ RUN npm run build
 FROM node:20-alpine
 WORKDIR /app
 
-# Install tsx globally for runtime TypeScript execution
-RUN npm install -g tsx
+# Install wget for healthcheck
+RUN apk add --no-cache wget
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/prisma ./prisma
@@ -36,7 +36,7 @@ ENV NODE_ENV=production
 ENV PORT=3000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
-CMD npx prisma db push --accept-data-loss && node --import tsx server.ts
+CMD npx prisma db push --accept-data-loss && npx tsx server.ts
