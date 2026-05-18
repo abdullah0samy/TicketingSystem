@@ -40,7 +40,7 @@ export const requestLogger = (req: any, res: Response, next: NextFunction) => {
 
   // Log non-GET requests for security tracking
   if (req.method !== 'GET') {
-    const userLabel = req.user ? `${req.user.email} (${req.user.role})` : 'Anonymous';
+    const userLabel = req.user ? `${req.user.fullNameEn || req.user.fullNameAr || 'Unknown'} (${req.user.role})` : 'Anonymous';
     console.info(`[API_MUTATION] ${req.method} ${req.originalUrl} by ${userLabel}`);
   }
 

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const createTicketSchema = z.object({
   subject: z.string().min(3).max(200).optional().default('No Subject'),
-  description: z.string().min(5),
+  description: z.string().min(5).max(10000),
   departmentId: z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]),
   ticketTypeId: z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]).optional().nullable(),
   priority: z.enum(['low', 'normal', 'high', 'critical']).optional().default('normal'),
@@ -14,7 +14,7 @@ export const createTicketSchema = z.object({
   creatorExtension: z.string().max(50).optional().nullable(),
   attachments: z.array(z.object({
     fileName: z.string(),
-    fileUrl: z.string(),
+    fileUrl: z.string().url(),
     fileSize: z.number(),
     mimeType: z.string(),
     isVoiceNote: z.boolean().optional(),
@@ -25,5 +25,5 @@ export const createTicketSchema = z.object({
 export const ticketSearchSchema = z.object({
   q: z.string().min(2).max(100),
   page: z.string().regex(/^\d+$/).transform(Number).optional().default(1),
-  limit: z.string().regex(/^\d+$/).transform(Number).optional().default(20)
+  limit: z.string().regex(/^\d+$/).transform(Number).optional().default(20).pipe(z.number().max(100))
 });

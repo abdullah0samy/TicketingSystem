@@ -2,8 +2,17 @@ import express from 'express';
 import prisma from '../../core/db.ts';
 import { authenticate, authorize } from '../../core/middleware/auth.middleware.ts';
 import bcrypt from 'bcryptjs';
+import rateLimit from 'express-rate-limit';
+import { invalidatePermissionCache } from '../../core/permissionCache.ts';
 
 const router = express.Router();
+
+const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => `${req.ip}-${req.params.id}`,
+  message: { message: 'Too many password reset attempts for this user. Try again later.' }
+});
 
 // Apply authentication to all routes
 router.use(authenticate);
@@ -53,7 +62,16 @@ router.put('/buildings/:id', authorize(['super_admin']), async (req, res) => {
 router.delete('/buildings/:id', authorize(['super_admin']), async (req, res) => {
   const { id } = req.params;
   try {
-    await prisma.building.delete({ where: { id: parseInt(id) } });
+    const buildingId = parseInt(id);
+    const ticketCount = await prisma.ticket.count({ where: { buildingId } });
+    if (ticketCount > 0) {
+      return res.status(400).json({ message: `Cannot delete building: ${ticketCount} ticket(s) reference this building` });
+    }
+    const floorCount = await prisma.floor.count({ where: { buildingId } });
+    if (floorCount > 0) {
+      return res.status(400).json({ message: `Cannot delete building: ${floorCount} floor(s) reference this building. Delete floors first.` });
+    }
+    await prisma.building.delete({ where: { id: buildingId } });
     res.json({ message: 'Building deleted' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting building' });
@@ -110,7 +128,12 @@ router.put('/floors/:id', authorize(['super_admin']), async (req, res) => {
 router.delete('/floors/:id', authorize(['super_admin']), async (req, res) => {
   const { id } = req.params;
   try {
-    await prisma.floor.delete({ where: { id: parseInt(id) } });
+    const floorId = parseInt(id);
+    const ticketCount = await prisma.ticket.count({ where: { floorId } });
+    if (ticketCount > 0) {
+      return res.status(400).json({ message: `Cannot delete floor: ${ticketCount} ticket(s) reference this floor` });
+    }
+    await prisma.floor.delete({ where: { id: floorId } });
     res.json({ message: 'Floor deleted' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting floor' });
@@ -467,13 +490,18 @@ router.put('/users/:id', authorize(['super_admin']), async (req, res) => {
     });
 
     const { passwordHash: _hash, ...safeUser } = user;
+
+    if (req.body.permissionsOverride || req.body.departmentId || req.body.role) {
+      invalidatePermissionCache(parseInt(id), user.departmentId ? Number(user.departmentId) : undefined);
+    }
+
     res.json(safeUser);
   } catch (error) {
     res.status(500).json({ message: 'Error updating user' });
   }
 });
 
-router.post('/users/:id/reset-password', authorize(['super_admin']), async (req, res) => {
+router.post('/users/:id/reset-password', passwordResetLimiter, authorize(['super_admin']), async (req, res) => {
   const { id } = req.params;
   const { password, forcePasswordChange } = req.body;
 

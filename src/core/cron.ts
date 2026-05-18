@@ -63,28 +63,29 @@ export const initCron = () => {
           status: { notIn: ['resolved', 'closed'] },
           slaDeadline: { lt: now },
           slaBreachSent: false
-        }
+        },
+        select: { id: true, ticketNumber: true, subject: true, slaDeadline: true, departmentId: true }
       });
 
-      for (const ticket of breachedTickets) {
-        // Send alert to department (using statically imported getIO)
+      if (breachedTickets.length > 0) {
         const io = getIO();
-        io.to(`dept-${ticket.departmentId}`).emit('sla-breach', {
-          id: ticket.id,
-          ticketNumber: ticket.ticketNumber,
-          subject: ticket.subject,
-          deadline: ticket.slaDeadline
-        });
+        const notificationData: any[] = [];
 
-        // PERSIST NOTIFICATION
-        // Find all users in this department
-        const deptUsers = await prisma.user.findMany({
-          where: { departmentId: ticket.departmentId, isActive: true }
-        });
+        for (const ticket of breachedTickets) {
+          io.to(`dept-${ticket.departmentId}`).emit('sla-breach', {
+            id: ticket.id,
+            ticketNumber: ticket.ticketNumber,
+            subject: ticket.subject,
+            deadline: ticket.slaDeadline
+          });
 
-        if (deptUsers.length > 0) {
-          await prisma.notification.createMany({
-            data: deptUsers.map(u => ({
+          const deptUsers = await prisma.user.findMany({
+            where: { departmentId: ticket.departmentId, isActive: true },
+            select: { id: true }
+          });
+
+          for (const u of deptUsers) {
+            notificationData.push({
               userId: u.id,
               ticketId: ticket.id,
               eventType: 'SLA_BREACH',
@@ -92,28 +93,34 @@ export const initCron = () => {
               titleAr: 'تنبيه تجاوز اتفاقية مستوى الخدمة',
               bodyEn: `Ticket ${ticket.ticketNumber} has breached its SLA deadline.`,
               bodyAr: `تجاوزت التذكرة رقم ${ticket.ticketNumber} الموعد النهائي المحدد.`
-            }))
-          });
+            });
+          }
         }
 
-        // Mark as sent
-        await prisma.ticket.update({
-          where: { id: ticket.id },
+        if (notificationData.length > 0) {
+          await prisma.notification.createMany({ data: notificationData });
+        }
+
+        await prisma.ticket.updateMany({
+          where: { id: { in: breachedTickets.map(t => t.id) } },
           data: { slaBreachSent: true }
         });
-        
-        console.log(`🚨 SLA Breach alert sent for ${ticket.ticketNumber}`);
+
+        console.log(`🚨 SLA Breach alerts sent for ${breachedTickets.length} tickets`);
       }
 
       // 2. Check for SLA Warnings (80% time consumed)
-      // We need to know when it was created to calculate 80%
       const pendingTickets = await prisma.ticket.findMany({
         where: {
           status: { notIn: ['resolved', 'closed'] },
           slaDeadline: { gt: now },
           slaWarningSent: false
-        }
+        },
+        select: { id: true, ticketNumber: true, subject: true, slaDeadline: true, createdAt: true, departmentId: true }
       });
+
+      const warningTickets: typeof pendingTickets = [];
+      const warningNotifications: any[] = [];
 
       for (const ticket of pendingTickets) {
         if (!ticket.slaDeadline) continue;
@@ -123,7 +130,18 @@ export const initCron = () => {
         const percentage = (timeElapsed / totalSlaTime) * 100;
 
         if (percentage >= 80) {
-          const io = getIO();
+          warningTickets.push(ticket);
+        }
+      }
+
+      if (warningTickets.length > 0) {
+        const io = getIO();
+
+        for (const ticket of warningTickets) {
+          const totalSlaTime = ticket.slaDeadline!.getTime() - ticket.createdAt.getTime();
+          const timeElapsed = now.getTime() - ticket.createdAt.getTime();
+          const percentage = (timeElapsed / totalSlaTime) * 100;
+
           io.to(`dept-${ticket.departmentId}`).emit('sla-warning', {
             id: ticket.id,
             ticketNumber: ticket.ticketNumber,
@@ -131,32 +149,34 @@ export const initCron = () => {
             percentage: Math.round(percentage)
           });
 
-          // PERSIST NOTIFICATION
           const deptUsers = await prisma.user.findMany({
-            where: { departmentId: ticket.departmentId, isActive: true }
+            where: { departmentId: ticket.departmentId, isActive: true },
+            select: { id: true }
           });
 
-          if (deptUsers.length > 0) {
-            await prisma.notification.createMany({
-              data: deptUsers.map(u => ({
-                userId: u.id,
-                ticketId: ticket.id,
-                eventType: 'SLA_WARNING',
-                titleEn: 'SLA Warning',
-                titleAr: 'تحذير اتفاقية مستوى الخدمة',
-                bodyEn: `Ticket ${ticket.ticketNumber} has consumed ${Math.round(percentage)}% of its SLA time.`,
-                bodyAr: `استهلكت التذكرة رقم ${ticket.ticketNumber} حوالي ${Math.round(percentage)}% من الوقت المحدد.`
-              }))
+          for (const u of deptUsers) {
+            warningNotifications.push({
+              userId: u.id,
+              ticketId: ticket.id,
+              eventType: 'SLA_WARNING',
+              titleEn: 'SLA Warning',
+              titleAr: 'تحذير اتفاقية مستوى الخدمة',
+              bodyEn: `Ticket ${ticket.ticketNumber} has consumed ${Math.round(percentage)}% of its SLA time.`,
+              bodyAr: `استهلكت التذكرة رقم ${ticket.ticketNumber} حوالي ${Math.round(percentage)}% من الوقت المحدد.`
             });
           }
-
-          await prisma.ticket.update({
-            where: { id: ticket.id },
-            data: { slaWarningSent: true }
-          });
-
-          console.log(`⚠️ SLA Warning alert sent for ${ticket.ticketNumber} (${Math.round(percentage)}%)`);
         }
+
+        if (warningNotifications.length > 0) {
+          await prisma.notification.createMany({ data: warningNotifications });
+        }
+
+        await prisma.ticket.updateMany({
+          where: { id: { in: warningTickets.map(t => t.id) } },
+          data: { slaWarningSent: true }
+        });
+
+        console.log(`⚠️ SLA Warning alerts sent for ${warningTickets.length} tickets`);
       }
     } catch (error) {
       console.error('❌ Error during SLA check:', error);
@@ -175,38 +195,53 @@ export const initCron = () => {
           status: { in: ['resolved', 'closed'] },
           updatedAt: { lt: thirtyDaysAgo },
           isArchived: false
-        }
+        },
+        select: { id: true, departmentId: true }
       });
 
-      // Find a super admin for logging the auto-archiving action
-      const systemAdmin = await prisma.user.findFirst({
-        where: { role: 'super_admin' }
-      });
+      if (ticketsToArchive.length > 0) {
+        const systemAdmin = await prisma.user.findFirst({
+          where: { role: 'super_admin' },
+          select: { id: true }
+        });
 
-      for (const ticket of ticketsToArchive) {
-        await prisma.ticket.update({
-          where: { id: ticket.id },
-          data: { 
-            isArchived: true,
-            archivedAt: new Date()
-          }
+        await prisma.ticket.updateMany({
+          where: { id: { in: ticketsToArchive.map(t => t.id) } },
+          data: { isArchived: true, archivedAt: new Date() }
         });
-        
-        // Log the action
-        await prisma.auditLog.create({
-          data: {
-            ticketId: ticket.id,
-            userId: systemAdmin?.id || 1, 
-            action: 'AUTO_ARCHIVED',
-            departmentId: ticket.departmentId,
-            newData: { reason: 'Auto-archived after 30 days of inactivity' }
-          }
-        });
+
+        const auditData = ticketsToArchive.map(ticket => ({
+          ticketId: ticket.id,
+          userId: systemAdmin?.id || 1,
+          action: 'AUTO_ARCHIVED',
+          departmentId: ticket.departmentId,
+          newData: { reason: 'Auto-archived after 30 days of inactivity' }
+        }));
+
+        await prisma.auditLog.createMany({ data: auditData });
+
+        console.log(`✅ Auto-archived ${ticketsToArchive.length} tickets.`);
+      } else {
+        console.log('✅ No tickets to auto-archive.');
       }
-
-      console.log(`✅ Auto-archived ${ticketsToArchive.length} tickets.`);
     } catch (error) {
       console.error('❌ Error during auto-archive:', error);
+    }
+  });
+
+  // Clean up old notifications (older than 90 days)
+  cron.schedule('0 5 * * 0', async () => {
+    console.log('🕒 Running notification cleanup (weekly)...');
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+    try {
+      const { count } = await prisma.notification.deleteMany({
+        where: { createdAt: { lt: ninetyDaysAgo } }
+      });
+      console.log(`✅ Cleaned up ${count} old notifications.`);
+    } catch (error) {
+      console.error('❌ Error during notification cleanup:', error);
     }
   });
 };

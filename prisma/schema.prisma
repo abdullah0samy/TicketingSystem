@@ -134,8 +134,8 @@ model User {
   ticketsCreated      Ticket[]                @relation("TicketCreator")
   knowledgeArticles   KnowledgeArticle[]
   permissionsOverride UserPermissionOverride?
-  department          Department?             @relation(fields: [departmentId], references: [id])
-  userRole            Role?                   @relation(fields: [roleId], references: [id])
+  department          Department?             @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  userRole            Role?                   @relation(fields: [roleId], references: [id], onDelete: SetNull)
 
   @@map("users")
 }
@@ -267,6 +267,10 @@ model Ticket {
   @@index([slaDeadline])                          // SLA cron job scans every 5 min
   @@index([departmentId, createdAt])               // Date-filtered dept queries
   @@index([departmentId, isArchived, status])       // Inbox compound filter pattern
+  @@index([buildingId])
+  @@index([floorId])
+  @@index([assetId])
+  @@index([archivedById])
   @@map("tickets")
 }
 
@@ -298,10 +302,11 @@ model TicketMessage {
   createdAt     DateTime            @default(now()) @map("created_at")
   deletedAt     DateTime?           @map("deleted_at")
   attachments   MessageAttachment[]
-  sender        User                @relation(fields: [senderId], references: [id])
+  sender        User                @relation(fields: [senderId], references: [id], onDelete: SetNull)
   ticket        Ticket              @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@map("ticket_messages")
+  @@index([senderId])
 }
 
 model MessageAttachment {
@@ -329,12 +334,15 @@ model TicketTransfer {
   reason           String?
   transferredAt    DateTime   @default(now()) @map("transferred_at")
   createdAt        DateTime   @default(now()) @map("created_at")
-  toDepartment     Department @relation("TransferTo", fields: [toDepartmentId], references: [id])
-  fromDepartment   Department @relation("TransferFrom", fields: [fromDepartmentId], references: [id])
-  transferredBy    User       @relation(fields: [transferredById], references: [id])
+  toDepartment     Department @relation("TransferTo", fields: [toDepartmentId], references: [id], onDelete: Restrict)
+  fromDepartment   Department @relation("TransferFrom", fields: [fromDepartmentId], references: [id], onDelete: Restrict)
+  transferredBy    User       @relation(fields: [transferredById], references: [id], onDelete: SetNull)
   ticket           Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@map("ticket_transfers")
+  @@index([transferredById])
+  @@index([fromDepartmentId])
+  @@index([toDepartmentId])
 }
 
 model TicketStatusHistory {
@@ -345,10 +353,11 @@ model TicketStatusHistory {
   newStatus   String   @map("new_status")
   note        String?
   createdAt   DateTime @default(now()) @map("created_at")
-  changedBy   User     @relation(fields: [changedById], references: [id])
+  changedBy   User     @relation(fields: [changedById], references: [id], onDelete: SetNull)
   ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@map("ticket_status_history")
+  @@index([changedById])
 }
 
 model Notification {
@@ -362,7 +371,7 @@ model Notification {
   bodyEn    String?  @map("body_en")
   isRead    Boolean  @default(false) @map("is_read")
   createdAt DateTime @default(now()) @map("created_at")
-  ticket    Ticket?  @relation(fields: [ticketId], references: [id])
+  ticket    Ticket?  @relation(fields: [ticketId], references: [id], onDelete: SetNull)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -386,6 +395,8 @@ model TeamNote {
   department   Department?          @relation(fields: [departmentId], references: [id])
 
   @@map("team_notes")
+  @@index([authorId])
+  @@index([departmentId])
 }
 
 model TeamNoteComment {
@@ -396,7 +407,7 @@ model TeamNoteComment {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   note      TeamNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
-  author    User     @relation(fields: [authorId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id], onDelete: SetNull)
 
   @@map("team_note_comments")
 }
@@ -407,7 +418,7 @@ model TeamNoteLike {
   userId    Int      @map("user_id")
   createdAt DateTime @default(now()) @map("created_at")
   note      TeamNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([noteId, userId])
   @@map("team_note_likes")
@@ -454,9 +465,9 @@ model AuditLog {
   ipAddress    String?     @map("ip_address")
   userAgent    String?     @map("user_agent")
   createdAt    DateTime    @default(now()) @map("created_at")
-  ticket       Ticket?     @relation(fields: [ticketId], references: [id])
-  department   Department? @relation(fields: [departmentId], references: [id])
-  user         User?       @relation(fields: [userId], references: [id])
+  ticket       Ticket?     @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  user         User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([ticketId, createdAt])
@@ -492,6 +503,8 @@ model ExportHistory {
   exportedBy   User        @relation(fields: [exportedById], references: [id])
 
   @@map("export_history")
+  @@index([exportedById])
+  @@index([departmentId])
 }
 
 model Asset {
@@ -534,8 +547,8 @@ model KnowledgeArticle {
   isActive   Boolean           @default(true) @map("is_active")
   createdAt  DateTime          @default(now()) @map("created_at")
   updatedAt  DateTime          @updatedAt @map("updated_at")
-  category   KnowledgeCategory @relation(fields: [categoryId], references: [id])
-  author     User              @relation(fields: [authorId], references: [id])
+  category   KnowledgeCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  author     User              @relation(fields: [authorId], references: [id], onDelete: SetNull)
 
   @@index([categoryId])
   @@index([isActive])

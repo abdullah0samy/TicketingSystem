@@ -142,7 +142,6 @@ export default function DashboardPage() {
       setAgentPerf(data.agentPerformance);
       setExportHistory(data.exportHistory || []);
       setAssetSummary(data.assetSummary || null);
-      setAssetSummary(data.assetSummary || null);
     } catch (error: any) {
       if (error.name === 'AbortError') return;
       setError(error?.message || 'Something went wrong');
@@ -174,10 +173,9 @@ export default function DashboardPage() {
 
   const handleExport = async () => {
     try {
-      const params = new URLSearchParams({
-        startDate: exportStartDate,
-        endDate: exportEndDate
-      });
+      const params = new URLSearchParams();
+      if (exportStartDate) params.set('startDate', exportStartDate);
+      if (exportEndDate) params.set('endDate', exportEndDate);
       const res = await apiFetch(`/api/analytics/export?${params}`);
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);

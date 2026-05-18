@@ -206,6 +206,7 @@ router.get('/stats', authenticate, async (req: any, res) => {
 // Export Tickets to Excel
 router.get('/export', authenticate as any, async (req: any, res: Response) => {
   const { startDate, endDate } = req.query;
+  const MAX_EXPORT_ROWS = 10000;
 
   try {
     const where: any = getBaseTicketFilter(req);
@@ -213,6 +214,14 @@ router.get('/export', authenticate as any, async (req: any, res: Response) => {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate as string);
       if (endDate) where.createdAt.lte = new Date(endDate as string);
+    }
+
+    const totalCount = await prisma.ticket.count({ where });
+    if (totalCount > MAX_EXPORT_ROWS) {
+      return res.status(400).json({
+        message: `Export limited to ${MAX_EXPORT_ROWS} tickets. Please narrow your date range. Found ${totalCount} tickets.`,
+        code: 'EXPORT_LIMIT_EXCEEDED'
+      });
     }
 
     const tickets = await prisma.ticket.findMany({

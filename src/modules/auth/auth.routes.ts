@@ -114,6 +114,7 @@ router.post('/logout', (req, res) => {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict'
   });
+  res.json({ message: 'Logged out' });
 });
 
 export default router;

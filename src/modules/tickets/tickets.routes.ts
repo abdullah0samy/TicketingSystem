@@ -700,7 +700,10 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 
     if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
 
-    // Check permissions: creator, assigned agent, or department member
+    if (ticket.isArchived && req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Access denied: archived tickets are restricted to administrators' });
+    }
+
     const userId = Number(req.user.id);
     const userDeptId = req.user.departmentId ? Number(req.user.departmentId) : null;
     
@@ -806,7 +809,9 @@ router.put('/:id/status', async (req: AuthRequest, res: Response) => {
           status: status as any,
           ticketTypeId: effectiveTypeId || undefined,
           requiresExternalResource: (status === 'resolved' || status === 'closed') && requiresExternalResource !== undefined ? requiresExternalResource : undefined,
-          externalResourceCost: (status === 'resolved' || status === 'closed') && externalResourceCost !== undefined ? parseFloat(externalResourceCost) : undefined,
+          externalResourceCost: (status === 'resolved' || status === 'closed') && externalResourceCost !== undefined
+            ? (() => { const v = parseFloat(externalResourceCost); return isNaN(v) ? null : v; })()
+            : undefined,
           externalResourceNote: (status === 'resolved' || status === 'closed') && externalResourceNote !== undefined ? externalResourceNote : undefined,
           // Set timestamps on resolve/close, nullify on reopen
           completedAt: isReopen ? null : (status === 'resolved' ? new Date() : ticket.completedAt),
@@ -1110,40 +1115,42 @@ router.post('/:id/comments', async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'Resolved tickets can only be commented on by the assigned team or the ticket creator.' });
     }
 
-    const message = await prisma.ticketMessage.create({
-      data: {
-        ticketId: parseInt(id),
-        senderId: req.user.id,
-        body: content,
-        messageType: isInternal ? 'internal_note' : 'public',
-        attachments: attachments ? {
-          create: attachments.map((a: any) => ({
-            uploadedById: req.user!.id,
-            fileName: a.fileName,
-            fileUrl: a.fileUrl,
-            fileSize: a.fileSize,
-            mimeType: a.mimeType,
-            isVoiceNote: a.isVoiceNote ?? false,
-            voiceDuration: a.voiceDuration ?? null
-          }))
-        } : undefined
-      },
-      include: {
-        sender: { select: { fullNameEn: true, fullNameAr: true, avatarUrl: true } },
-        attachments: true
-      }
-    });
-
-    // BUG FIX #11: Set firstResponseAt on first agent/dept-member reply to enable AHT metrics.
-    // Only set if: (a) not yet set, (b) sender is in the ticket's department or is an admin, (c) sender is not the creator.
-    const senderIsAgent = req.user.role === 'agent' || req.user.role === 'supervisor' || req.user.role === 'super_admin';
-    const senderIsCreator = ticket.createdById === req.user.id;
-    if (!ticket.firstResponseAt && senderIsAgent && !senderIsCreator) {
-      await prisma.ticket.update({
-        where: { id: parseInt(id) },
-        data: { firstResponseAt: message.createdAt }
+    const message = await prisma.$transaction(async (tx) => {
+      const msg = await tx.ticketMessage.create({
+        data: {
+          ticketId: parseInt(id),
+          senderId: req.user.id,
+          body: content,
+          messageType: isInternal ? 'internal_note' : 'public',
+          attachments: attachments ? {
+            create: attachments.map((a: any) => ({
+              uploadedById: req.user!.id,
+              fileName: a.fileName,
+              fileUrl: a.fileUrl,
+              fileSize: a.fileSize,
+              mimeType: a.mimeType,
+              isVoiceNote: a.isVoiceNote ?? false,
+              voiceDuration: a.voiceDuration ?? null
+            }))
+          } : undefined
+        },
+        include: {
+          sender: { select: { fullNameEn: true, fullNameAr: true, avatarUrl: true } },
+          attachments: true
+        }
       });
-    }
+
+      const senderIsAgent = req.user.role === 'agent' || req.user.role === 'supervisor' || req.user.role === 'super_admin';
+      const senderIsCreator = ticket.createdById === req.user.id;
+      if (!ticket.firstResponseAt && senderIsAgent && !senderIsCreator) {
+        await tx.ticket.update({
+          where: { id: parseInt(id) },
+          data: { firstResponseAt: msg.createdAt }
+        });
+      }
+
+      return msg;
+    });
 
     // Real-time notification
     const eventData = {
@@ -1546,7 +1553,7 @@ router.post('/:id/link', async (req: AuthRequest, res: Response) => {
     }
 
     // Update source ticket
-    const currentRelated = ticket.relatedTickets ? JSON.parse(ticket.relatedTickets) : [];
+    const currentRelated = ticket.relatedTickets ? (() => { try { return JSON.parse(ticket.relatedTickets); } catch { return []; } })() : [];
     if (!currentRelated.includes(targetTicketId.toString())) {
       currentRelated.push(targetTicketId.toString());
     }
@@ -1556,8 +1563,7 @@ router.post('/:id/link', async (req: AuthRequest, res: Response) => {
       data: { relatedTickets: JSON.stringify(currentRelated) }
     });
 
-    // Update target ticket (bidirectional)
-    const targetRelated = target.relatedTickets ? JSON.parse(target.relatedTickets) : [];
+    const targetRelated = target.relatedTickets ? (() => { try { return JSON.parse(target.relatedTickets); } catch { return []; } })() : [];
     if (!targetRelated.includes(id.toString())) {
       targetRelated.push(id.toString());
     }
@@ -1606,7 +1612,7 @@ router.post('/:id/unlink', async (req: AuthRequest, res: Response) => {
     }
 
     // Update source ticket
-    const currentRelated = ticket.relatedTickets ? JSON.parse(ticket.relatedTickets) : [];
+    const currentRelated = ticket.relatedTickets ? (() => { try { return JSON.parse(ticket.relatedTickets); } catch { return []; } })() : [];
     const updatedRelated = currentRelated.filter((tid: string) => tid !== targetTicketId.toString());
 
     await prisma.ticket.update({
@@ -1614,8 +1620,7 @@ router.post('/:id/unlink', async (req: AuthRequest, res: Response) => {
       data: { relatedTickets: JSON.stringify(updatedRelated) }
     });
 
-    // Update target ticket
-    const targetRelated = target.relatedTickets ? JSON.parse(target.relatedTickets) : [];
+    const targetRelated = target.relatedTickets ? (() => { try { return JSON.parse(target.relatedTickets); } catch { return []; } })() : [];
     const updatedTargetRelated = targetRelated.filter((tid: string) => tid !== id.toString());
 
     await prisma.ticket.update({
@@ -1701,22 +1706,34 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
   }
 
   const { id } = req.params;
-  const updateData = req.body;
+
+  const ALLOWED_FIELDS = [
+    'subject', 'description', 'priority', 'dueDate', 'ticketTypeId',
+    'buildingId', 'floorId', 'assetId', 'roomExtension',
+    'status', 'assignedToId', 'rating', 'feedback',
+    'requiresExternalResource', 'externalResourceCost', 'externalResourceNote'
+  ];
+
+  const sanitizedData: Record<string, any> = {};
+  for (const key of ALLOWED_FIELDS) {
+    if (req.body[key] !== undefined) {
+      sanitizedData[key] = req.body[key];
+    }
+  }
 
   try {
     const ticket = await prisma.ticket.findUnique({ where: { id: parseInt(id) } });
     if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
 
-    // Prevent updating sensitive fields like ticketNumber
-    delete updateData.ticketNumber;
-    delete updateData.id;
-    delete updateData.createdAt;
+    const changedFields = Object.keys(sanitizedData);
+    if (changedFields.length === 0) {
+      return res.status(400).json({ message: 'No valid fields to update' });
+    }
 
-    // Handle SLA recalculation if key fields change
-    if (updateData.priority || updateData.ticketTypeId || updateData.departmentId) {
-      const priority = updateData.priority || ticket.priority;
-      const typeId = updateData.ticketTypeId !== undefined ? updateData.ticketTypeId : ticket.ticketTypeId;
-      const deptId = updateData.departmentId !== undefined ? updateData.departmentId : ticket.departmentId;
+    if (sanitizedData.priority || sanitizedData.ticketTypeId || sanitizedData.departmentId) {
+      const priority = sanitizedData.priority || ticket.priority;
+      const typeId = sanitizedData.ticketTypeId !== undefined ? sanitizedData.ticketTypeId : ticket.ticketTypeId;
+      const deptId = sanitizedData.departmentId !== undefined ? sanitizedData.departmentId : ticket.departmentId;
 
       const [targetDept, ticketType] = await Promise.all([
         prisma.department.findUnique({ where: { id: parseInt(deptId) } }),
@@ -1725,25 +1742,24 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
 
       if (targetDept) {
         const baseSlaHours = ticketType?.slaHours || targetDept.slaHours || 24;
-        updateData.slaDeadline = calculateSLADeadline(baseSlaHours, (priority as any));
+        sanitizedData.slaDeadline = calculateSLADeadline(baseSlaHours, (priority as any));
       }
     }
 
     const updatedTicket = await prisma.ticket.update({
       where: { id: parseInt(id) },
-      data: updateData
+      data: sanitizedData
     });
 
-    // Audit Log for override
     await prisma.auditLog.create({
       data: {
         ticketId: updatedTicket.id,
         userId: req.user.id,
         action: 'SUPER_ADMIN_OVERRIDE',
         departmentId: updatedTicket.departmentId,
-        oldData: ticket as any,
+        oldData: { id: ticket.id, ticketNumber: ticket.ticketNumber, changedFields },
         newData: {
-          updatedFields: Object.keys(updateData),
+          updatedFields: changedFields,
           performedBy: req.user.fullNameEn,
           timestamp: new Date().toISOString()
         }

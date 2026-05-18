@@ -6,12 +6,12 @@ services:
     ports:
       - "3001:3000"
     environment:
-      - DATABASE_URL=postgresql://johndoe:randompassword@db:5432/abch_db?schema=public
+      - DATABASE_URL=${DATABASE_URL:-postgresql://johndoe:${POSTGRES_PASSWORD:-randompassword}@db:5432/abch_db?schema=public}
       - REDIS_URL=redis://redis:6379
-      - JWT_ACCESS_SECRET=change-this-in-production
-      - JWT_REFRESH_SECRET=change-this-refresh-secret
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - NODE_ENV=production
-      - FRONTEND_URL=https://yourdomain.com
+      - FRONTEND_URL=${FRONTEND_URL:-https://yourdomain.com}
     depends_on:
       - db
       - redis
@@ -22,9 +22,9 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_USER=johndoe
-      - POSTGRES_PASSWORD=randompassword
-      - POSTGRES_DB=abch_db
+      - POSTGRES_USER=${POSTGRES_USER:-johndoe}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-randompassword}
+      - POSTGRES_DB=${POSTGRES_DB:-abch_db}
     ports:
       - "5433:5432"
     volumes:

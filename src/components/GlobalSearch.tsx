@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, Loader2, Ticket, User, Calendar, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '../store/authStore.ts';
 import { useSettingsStore } from '../store/settingsStore.ts';
+import { apiFetch } from '../core/api.ts';
 
 interface SearchResult {
   id: number;
@@ -17,7 +18,6 @@ export const GlobalSearch: React.FC = () => {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const { accessToken } = useAuthStore();
   const { language } = useSettingsStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const searchControllerRef = useRef<AbortController | null>(null);
@@ -58,16 +58,10 @@ export const GlobalSearch: React.FC = () => {
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/tickets/search?q=${encodeURIComponent(query)}&limit=5`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        signal: controller.signal
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (!controller.signal.aborted) {
-          setResults(data.tickets);
-          setIsOpen(true);
-        }
+      const data = await apiFetch(`/api/tickets/search?q=${encodeURIComponent(query)}&limit=5`, { signal: controller.signal });
+      if (!controller.signal.aborted) {
+        setResults(data.tickets);
+        setIsOpen(true);
       }
     } catch (error: any) {
       if (error?.name === 'AbortError') return;

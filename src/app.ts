@@ -171,12 +171,14 @@ app.get('/api/health', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/api/test-bigint', (req, res) => {
-  res.json({
-    message: 'Testing BigInt serialization',
-    value: BigInt(9007199254740991) + BigInt(1)
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/api/test-bigint', (req, res) => {
+    res.json({
+      message: 'Testing BigInt serialization',
+      value: BigInt(9007199254740991) + BigInt(1)
+    });
   });
-});
+}
 
 // API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {

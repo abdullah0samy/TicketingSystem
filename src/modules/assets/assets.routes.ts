@@ -4,10 +4,15 @@ import { authenticate, authorize, type AuthRequest } from '../../core/middleware
 
 const router = Router();
 
-// Get all assets
-router.get('/', authenticate, async (req, res) => {
+// Get all assets (scoped by department for non-admin users)
+router.get('/', authenticate, async (req: AuthRequest, res) => {
   try {
+    const where: any = {};
+    if (req.user!.role !== 'super_admin' && req.user!.role !== 'supervisor') {
+      where.departmentId = req.user!.departmentId || -1;
+    }
     const assets = await prisma.asset.findMany({
+      where,
       include: {
         department: true,
       },
