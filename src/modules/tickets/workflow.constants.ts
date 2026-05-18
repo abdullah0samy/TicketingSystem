@@ -5,14 +5,15 @@ export const TICKET_PRIORITIES = ['low', 'normal', 'high', 'critical'] as const;
 export type TicketPriority = (typeof TICKET_PRIORITIES)[number];
 
 export const ALLOWED_TRANSITIONS: Record<TicketStatus, TicketStatus[]> = {
-  pending: ['open', 'in_progress', 'closed'],
-  open: ['in_progress', 'closed'],
-  in_progress: ['resolved', 'closed'],
+  pending: ['open', 'in_progress'],
+  open: ['in_progress'],
+  in_progress: ['resolved'],
   // NOTE: resolved → closed is intentionally REMOVED from here.
   // The only path to "closed" from "resolved" is:
   //   1. Creator confirmation via PUT /:id/confirm
   //   2. Super Admin force-close via PATCH /:id (full override)
   // This enforces the hospital workflow: agent resolves → creator confirms → auto-close.
+  // Also: no direct pending/open/in_progress → closed — prevents bypassing creator confirmation.
   resolved: ['in_progress'], // Allow reopen only; closing requires creator confirmation
   closed: ['in_progress'], // Reopen (super_admin only, enforced in route handler)
 };

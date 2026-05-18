@@ -118,6 +118,8 @@ model User {
   lastLoginIp         String?                 @map("last_login_ip")
   refreshTokenHash    String?                 @map("refresh_token_hash")
   refreshTokenExpiresAt DateTime?             @map("refresh_token_expires_at")
+  failedLoginAttempts Int                     @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime?               @map("locked_until")
   createdAt           DateTime                @default(now()) @map("created_at")
   updatedAt           DateTime                @updatedAt @map("updated_at")
   deletedAt           DateTime?               @map("deleted_at")
@@ -230,9 +232,12 @@ model Ticket {
   dueDate                  DateTime?             @map("due_date")
   relatedTickets           String?               @map("related_tickets") // Stored as JSON array string
   currentQueueEntryAt      DateTime              @default(now()) @map("current_queue_entry_at")
+  inProgressAt             DateTime?             @map("in_progress_at")
   firstResponseAt          DateTime?             @map("first_response_at")
   completedAt              DateTime?             @map("completed_at")
   closedAt                 DateTime?             @map("closed_at")
+  resolutionCategory       String?               @map("resolution_category")
+  resolutionNotes          String?               @map("resolution_notes")
   requiresExternalResource Boolean               @default(false) @map("requires_external_resource")
   externalResourceCost     Float?                @map("external_resource_cost")
   externalResourceNote     String?               @map("external_resource_note")
@@ -276,6 +281,7 @@ model Ticket {
   @@index([status, departmentId, createdAt])        // Multi-filter inbox queries
   @@index([status, assignedToId, createdAt])        // Agent workload queries
   @@index([completedAt])                             // Resolution time analytics
+  @@index([inProgressAt])                            // AHT analytics
   @@map("tickets")
 }
 
@@ -312,6 +318,7 @@ model TicketMessage {
 
   @@map("ticket_messages")
   @@index([senderId])
+  @@index([ticketId, createdAt])
 }
 
 model MessageAttachment {
@@ -363,6 +370,7 @@ model TicketStatusHistory {
 
   @@map("ticket_status_history")
   @@index([changedById])
+  @@index([ticketId, createdAt])
 }
 
 model Notification {
@@ -382,6 +390,7 @@ model Notification {
   @@index([userId])
   @@index([userId, isRead])
   @@index([ticketId])
+  @@index([createdAt])
   @@map("notifications")
 }
 
@@ -477,6 +486,7 @@ model AuditLog {
   @@index([userId])
   @@index([ticketId, createdAt])
   @@index([action, createdAt])
+  @@index([departmentId, createdAt])
   @@index([createdAt])
   @@map("audit_logs")
 }

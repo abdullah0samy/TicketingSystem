@@ -4,7 +4,7 @@ import { authenticate } from '../../core/middleware/auth.middleware.ts';
 
 const router = Router();
 
-// Get all notes for the user's department
+// Get notes for the user's department with pagination
 router.get('/', authenticate, async (req: any, res) => {
   try {
     const user = await prisma.user.findUnique({
@@ -13,46 +13,54 @@ router.get('/', authenticate, async (req: any, res) => {
     });
 
     const where: any = { deletedAt: null };
-    
+
     if (user?.role !== 'super_admin') {
       if (!user?.departmentId) {
-        return res.json([]); // Return empty if no department and not super admin
+        return res.json({ notes: [], total: 0, page: 1, limit: 50 });
       }
       where.departmentId = user.departmentId;
     }
-    // Super admin sees all notes (where.departmentId is not set)
 
-    const notes = await prisma.teamNote.findMany({
-      where,
-      include: {
-        author: {
-          select: {
-            id: true,
-            fullNameAr: true,
-            fullNameEn: true,
-            avatarUrl: true
-          }
-        },
-        attachments: true,
-        comments: {
-          include: {
-            author: {
-              select: {
-                id: true,
-                fullNameAr: true,
-                fullNameEn: true,
-                avatarUrl: true
-              }
+    const pageNum = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [notes, total] = await Promise.all([
+      prisma.teamNote.findMany({
+        where,
+        skip,
+        take: limitNum,
+        include: {
+          author: {
+            select: {
+              id: true,
+              fullNameAr: true,
+              fullNameEn: true,
+              avatarUrl: true
             }
           },
-          orderBy: { createdAt: 'asc' }
+          attachments: true,
+          comments: {
+            include: {
+              author: {
+                select: {
+                  id: true,
+                  fullNameAr: true,
+                  fullNameEn: true,
+                  avatarUrl: true
+                }
+              }
+            },
+            orderBy: { createdAt: 'asc' }
+          },
+          likes: true
         },
-        likes: true
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.teamNote.count({ where })
+    ]);
 
-    res.json(notes);
+    res.json({ notes, total, page: pageNum, limit: limitNum });
   } catch (error) {
     console.error('Error fetching team notes:', error);
     res.status(500).json({ message: 'Internal server error' });

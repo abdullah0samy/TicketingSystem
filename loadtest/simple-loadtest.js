@@ -7,6 +7,8 @@
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const CONCURRENCY = parseInt(process.argv[2]) || 50;
 const DURATION_SEC = parseInt(process.argv[3]) || 60;
+const LOGIN_ID = process.env.LOGIN_ID || '00001';
+const LOGIN_PASS = process.env.LOGIN_PASS || 'Admin@123';
 
 const stats = {
   total: 0,
@@ -20,7 +22,7 @@ async function login() {
   const res = await fetch(`${BASE_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ identifier: '1', password: 'password123' }),
+    body: JSON.stringify({ identifier: LOGIN_ID, password: LOGIN_PASS }),
   });
   if (!res.ok) return null;
   const data = await res.json();

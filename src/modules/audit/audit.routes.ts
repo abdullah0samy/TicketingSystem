@@ -1,14 +1,19 @@
 import { Router } from 'express';
 import prisma from '../../core/db.ts';
-import { authenticate, authorize } from '../../core/middleware/auth.middleware.ts';
+import { authenticate, type AuthRequest } from '../../core/middleware/auth.middleware.ts';
+import { getUserPermission } from '../../core/permissions.ts';
 
 const router = Router();
 
 const MAX_PAGE_SIZE = 100;
 
 // Get all audit logs with filters
-router.get('/', authenticate, authorize(['super_admin']), async (req, res) => {
+router.get('/', authenticate, async (req: AuthRequest, res) => {
   try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+    const hasPerm = await getUserPermission(req.user.id, req.user.role, req.user.departmentId ?? null, 'canViewAuditLogs');
+    if (!hasPerm) return res.status(403).json({ message: 'Insufficient permissions' });
+
     const { 
       userId, 
       action, 
@@ -78,13 +83,17 @@ router.get('/', authenticate, authorize(['super_admin']), async (req, res) => {
 });
 
 // Get audit actions list (for filtering)
-router.get('/actions', authenticate, authorize(['super_admin']), async (req, res) => {
+router.get('/actions', authenticate, async (req: AuthRequest, res) => {
   try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+    const hasPerm = await getUserPermission(req.user.id, req.user.role, req.user.departmentId ?? null, 'canViewAuditLogs');
+    if (!hasPerm) return res.status(403).json({ message: 'Insufficient permissions' });
     const actions = await prisma.auditLog.groupBy({
       by: ['action'],
     });
     res.json(actions.map(a => a.action));
   } catch (error) {
+    console.error('Error fetching actions:', error);
     res.status(500).json({ error: 'Failed to fetch actions' });
   }
 });

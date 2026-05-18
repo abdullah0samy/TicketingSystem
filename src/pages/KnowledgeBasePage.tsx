@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/authStore.ts';
 import { useSettingsStore } from '../store/settingsStore.ts';
 import { translations } from '../core/translations.ts';
 import { apiFetch } from '../core/api.ts';
+import { useNotifications } from '../core/NotificationProvider.tsx';
 import { 
   Search, 
   BookOpen, 
@@ -52,6 +53,7 @@ export default function KnowledgeBasePage() {
   const { accessToken, user } = useAuthStore();
   const { language } = useSettingsStore();
   const t = translations[language];
+  const { addNotification } = useNotifications();
 
   const hasKbPermission = useMemo(() => {
     if (!user) return false;
@@ -208,7 +210,6 @@ export default function KnowledgeBasePage() {
   };
 
   const handleDeleteArticle = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this article?')) return;
     try {
       await apiFetch(`/api/knowledge/articles/${id}`, {
         method: 'DELETE'
@@ -241,7 +242,6 @@ export default function KnowledgeBasePage() {
   };
 
   const handleDeleteCategory = async (id: number) => {
-    if (!window.confirm('Delete this category? This only works if it has no articles.')) return;
     try {
       await apiFetch(`/api/knowledge/categories/${id}`, {
         method: 'DELETE'
@@ -250,7 +250,7 @@ export default function KnowledgeBasePage() {
     } catch (error) {
       setError(error?.message || 'Something went wrong');
       console.error('Error deleting category:', error);
-      alert('Failed to delete. Ensure category is empty.');
+      addNotification({ title: 'Error', message: 'Failed to delete. Ensure category is empty.', type: 'error' });
     }
   };
 

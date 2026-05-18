@@ -16,9 +16,6 @@ const REFRESH_TOKEN_COOKIE_OPTIONS = {
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
-// In-memory failed login tracker (resets on restart)
-// Format: Map<identifier, { count: number, lockedUntil: Date | null }>
-const failedLoginAttempts = new Map<string, { count: number; lockedUntil: Date | null }>();
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -37,16 +34,6 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ message: 'Invalid identifier format' });
   }
 
-  // SECURITY: Check account lockout
-  const attempt = failedLoginAttempts.get(identifier);
-  if (attempt && attempt.lockedUntil && attempt.lockedUntil > new Date()) {
-    const remaining = Math.ceil((attempt.lockedUntil.getTime() - Date.now()) / 60000);
-    return res.status(429).json({
-      message: `Account temporarily locked. Try again in ${remaining} minute(s).`,
-      code: 'ACCOUNT_LOCKED'
-    });
-  }
-
   try {
     const user = await prisma.user.findFirst({
       where: {
@@ -58,21 +45,35 @@ router.post('/login', async (req, res) => {
       include: { department: true }
     });
 
-    if (!user || !user.isActive) {
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // SECURITY: Check account lockout (DB-persisted, survives restarts)
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const remaining = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
+      return res.status(429).json({
+        message: `Account temporarily locked. Try again in ${remaining} minute(s).`,
+        code: 'ACCOUNT_LOCKED'
+      });
+    }
+
+    if (!user.isActive) {
       return res.status(401).json({ message: 'Invalid credentials or inactive account' });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
-      // Track failed login attempt
-      const current = failedLoginAttempts.get(identifier) || { count: 0, lockedUntil: null };
-      const newCount = current.count + 1;
+      const newCount = user.failedLoginAttempts + 1;
 
       if (newCount >= MAX_FAILED_ATTEMPTS) {
-        failedLoginAttempts.set(identifier, {
-          count: newCount,
-          lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS)
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            failedLoginAttempts: newCount,
+            lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS)
+          }
         });
         return res.status(429).json({
           message: `Too many failed attempts. Account locked for ${LOCKOUT_DURATION_MS / 60000} minutes.`,
@@ -80,7 +81,11 @@ router.post('/login', async (req, res) => {
         });
       }
 
-      failedLoginAttempts.set(identifier, { count: newCount, lockedUntil: null });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: newCount }
+      });
+
       const remaining = MAX_FAILED_ATTEMPTS - newCount;
       return res.status(401).json({
         message: `Invalid credentials. ${remaining} attempt(s) remaining.`,
@@ -88,8 +93,16 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Successful login — clear failed attempts
-    failedLoginAttempts.delete(identifier);
+    // Successful login — reset lockout counters
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        lastLoginAt: new Date(),
+        lastLoginIp: req.ip || req.socket.remoteAddress || null,
+      }
+    });
 
     const refreshTokenValue = crypto.randomBytes(40).toString('hex');
     const refreshTokenHash = crypto.createHash('sha256').update(refreshTokenValue).digest('hex');
@@ -98,7 +111,6 @@ router.post('/login', async (req, res) => {
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        lastLoginAt: new Date(),
         refreshTokenHash,
         refreshTokenExpiresAt: expiresAt,
       }

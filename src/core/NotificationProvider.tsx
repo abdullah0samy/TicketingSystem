@@ -30,14 +30,18 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 const MAX_RECONNECT_ATTEMPTS = 10;
 const RECONNECT_DELAY = 2000;
+const INFINITE_RECONNECT_INTERVAL = 30000;
 const TOAST_DURATION = 6000;
 const MAX_NOTIFICATIONS = 100;
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [toasts, setToasts] = useState<Notification[]>([]);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'reconnecting'>('disconnected');
+  const hasBeenConnectedRef = useRef(false);
   const socketRef = useRef<Socket | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const infiniteRetryRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { user, accessToken } = useAuthStore();
   const { language } = useSettingsStore();
   const langRef = useRef(language);
@@ -94,17 +98,36 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
 
     socket.on('connect', () => {
+      hasBeenConnectedRef.current = true;
+      setConnectionStatus('connected');
       reconnectAttemptsRef.current = 0;
+      if (infiniteRetryRef.current) {
+        clearInterval(infiniteRetryRef.current);
+        infiniteRetryRef.current = null;
+      }
       socket.emit('join-user', currentUser.id);
       if (currentUser.departmentId) {
         socket.emit('join-department', currentUser.departmentId);
       }
     });
 
-    socket.on('disconnect', () => {});
+    socket.on('disconnect', (reason) => {
+      setConnectionStatus(reason === 'io client disconnect' ? 'disconnected' : 'reconnecting');
+    });
 
     socket.on('connect_error', () => {
       reconnectAttemptsRef.current++;
+      setConnectionStatus('reconnecting');
+      if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS && !infiniteRetryRef.current) {
+        infiniteRetryRef.current = setInterval(() => {
+          if (socketRef.current && !socketRef.current.connected) {
+            socketRef.current.connect();
+          } else if (infiniteRetryRef.current) {
+            clearInterval(infiniteRetryRef.current);
+            infiniteRetryRef.current = null;
+          }
+        }, INFINITE_RECONNECT_INTERVAL);
+      }
     });
 
     socket.on('new-ticket', (data: any) => {
@@ -237,6 +260,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         clearTimeout(timer);
       }
       toastTimersRef.current.clear();
+      if (infiniteRetryRef.current) {
+        clearInterval(infiniteRetryRef.current);
+        infiniteRetryRef.current = null;
+      }
       if (socketRef.current) {
         socketRef.current.removeAllListeners();
         socketRef.current.disconnect();
@@ -244,6 +271,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     };
   }, [accessToken, user?.id, connectSocket]);
+
+  useEffect(() => {
+    if (!hasBeenConnectedRef.current) return;
+    if (connectionStatus === 'disconnected' || connectionStatus === 'reconnecting') {
+      const msg = connectionStatus === 'disconnected'
+        ? 'Real-time connection lost. Please refresh the page.'
+        : 'Real-time connection unstable. Reconnecting...';
+      addNotification({ title: 'Connection Lost', message: msg, type: 'warning' });
+    }
+  }, [connectionStatus, addNotification]);
 
   useEffect(() => {
     if (typeof window.Notification !== 'undefined' && Notification.permission === 'default') {

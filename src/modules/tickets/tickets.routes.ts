@@ -8,9 +8,16 @@ import { ALLOWED_TRANSITIONS, TICKET_PRIORITIES } from './workflow.constants.ts'
 import { calculateSLADeadline } from './sla.utils.ts';
 import { validate, validateQuery } from '../../core/utils/api.utils.ts';
 import { createTicketSchema, ticketSearchSchema } from './tickets.schema.ts';
-import { getCachedPermissions, setCachedPermissions, invalidatePermissionCache } from '../../core/permissionCache.ts';
+import { invalidatePermissionCache } from '../../core/permissionCache.ts';
+import { getUserPermission } from '../../core/permissions.ts';
 
 const router = express.Router();
+
+const createLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 10 : 1000000,
+  message: { message: 'Too many ticket creation requests. Please slow down.' }
+});
 
 const searchLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
@@ -32,37 +39,14 @@ async function checkTicketPermission(
   if (userRole === 'super_admin') return true;
   if (!userDeptId || Number(userDeptId) !== ticketDeptId) return false;
 
-  // Use cache when not in a transaction
-  const isTransactional = txClient !== prisma;
-  if (!isTransactional) {
-    const cached = getCachedPermissions(userId, Number(userDeptId));
-    if (cached) {
-      if (cached[action] !== null) return Boolean(cached[action]);
-      if (action === 'canArchiveTickets') return userRole === 'supervisor';
-      return true;
-    }
-  }
-
-  const userOverride = await txClient.userPermissionOverride.findUnique({ where: { userId } });
-  const dept = await txClient.department.findUnique({
-    where: { id: Number(userDeptId) },
-    include: { defaultPermissions: true }
+  const perm = await getUserPermission(userId, userRole, Number(userDeptId), action, {
+    txClient: txClient !== prisma ? txClient : undefined,
+    fallback: action !== 'canArchiveTickets'
   });
 
-  // Cache combined result
-  if (!isTransactional) {
-    setCachedPermissions(userId, Number(userDeptId), {
-      canChangeStatus: userOverride?.['canChangeStatus'] ?? dept?.defaultPermissions?.['canChangeStatus'] ?? null,
-      canAssignTickets: userOverride?.['canAssignTickets'] ?? dept?.defaultPermissions?.['canAssignTickets'] ?? null,
-      canTransferTickets: userOverride?.['canTransferTickets'] ?? dept?.defaultPermissions?.['canTransferTickets'] ?? null,
-      canArchiveTickets: userOverride?.['canArchiveTickets'] ?? dept?.defaultPermissions?.['canArchiveTickets'] ?? null,
-    });
-  }
-
-  if (userOverride && userOverride[action] !== null) return Boolean(userOverride[action]);
-  if (dept?.defaultPermissions && dept.defaultPermissions[action] !== null) return Boolean(dept.defaultPermissions[action]);
+  if (perm) return true;
   if (action === 'canArchiveTickets') return userRole === 'supervisor';
-  return true; 
+  return false;
 }
 
 // --- TICKET NUMBER GENERATOR ---
@@ -129,7 +113,7 @@ async function generateTicketNumber(txClient: any = prisma): Promise<string> {
  *       500:
  *         description: Server error
  */
-router.post('/', validate(createTicketSchema), async (req: AuthRequest, res: Response) => {
+router.post('/', createLimiter, validate(createTicketSchema), async (req: AuthRequest, res: Response) => {
   const { 
     subject, 
     description, 
@@ -364,19 +348,7 @@ router.get('/department', async (req: AuthRequest, res: Response) => {
 
   // RBAC: Check canViewAllDeptTickets — if false, restrict to own tickets only
   if (req.user.role !== 'super_admin' && req.user.departmentId) {
-    const userOverride = await prisma.userPermissionOverride.findUnique({ where: { userId: req.user.id } });
-    let canViewAll = true; // default
-    if (userOverride && userOverride.canViewAllDeptTickets !== null) {
-      canViewAll = Boolean(userOverride.canViewAllDeptTickets);
-    } else {
-      const dept = await prisma.department.findUnique({
-        where: { id: Number(req.user.departmentId) },
-        include: { defaultPermissions: true }
-      });
-      if (dept?.defaultPermissions && dept.defaultPermissions.canViewAllDeptTickets !== null) {
-        canViewAll = Boolean(dept.defaultPermissions.canViewAllDeptTickets);
-      }
-    }
+    const canViewAll = await getUserPermission(req.user.id, req.user.role, req.user.departmentId, 'canViewAllDeptTickets', { fallback: true });
     if (!canViewAll) {
       where.OR = [
         { assignedToId: req.user.id },
@@ -735,7 +707,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 router.put('/:id/status', async (req: AuthRequest, res: Response) => {
   if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
   const { id } = req.params;
-  const { status, comment, ticketTypeId, requiresExternalResource, externalResourceCost, externalResourceNote } = req.body;
+  const { status, comment, ticketTypeId, requiresExternalResource, externalResourceCost, externalResourceNote, resolutionCategory, resolutionNotes } = req.body;
 
   try {
     const ticket = await prisma.ticket.findUnique({ where: { id: parseInt(id) } });
@@ -799,8 +771,19 @@ router.put('/:id/status', async (req: AuthRequest, res: Response) => {
       });
     }
 
+    // STRICT RESOLUTION: resolutionCategory and resolutionNotes required for →resolved
+    if (status === 'resolved') {
+      if (!resolutionCategory || !resolutionNotes) {
+        return res.status(400).json({
+          message: 'يجب تحديد نوع الحل وكتابة تفاصيل قفل التذكرة أولاً',
+          code: 'RESOLUTION_DETAILS_REQUIRED'
+        });
+      }
+    }
+
     // Determine timestamp updates
     const isReopen = (oldStatus === 'resolved' || oldStatus === 'closed') && status === 'in_progress';
+    const isStartingProgress = status === 'in_progress' && oldStatus !== 'in_progress';
 
     const updatedTicket = await prisma.$transaction(async (tx) => {
       // If ticketTypeId provided inline and differs from current, recalculate SLA
@@ -821,6 +804,11 @@ router.put('/:id/status', async (req: AuthRequest, res: Response) => {
             ? (() => { const v = parseFloat(externalResourceCost); return isNaN(v) ? null : v; })()
             : undefined,
           externalResourceNote: (status === 'resolved' || status === 'closed') && externalResourceNote !== undefined ? externalResourceNote : undefined,
+          // AHT: set inProgressAt on first →in_progress (never overwrite on re-assigns)
+          inProgressAt: isReopen ? null : (isStartingProgress && !ticket.inProgressAt ? new Date() : undefined),
+          // ITIL: store resolution category and notes on →resolved
+          resolutionCategory: status === 'resolved' ? resolutionCategory : undefined,
+          resolutionNotes: status === 'resolved' ? resolutionNotes : undefined,
           // Set timestamps on resolve/close, nullify on reopen
           completedAt: isReopen ? null : (status === 'resolved' ? new Date() : ticket.completedAt),
           closedAt: isReopen ? null : (status === 'closed' ? new Date() : ticket.closedAt),

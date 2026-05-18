@@ -24,19 +24,19 @@ describe('Workflow Constants', () => {
   });
 
   describe('ALLOWED_TRANSITIONS', () => {
-    it('should allow pending -> open, in_progress, closed', () => {
+    it('should allow pending -> open, in_progress (no direct closed — must go through resolved + /confirm)', () => {
       expect(ALLOWED_TRANSITIONS.pending).toContain('open');
       expect(ALLOWED_TRANSITIONS.pending).toContain('in_progress');
-      expect(ALLOWED_TRANSITIONS.pending).toContain('closed');
+      expect(ALLOWED_TRANSITIONS.pending).not.toContain('closed');
     });
 
     it('should NOT allow pending -> resolved (must go through in_progress first)', () => {
       expect(ALLOWED_TRANSITIONS.pending).not.toContain('resolved');
     });
 
-    it('should allow in_progress -> resolved, closed', () => {
+    it('should allow in_progress -> resolved only (no direct closed)', () => {
       expect(ALLOWED_TRANSITIONS.in_progress).toContain('resolved');
-      expect(ALLOWED_TRANSITIONS.in_progress).toContain('closed');
+      expect(ALLOWED_TRANSITIONS.in_progress).not.toContain('closed');
     });
 
     it('should allow resolved -> in_progress (reopen) only; closed requires /confirm endpoint', () => {

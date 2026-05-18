@@ -8,6 +8,8 @@ const errorRate = new Rate('errors');
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
 const CONCURRENCY = parseInt(__ENV.CONCURRENCY || '50');
 const DURATION = __ENV.DURATION || '2m';
+const LOGIN_ID = __ENV.LOGIN_ID || '00001';
+const LOGIN_PASS = __ENV.LOGIN_PASS || 'Admin@123';
 
 export const options = {
   stages: [
@@ -27,8 +29,8 @@ export const options = {
 // 1. Login
 function login() {
   const res = http.post(`${BASE_URL}/api/auth/login`, JSON.stringify({
-    identifier: '1',
-    password: 'password123',
+    identifier: LOGIN_ID,
+    password: LOGIN_PASS,
   }), {
     headers: { 'Content-Type': 'application/json' },
   });

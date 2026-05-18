@@ -1,13 +1,22 @@
 import express from 'express';
 import type { Response } from 'express';
 import prisma from '../../core/db.ts';
-import { authenticate, authorize } from '../../core/middleware/auth.middleware.ts';
+import { authenticate, authorize, type AuthRequest } from '../../core/middleware/auth.middleware.ts';
+import { getUserPermission } from '../../core/permissions.ts';
 import ExcelJS from 'exceljs';
 import fs from 'fs';
 import path from 'path';
 import { EXPORTS_DIR } from '../../core/paths.ts';
 
 const router = express.Router();
+
+const analyticsAuth = (req: AuthRequest, res: any, next: any) => {
+  if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+  getUserPermission(req.user.id, req.user.role, req.user.departmentId ?? null, 'canViewAnalytics').then(has => {
+    if (!has) return res.status(403).json({ message: 'Insufficient permissions' });
+    next();
+  });
+};
 
 // Helper to get base ticket filter depending on role
 const getBaseTicketFilter = (req: any) => {
@@ -26,7 +35,7 @@ const getBaseTicketFilter = (req: any) => {
 };
 
 // [OPTIMIZATION] Consolidated dashboard summary to prevent request flooding
-router.get('/dashboard-summary', authenticate, async (req: any, res) => {
+router.get('/dashboard-summary', authenticate, analyticsAuth, async (req: any, res) => {
   try {
     const baseWhere = getBaseTicketFilter(req);
     const ninetyDaysAgo = new Date();
@@ -78,7 +87,7 @@ router.get('/dashboard-summary', authenticate, async (req: any, res) => {
           department: { select: { nameEn: true, nameAr: true } },
           ticketsAssigned: {
             where: { status: { in: ['resolved', 'closed'] }, completedAt: { gte: ninetyDaysAgo } },
-            select: { status: true, createdAt: true, completedAt: true, slaDeadline: true, firstResponseAt: true }
+            select: { status: true, createdAt: true, inProgressAt: true, completedAt: true, slaDeadline: true, firstResponseAt: true }
           }
         }
       }) : Promise.resolve([]),
@@ -93,15 +102,17 @@ router.get('/dashboard-summary', authenticate, async (req: any, res) => {
       })
     ]);
 
-    // Average resolution time - scoped to user's department/role, limited to last 90 days
+    // Average resolution time (AHT) — ITIL standard: inProgressAt→completedAt, fallback createdAt→completedAt
     const resolvedTicketsForAvg = await prisma.ticket.findMany({
       where: { ...baseWhere, completedAt: { not: null, gte: ninetyDaysAgo }, status: { in: ['resolved', 'closed'] } },
-      select: { createdAt: true, completedAt: true }
+      select: { inProgressAt: true, createdAt: true, completedAt: true },
+      take: 10000
     });
     let avgResolutionTimeHours = 0;
     if (resolvedTicketsForAvg.length > 0) {
       const totalMs = resolvedTicketsForAvg.reduce((acc, t) => {
-        return acc + (t.completedAt!.getTime() - t.createdAt.getTime());
+        const start = t.inProgressAt || t.createdAt;
+        return acc + (t.completedAt!.getTime() - start.getTime());
       }, 0);
       avgResolutionTimeHours = (totalMs / resolvedTicketsForAvg.length) / (1000 * 60 * 60);
     }
@@ -113,7 +124,8 @@ router.get('/dashboard-summary', authenticate, async (req: any, res) => {
       let resTime = 0, respTime = 0, respCount = 0, slaCount = 0;
       resolved.forEach(t => {
         if (t.completedAt) {
-          resTime += t.completedAt.getTime() - t.createdAt.getTime();
+          const start = t.inProgressAt || t.createdAt;
+          resTime += t.completedAt.getTime() - start.getTime();
           if (t.slaDeadline && t.completedAt <= t.slaDeadline) slaCount++;
         }
         if (t.firstResponseAt) { respTime += t.firstResponseAt.getTime() - t.createdAt.getTime(); respCount++; }
@@ -163,9 +175,11 @@ router.get('/dashboard-summary', authenticate, async (req: any, res) => {
 });
 
 // Get general statistics
-router.get('/stats', authenticate, async (req: any, res) => {
+router.get('/stats', authenticate, analyticsAuth, async (req: any, res) => {
   try {
     const baseWhere = getBaseTicketFilter(req);
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
     const totalTickets = await prisma.ticket.count({ where: baseWhere });
     const pendingTickets = await prisma.ticket.count({ where: { ...baseWhere, status: 'pending' } });
     const resolvedTickets = await prisma.ticket.count({ where: { ...baseWhere, status: 'resolved' } });
@@ -181,14 +195,16 @@ router.get('/stats', authenticate, async (req: any, res) => {
     });
 
     const resolvedWithTimes = await prisma.ticket.findMany({
-      where: { ...baseWhere, completedAt: { not: null } },
-      select: { createdAt: true, completedAt: true }
+      where: { ...baseWhere, completedAt: { not: null, gte: ninetyDaysAgo } },
+      select: { inProgressAt: true, createdAt: true, completedAt: true },
+      take: 10000
     });
 
     let avgResolutionTimeHours = 0;
     if (resolvedWithTimes.length > 0) {
       const totalMs = resolvedWithTimes.reduce((acc, t) => {
-        return acc + (t.completedAt!.getTime() - t.createdAt.getTime());
+        const start = t.inProgressAt || t.createdAt;
+        return acc + (t.completedAt!.getTime() - start.getTime());
       }, 0);
       avgResolutionTimeHours = (totalMs / resolvedWithTimes.length) / (1000 * 60 * 60);
     }
@@ -213,19 +229,7 @@ router.get('/export', authenticate as any, async (req: any, res: Response) => {
   try {
     // PERMISSION CHECK: Verify canExportData
     if (req.user.role !== 'super_admin') {
-      const userOverride = await prisma.userPermissionOverride.findUnique({ where: { userId: req.user.id } });
-      let canExport = true;
-      if (userOverride && userOverride.canExportData !== null) {
-        canExport = Boolean(userOverride.canExportData);
-      } else if (req.user.departmentId) {
-        const dept = await prisma.department.findUnique({
-          where: { id: Number(req.user.departmentId) },
-          include: { defaultPermissions: true }
-        });
-        if (dept?.defaultPermissions && dept.defaultPermissions.canExportData !== null) {
-          canExport = Boolean(dept.defaultPermissions.canExportData);
-        }
-      }
+      const canExport = await getUserPermission(req.user.id, req.user.role, req.user.departmentId ?? null, 'canExportData', { fallback: true });
       if (!canExport) {
         return res.status(403).json({ message: 'You do not have permission to export data' });
       }
@@ -254,6 +258,7 @@ router.get('/export', authenticate as any, async (req: any, res: Response) => {
             id: true,
             status: true,
             createdAt: true,
+            inProgressAt: true,
             completedAt: true,
             slaDeadline: true,
             firstResponseAt: true
@@ -283,7 +288,8 @@ router.get('/export', authenticate as any, async (req: any, res: Response) => {
 
       resolvedTickets.forEach(t => {
         if (t.completedAt) {
-          totalResolutionTimeMs += t.completedAt.getTime() - t.createdAt.getTime();
+          const start = t.inProgressAt || t.createdAt;
+          totalResolutionTimeMs += t.completedAt.getTime() - start.getTime();
           if (t.slaDeadline && t.completedAt <= t.slaDeadline) {
             slaCompliantCount++;
           }
@@ -433,7 +439,7 @@ router.get('/exports', authenticate as any, async (req: any, res: Response) => {
 });
 
 // Status distribution
-router.get('/status-distribution', authenticate, async (req: any, res) => {
+router.get('/status-distribution', authenticate, analyticsAuth, async (req: any, res) => {
   try {
     const baseWhere = getBaseTicketFilter(req);
     const stats = await prisma.ticket.groupBy({
@@ -448,7 +454,7 @@ router.get('/status-distribution', authenticate, async (req: any, res) => {
 });
 
 // Priority distribution
-router.get('/priority-distribution', authenticate, async (req: any, res) => {
+router.get('/priority-distribution', authenticate, analyticsAuth, async (req: any, res) => {
   try {
     const baseWhere = getBaseTicketFilter(req);
     const stats = await prisma.ticket.groupBy({
@@ -523,18 +529,19 @@ router.get('/agent-performance', authenticate, authorize(['super_admin', 'superv
         fullNameEn: true,
         fullNameAr: true,
         department: { select: { nameEn: true, nameAr: true } },
-        ticketsAssigned: {
-          where: { completedAt: { gte: ninetyDaysAgo } },
-          select: {
-            status: true,
-            createdAt: true,
-            completedAt: true,
-            slaDeadline: true,
-            firstResponseAt: true
+          ticketsAssigned: {
+            where: { completedAt: { gte: ninetyDaysAgo } },
+            select: {
+              status: true,
+              createdAt: true,
+              inProgressAt: true,
+              completedAt: true,
+              slaDeadline: true,
+              firstResponseAt: true
+            }
           }
         }
-      }
-    });
+      });
 
     const performance = agents.map(agent => {
       const resolvedTickets = agent.ticketsAssigned.filter(t => t.status === 'resolved' || t.status === 'closed');
@@ -547,7 +554,8 @@ router.get('/agent-performance', authenticate, authorize(['super_admin', 'superv
 
       resolvedTickets.forEach(t => {
         if (t.completedAt) {
-          totalResolutionTimeMs += t.completedAt.getTime() - t.createdAt.getTime();
+          const start = t.inProgressAt || t.createdAt;
+          totalResolutionTimeMs += t.completedAt.getTime() - start.getTime();
           if (t.slaDeadline && t.completedAt <= t.slaDeadline) {
             slaAdherenceCount++;
           }
@@ -589,7 +597,7 @@ router.get('/agent-performance', authenticate, authorize(['super_admin', 'superv
 });
 
 // --- AHT (Average Handling Time) Metrics ---
-router.get('/aht', authenticate, async (req: any, res) => {
+router.get('/aht', authenticate, analyticsAuth, async (req: any, res) => {
   try {
     const baseWhere = getBaseTicketFilter(req);
     const ninetyDaysAgo = new Date();
@@ -597,12 +605,16 @@ router.get('/aht', authenticate, async (req: any, res) => {
 
     const resolvedTickets = await prisma.ticket.findMany({
       where: { ...baseWhere, completedAt: { not: null, gte: ninetyDaysAgo }, status: { in: ['resolved', 'closed'] } },
-      select: { createdAt: true, completedAt: true, status: true, priority: true, departmentId: true }
+      select: { inProgressAt: true, createdAt: true, completedAt: true, status: true, priority: true, departmentId: true },
+      take: 10000
     });
 
     let overallAhtHours = 0;
     if (resolvedTickets.length > 0) {
-      const totalMs = resolvedTickets.reduce((acc, t) => acc + (t.completedAt!.getTime() - t.createdAt.getTime()), 0);
+      const totalMs = resolvedTickets.reduce((acc, t) => {
+        const start = t.inProgressAt || t.createdAt;
+        return acc + (t.completedAt!.getTime() - start.getTime());
+      }, 0);
       overallAhtHours = (totalMs / resolvedTickets.length) / (1000 * 60 * 60);
     }
 
@@ -610,7 +622,8 @@ router.get('/aht', authenticate, async (req: any, res) => {
     const priorityGroups: Record<string, { total: number; count: number }> = {};
     resolvedTickets.forEach(t => {
       if (!priorityGroups[t.priority]) priorityGroups[t.priority] = { total: 0, count: 0 };
-      priorityGroups[t.priority].total += t.completedAt!.getTime() - t.createdAt.getTime();
+      const start = t.inProgressAt || t.createdAt;
+      priorityGroups[t.priority].total += t.completedAt!.getTime() - start.getTime();
       priorityGroups[t.priority].count++;
     });
     const ahtByPriority = Object.entries(priorityGroups).map(([priority, data]) => ({
@@ -625,7 +638,8 @@ router.get('/aht', authenticate, async (req: any, res) => {
       const deptGroups: Record<number, { total: number; count: number }> = {};
       resolvedTickets.forEach(t => {
         if (!deptGroups[t.departmentId]) deptGroups[t.departmentId] = { total: 0, count: 0 };
-        deptGroups[t.departmentId].total += t.completedAt!.getTime() - t.createdAt.getTime();
+        const start = t.inProgressAt || t.createdAt;
+        deptGroups[t.departmentId].total += t.completedAt!.getTime() - start.getTime();
         deptGroups[t.departmentId].count++;
       });
       const deptIds = Object.keys(deptGroups).map(Number);

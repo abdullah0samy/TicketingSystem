@@ -147,6 +147,8 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
   const [resolveExternal, setResolveExternal] = useState(false);
   const [resolveExternalCost, setResolveExternalCost] = useState('');
   const [resolveExternalNote, setResolveExternalNote] = useState('');
+  const [resolutionCategory, setResolutionCategory] = useState('');
+  const [resolutionNotes, setResolutionNotes] = useState('');
 
   const [relatedTicketsData, setRelatedTicketsData] = useState<any[]>([]);
   const [showDueDateModal, setShowDueDateModal] = useState(false);
@@ -154,6 +156,8 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkSearchTerm, setLinkSearchTerm] = useState('');
   const [linkSearchResults, setLinkSearchResults] = useState<any[]>([]);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const { user } = useAuthStore();
   const { language } = useSettingsStore();
@@ -387,7 +391,11 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
   };
 
   const handleArchive = async () => {
-    if (!window.confirm(t.archiveConfirm)) return;
+    setShowArchiveModal(true);
+  };
+
+  const handleArchiveConfirm = async () => {
+    setShowArchiveModal(false);
     setSubmitting(true);
     try {
       await apiFetch(`/api/tickets/${ticketId}/archive`, { method: 'PUT' });
@@ -501,6 +509,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
   };
 
   const handleStatusChange = async (newStatus: string, extraFields?: Record<string, any>) => {
+    setActionLoading(`status-${newStatus}`);
     try {
       const body: Record<string, any> = { status: newStatus };
       if (extraFields) Object.assign(body, extraFields);
@@ -512,10 +521,13 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
     } catch (error: any) {
       const message = error?.message || 'Error updating status';
       addNotification({ title: t.error, message, type: 'error' });
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handleUpdateTicketType = async (typeId: string) => {
+    setActionLoading('ticketType');
     try {
       await apiFetch(`/api/tickets/${ticketId}/type`, {
         method: 'PUT',
@@ -524,10 +536,13 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
       fetchTicket();
     } catch (error) {
       console.error('Error updating issue type:', error);
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handleAssign = async (agentId: string) => {
+    setActionLoading('assign');
     try {
       await apiFetch(`/api/tickets/${ticketId}/assign`, {
         method: 'PUT',
@@ -538,6 +553,8 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
     } catch (error: any) {
       console.error('Error assigning ticket:', error);
       addNotification({ title: t.error, message: error?.message || 'Operation failed', type: 'error' });
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -614,10 +631,10 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
             <select
               value={ticket.assignedToId || ''}
               onChange={(e) => handleAssign(e.target.value)}
-              disabled={isLocked}
+              disabled={isLocked || !!actionLoading}
               className="input-surface px-4 py-2 bg-[var(--bg-surface)]/50"
             >
-              <option value="">{t.assignedAgent}</option>
+              <option value="">{actionLoading === 'assign' ? 'Assigning...' : t.assignedAgent}</option>
               {agents.map(a => <option key={a.id} value={a.id}>{language === 'ar' ? a.fullNameAr : a.fullNameEn}</option>)}
             </select>
 
@@ -652,10 +669,11 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                 const isCurrent = ticket.status === s;
                 // Mirror backend ALLOWED_TRANSITIONS (must stay in sync with workflow.constants.ts)
                 const transitions: Record<string, string[]> = {
-                  pending:     ['open', 'in_progress', 'closed'],
-                  open:        ['in_progress', 'closed'],
-                  in_progress: ['resolved', 'closed'],
+                  pending:     ['open', 'in_progress'],
+                  open:        ['in_progress'],
+                  in_progress: ['resolved'],
                   // resolved → closed removed: only creator /confirm or super_admin PATCH can close
+                  // Also: no direct pending/open/in_progress → closed (must go through resolved → confirm)
                   resolved:    ['in_progress'],
                   closed:      ['in_progress'], // reopen — super_admin only
                 };
@@ -692,7 +710,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                           handleStatusChange(s);
                         }
                       }}
-                      disabled={isDisabled}
+                      disabled={isDisabled || actionLoading?.startsWith('status-')}
                       className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all border ${
                         isCurrent
                            ? 'bg-primary-blue text-white border-primary-blue cursor-default shadow-lg shadow-primary-blue/20 scale-105 z-10' 
@@ -701,7 +719,12 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                             : 'bg-[var(--bg-main)] text-[var(--text-muted)] border-[var(--border-dim)] cursor-not-allowed'
                       }`}
                     >
-                      {t[s as keyof typeof t] || s.replace('_', ' ')}
+                      {actionLoading === `status-${s}` ? (
+                        <span className="flex items-center gap-2">
+                          <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          ...
+                        </span>
+                      ) : (t[s as keyof typeof t] || s.replace('_', ' '))}
                     </button>
                     {disabledReason && (
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-[var(--bg-elevated)] text-[var(--text-main)] text-[10px] font-bold rounded-lg whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg">
@@ -822,6 +845,41 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                 </select>
               </div>
 
+              {/* Resolution Category (ITIL) */}
+              <div>
+                <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
+                  {t.resolutionCategory} <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={resolutionCategory}
+                  onChange={(e) => setResolutionCategory(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] text-sm outline-none focus:ring-2 focus:ring-primary-blue"
+                >
+                  <option value="">{t.resolutionCategoryPlaceholder}</option>
+                  <option value="hardware">{language === 'ar' ? 'جهاز / عطل مادي' : 'Hardware / Physical'}</option>
+                  <option value="software">{language === 'ar' ? 'برمجيات / نظام' : 'Software / System'}</option>
+                  <option value="network">{language === 'ar' ? 'شبكة / اتصال' : 'Network / Connectivity'}</option>
+                  <option value="user_training">{language === 'ar' ? 'تدريب مستخدم' : 'User Training'}</option>
+                  <option value="third_party">{language === 'ar' ? 'طرف ثالث / جهة خارجية' : 'Third Party / Vendor'}</option>
+                  <option value="configuration">{language === 'ar' ? 'إعدادات / تهيئة' : 'Configuration / Settings'}</option>
+                  <option value="other">{language === 'ar' ? 'أخرى' : 'Other'}</option>
+                </select>
+              </div>
+
+              {/* Resolution Notes (ITIL) */}
+              <div>
+                <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">
+                  {t.resolutionNotes} <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={resolutionNotes}
+                  onChange={(e) => setResolutionNotes(e.target.value)}
+                  placeholder={t.resolutionNotesPlaceholder}
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-main)] text-sm outline-none focus:ring-2 focus:ring-primary-blue resize-none"
+                />
+              </div>
+
               {/* External Resource Toggle */}
               <div className="flex items-center gap-3">
                 <input
@@ -884,15 +942,21 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                       addNotification({ title: t.error, message: t.pleaseSelectIssueType, type: 'error' });
                       return;
                     }
+                    if (!resolutionCategory || !resolutionNotes) {
+                      addNotification({ title: t.error, message: t.resolutionCategoryRequired, type: 'error' });
+                      return;
+                    }
                     setShowResolveModal(false);
                     handleStatusChange('resolved', {
                       ticketTypeId: resolveTypeId,
+                      resolutionCategory,
+                      resolutionNotes,
                       requiresExternalResource: resolveExternal,
                       externalResourceCost: resolveExternalCost || null,
                       externalResourceNote: resolveExternalNote || null
                     });
                   }}
-                  disabled={!resolveTypeId}
+                  disabled={!resolveTypeId || !resolutionCategory || !resolutionNotes}
                   className="flex-1 px-6 py-3 rounded-xl bg-success-green text-white text-sm font-bold hover:bg-green-600 transition-all disabled:opacity-50"
                 >
                   {t.confirmResolve}
@@ -1569,6 +1633,47 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                   </button>
                 </div>
               ))}
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Archive Confirm Modal */}
+      {showArchiveModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="premium-card p-8 max-w-md w-full shadow-2xl"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-[var(--text-main)]">
+                {t.archiveAction}
+              </h3>
+              <button onClick={() => setShowArchiveModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]">
+                <X size={24} />
+              </button>
+            </div>
+            <p className="text-[var(--text-secondary)] mb-8">
+              {t.archiveConfirm}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowArchiveModal(false)}
+                className="px-6 py-3 border border-[var(--border-main)] rounded-xl text-sm font-bold text-[var(--text-secondary)] hover:bg-[var(--border-dim)] transition-all"
+              >
+                {t.cancel}
+              </button>
+              <button
+                onClick={handleArchiveConfirm}
+                disabled={submitting}
+                className="px-6 py-3 bg-danger-red text-white rounded-xl text-sm font-bold hover:bg-red-700 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {submitting ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : null}
+                {t.confirm}
+              </button>
             </div>
           </motion.div>
         </div>

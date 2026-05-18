@@ -69,7 +69,10 @@ export default function TeamFeedPage() {
   const { addNotification } = useNotifications();
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState<TeamNote[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [newNoteBody, setNewNoteBody] = useState('');
   const [attachments, setAttachments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -84,7 +87,7 @@ export default function TeamFeedPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchNotes(controller.signal);
+    fetchNotes(false, controller.signal);
     
     // Cleanup interval and stream on unmount
     return () => {
@@ -101,16 +104,30 @@ export default function TeamFeedPage() {
     };
   }, []);
 
-  const fetchNotes = async (signal?: AbortSignal) => {
+  const fetchNotes = async (loadMore = false, signal?: AbortSignal) => {
+    if (loadMore) setLoadingMore(true);
+    else setLoading(true);
+    const currentPage = loadMore ? page + 1 : 1;
     try {
-      const data = await apiFetch('/api/team-notes', { signal });
-      if (!signal?.aborted) setNotes(data);
+      const data = await apiFetch(`/api/team-notes?page=${currentPage}&limit=20`, { signal });
+      if (signal?.aborted) return;
+      const newNotes = data.notes || data;
+      if (loadMore) {
+        setNotes(prev => [...prev, ...newNotes]);
+      } else {
+        setNotes(newNotes);
+      }
+      setTotal(data.total || newNotes.length);
+      setPage(currentPage);
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       setError(err?.message || 'Something went wrong');
       console.error('Error fetching notes:', err);
     } finally {
-      if (!signal?.aborted) setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   };
 
@@ -527,6 +544,17 @@ export default function TeamFeedPage() {
               </AnimatePresence>
             </motion.div>
           ))
+        )}
+        {!loading && notes.length < total && (
+          <div className="text-center pt-4">
+            <button
+              onClick={() => fetchNotes(true)}
+              disabled={loadingMore}
+              className="bg-[var(--bg-surface)] border border-[var(--border-main)] text-[var(--text-secondary)] hover:text-primary-blue hover:border-primary-blue px-8 py-3 rounded-2xl font-bold text-sm transition-all disabled:opacity-50"
+            >
+              {loadingMore ? t.loading : (language === 'ar' ? 'تحميل المزيد' : 'Load More')}
+            </button>
+          </div>
         )}
       </div>
     </div>
