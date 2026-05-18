@@ -146,7 +146,6 @@ export const AnalyticsPage: React.FC = () => {
             <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl text-blue-600">
               <TrendingUp size={24} />
             </div>
-            <span className="text-xs font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded-lg">+12%</span>
           </div>
           <div className="text-2xl font-bold text-[var(--text-main)]">{stats?.total || 0}</div>
           <div className="text-sm text-[var(--text-secondary)]">{t.totalTickets}</div>

@@ -206,16 +206,15 @@ router.get('/stats', authenticate, async (req: any, res) => {
   }
 });
 
-// Export Tickets to Excel
+// Export Agent Performance to Excel
 router.get('/export', authenticate as any, async (req: any, res: Response) => {
-  const { startDate, endDate } = req.query;
   const MAX_EXPORT_ROWS = 10000;
 
   try {
     // PERMISSION CHECK: Verify canExportData
     if (req.user.role !== 'super_admin') {
       const userOverride = await prisma.userPermissionOverride.findUnique({ where: { userId: req.user.id } });
-      let canExport = true; // default
+      let canExport = true;
       if (userOverride && userOverride.canExportData !== null) {
         canExport = Boolean(userOverride.canExportData);
       } else if (req.user.departmentId) {
@@ -232,69 +231,147 @@ router.get('/export', authenticate as any, async (req: any, res: Response) => {
       }
     }
 
-    const where: any = getBaseTicketFilter(req);
-    if (startDate || endDate) {
-      where.createdAt = {};
-      if (startDate) where.createdAt.gte = new Date(startDate as string);
-      if (endDate) where.createdAt.lte = new Date(endDate as string);
-    }
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    const totalCount = await prisma.ticket.count({ where });
-    if (totalCount > MAX_EXPORT_ROWS) {
+    // Fetch all agents with their assigned tickets in the 90-day window
+    const agents = await prisma.user.findMany({
+      where: {
+        role: { in: ['agent', 'supervisor'] },
+        deletedAt: null,
+        ...(req.user.role !== 'super_admin' && req.user.departmentId
+          ? { departmentId: Number(req.user.departmentId) }
+          : {})
+      },
+      select: {
+        id: true,
+        fullNameEn: true,
+        fullNameAr: true,
+        department: { select: { nameEn: true, nameAr: true } },
+        ticketsAssigned: {
+          where: { createdAt: { gte: ninetyDaysAgo } },
+          select: {
+            id: true,
+            status: true,
+            createdAt: true,
+            completedAt: true,
+            slaDeadline: true,
+            firstResponseAt: true
+          }
+        }
+      }
+    });
+
+    if (agents.length > MAX_EXPORT_ROWS) {
       return res.status(400).json({
-        message: `Export limited to ${MAX_EXPORT_ROWS} tickets. Please narrow your date range. Found ${totalCount} tickets.`,
+        message: `Export limited to ${MAX_EXPORT_ROWS} agents.`,
         code: 'EXPORT_LIMIT_EXCEEDED'
       });
     }
 
-    const tickets = await prisma.ticket.findMany({
-      where,
-      include: {
-        department: true,
-        ticketType: true,
-        createdBy: { select: { fullNameEn: true, email: true } },
-        assignedTo: { select: { fullNameEn: true } }
-      },
-      orderBy: { createdAt: 'desc' }
+    // Compute performance metrics per agent
+    const performanceData = agents.map(agent => {
+      const allTickets = agent.ticketsAssigned;
+      const totalAssigned = allTickets.length;
+      const resolvedTickets = allTickets.filter(t => t.status === 'resolved' || t.status === 'closed');
+      const totalResolved = resolvedTickets.length;
+
+      let totalResolutionTimeMs = 0;
+      let totalResponseTimeMs = 0;
+      let responseCount = 0;
+      let slaCompliantCount = 0;
+
+      resolvedTickets.forEach(t => {
+        if (t.completedAt) {
+          totalResolutionTimeMs += t.completedAt.getTime() - t.createdAt.getTime();
+          if (t.slaDeadline && t.completedAt <= t.slaDeadline) {
+            slaCompliantCount++;
+          }
+        }
+        if (t.firstResponseAt) {
+          totalResponseTimeMs += t.firstResponseAt.getTime() - t.createdAt.getTime();
+          responseCount++;
+        }
+      });
+
+      const ahtHours = totalResolved > 0
+        ? Math.round(((totalResolutionTimeMs / totalResolved) / 3600000) * 10) / 10
+        : 0;
+
+      const slaComplianceRate = totalResolved > 0
+        ? Math.round((slaCompliantCount / totalResolved) * 100)
+        : 0;
+
+      return {
+        name: agent.fullNameEn || agent.fullNameAr,
+        department: agent.department?.nameEn || agent.department?.nameAr || 'N/A',
+        totalAssigned,
+        totalResolved,
+        ahtHours,
+        slaComplianceRate
+      };
     });
 
+    // Build Excel workbook
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Tickets');
+    const worksheet = workbook.addWorksheet('Agent Performance');
 
     worksheet.columns = [
-      { header: 'Ticket #', key: 'ticketNumber', width: 15 },
-      { header: 'Subject', key: 'subject', width: 30 },
-      { header: 'Status', key: 'status', width: 15 },
-      { header: 'Priority', key: 'priority', width: 15 },
+      { header: 'Agent Name', key: 'name', width: 25 },
       { header: 'Department', key: 'department', width: 20 },
-      { header: 'Type', key: 'type', width: 20 },
-      { header: 'Creator', key: 'creator', width: 25 },
-      { header: 'Assigned To', key: 'assignedTo', width: 25 },
-      { header: 'Created At', key: 'createdAt', width: 20 },
-      { header: 'SLA Deadline', key: 'slaDeadline', width: 20 }
+      { header: 'Total Assigned', key: 'totalAssigned', width: 15 },
+      { header: 'Resolved Tickets', key: 'totalResolved', width: 15 },
+      { header: 'Avg Handling Time (hrs)', key: 'ahtHours', width: 22 },
+      { header: 'SLA Compliance Rate (%)', key: 'slaComplianceRate', width: 22 }
     ];
 
-    tickets.forEach(t => {
+    // Style header
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF3B82F6' }
+    };
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+    performanceData.forEach(p => {
       worksheet.addRow({
-        ticketNumber: t.ticketNumber,
-        subject: t.subject,
-        status: t.status,
-        priority: t.priority,
-        department: t.department?.nameEn || 'N/A',
-        type: t.ticketType?.nameEn || 'N/A',
-        creator: t.createdBy?.fullNameEn || t.creatorName,
-        assignedTo: t.assignedTo?.fullNameEn || 'Unassigned',
-        createdAt: t.createdAt.toISOString(),
-        slaDeadline: t.slaDeadline ? t.slaDeadline.toISOString() : 'N/A'
+        name: p.name,
+        department: p.department,
+        totalAssigned: p.totalAssigned,
+        totalResolved: p.totalResolved,
+        ahtHours: p.ahtHours,
+        slaComplianceRate: p.slaComplianceRate
       });
     });
+
+    // Summary row
+    worksheet.addRow([]);
+    const totalAssignedAll = performanceData.reduce((sum, p) => sum + p.totalAssigned, 0);
+    const totalResolvedAll = performanceData.reduce((sum, p) => sum + p.totalResolved, 0);
+    const avgAhtAll = performanceData.filter(p => p.ahtHours > 0).length > 0
+      ? Math.round((performanceData.reduce((sum, p) => sum + p.ahtHours, 0) / performanceData.filter(p => p.ahtHours > 0).length) * 10) / 10
+      : 0;
+    const avgSlaAll = performanceData.filter(p => p.slaComplianceRate > 0).length > 0
+      ? Math.round(performanceData.reduce((sum, p) => sum + p.slaComplianceRate, 0) / performanceData.filter(p => p.slaComplianceRate > 0).length)
+      : 0;
+
+    const summaryRow = worksheet.addRow({
+      name: 'TOTAL / AVERAGE',
+      department: '',
+      totalAssigned: totalAssignedAll,
+      totalResolved: totalResolvedAll,
+      ahtHours: avgAhtAll,
+      slaComplianceRate: avgSlaAll
+    });
+    summaryRow.font = { bold: true };
 
     // Save to file for history
     if (!fs.existsSync(EXPORTS_DIR)) {
       fs.mkdirSync(EXPORTS_DIR, { recursive: true });
     }
 
-    const fileName = `tickets_report_${Date.now()}.xlsx`;
+    const fileName = `agent_performance_${Date.now()}.xlsx`;
     const filePath = path.join(EXPORTS_DIR, fileName);
     await workbook.xlsx.writeFile(filePath);
 
@@ -303,12 +380,12 @@ router.get('/export', authenticate as any, async (req: any, res: Response) => {
       data: {
         exportedById: req.user.id,
         departmentId: req.user.departmentId || null,
-        dateFrom: startDate ? new Date(startDate as string) : new Date(0),
-        dateTo: endDate ? new Date(endDate as string) : new Date(),
-        fileName: fileName,
+        dateFrom: ninetyDaysAgo,
+        dateTo: new Date(),
+        fileName,
         fileUrl: `/uploads/exports/${fileName}`,
-        ticketCount: tickets.length,
-        expiresAt: new Date(new Date().setHours(27, 0, 0, 0)) // Approx 3 AM next day
+        ticketCount: totalAssignedAll,
+        expiresAt: new Date(new Date().setHours(27, 0, 0, 0))
       }
     });
 
@@ -319,7 +396,7 @@ router.get('/export', authenticate as any, async (req: any, res: Response) => {
     if (!res.headersSent) res.end();
   } catch (error) {
     console.error('Export error:', error);
-    res.status(500).json({ message: 'Error exporting tickets' });
+    res.status(500).json({ message: 'Error exporting performance data' });
   }
 });
 
