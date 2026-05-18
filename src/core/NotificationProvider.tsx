@@ -38,13 +38,17 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [toasts, setToasts] = useState<Notification[]>([]);
   const socketRef = useRef<Socket | null>(null);
   const reconnectAttemptsRef = useRef(0);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user, accessToken } = useAuthStore();
   const { language } = useSettingsStore();
   const langRef = useRef(language);
   langRef.current = language;
 
   const toastTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const seenEventsRef = useRef<Set<string>>(new Set());
+
+  const deduplicateKey = useCallback((event: string, data: any) => {
+    return `${event}-${data.id ?? ''}-${data.ticketNumber ?? ''}-${data.ticketId ?? ''}`;
+  }, []);
 
   const removeToast = useCallback((id: string) => {
     const timer = toastTimersRef.current.get(id);
@@ -80,6 +84,102 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, []);
 
+  const registerSocketListeners = useCallback((socket: Socket, currentUser: any) => {
+    const handleEvent = (event: string, data: any, handler: () => void) => {
+      const key = deduplicateKey(event, data);
+      if (seenEventsRef.current.has(key)) return;
+      seenEventsRef.current.add(key);
+      setTimeout(() => seenEventsRef.current.delete(key), 5000);
+      handler();
+    };
+
+    socket.on('connect', () => {
+      reconnectAttemptsRef.current = 0;
+      socket.emit('join-user', currentUser.id);
+      if (currentUser.departmentId) {
+        socket.emit('join-department', currentUser.departmentId);
+      }
+    });
+
+    socket.on('disconnect', () => {});
+
+    socket.on('connect_error', () => {
+      reconnectAttemptsRef.current++;
+    });
+
+    socket.on('new-ticket', (data: any) => {
+      handleEvent('new-ticket', data, () => {
+        addNotification({
+          title: langRef.current === 'ar' ? 'تذكرة جديدة' : 'New Ticket',
+          message: `${data.ticketNumber}: ${data.subject}`,
+          type: 'info',
+          link: `/tickets/${data.id}`
+        });
+      });
+    });
+
+    socket.on('ticket-status-updated', (data: any) => {
+      handleEvent('ticket-status-updated', data, () => {
+        window.dispatchEvent(new CustomEvent('ws:ticket-status-updated', { detail: data }));
+        const isResolved = data.status === 'resolved';
+        addNotification({
+          title: langRef.current === 'ar' ? 'تحديث حالة التذكرة' : 'Ticket Status Updated',
+          message: `${data.ticketNumber} is now ${data.status}`,
+          type: 'success',
+          link: `/tickets/${data.id}${isResolved ? '?confirm=true' : ''}`,
+          ticketId: data.id,
+          status: data.status
+        });
+      });
+    });
+
+    socket.on('ticket-assigned', (data: any) => {
+      handleEvent('ticket-assigned', data, () => {
+        window.dispatchEvent(new CustomEvent('ws:ticket-assigned', { detail: data }));
+        addNotification({
+          title: langRef.current === 'ar' ? 'تم تعيين تذكرة لك' : 'Ticket Assigned to You',
+          message: `${data.ticketNumber}: ${data.subject}`,
+          type: 'warning',
+          link: `/tickets/${data.id}`
+        });
+      });
+    });
+
+    socket.on('new-comment', (data: any) => {
+      handleEvent('new-comment', data, () => {
+        window.dispatchEvent(new CustomEvent('ws:new-comment', { detail: data }));
+        addNotification({
+          title: langRef.current === 'ar' ? 'تعليق جديد' : 'New Comment',
+          message: `${data.ticketNumber}: ${data.message.body?.substring(0, 50)}${data.message.body?.length > 50 ? '...' : ''}`,
+          type: 'info',
+          link: `/tickets/${data.ticketId}`
+        });
+      });
+    });
+
+    socket.on('sla-warning', (data: any) => {
+      handleEvent('sla-warning', data, () => {
+        addNotification({
+          title: langRef.current === 'ar' ? 'تنبيه SLA' : 'SLA Warning',
+          message: `${data.ticketNumber}: ${data.percentage}% of SLA time consumed!`,
+          type: 'warning',
+          link: `/tickets/${data.id}`
+        });
+      });
+    });
+
+    socket.on('sla-breach', (data: any) => {
+      handleEvent('sla-breach', data, () => {
+        addNotification({
+          title: langRef.current === 'ar' ? 'خرق SLA' : 'SLA Breach',
+          message: `${data.ticketNumber}: SLA has been breached!`,
+          type: 'error',
+          link: `/tickets/${data.id}`
+        });
+      });
+    });
+  }, [addNotification, deduplicateKey]);
+
   const connectSocket = useCallback(() => {
     const currentToken = useAuthStore.getState().accessToken;
     const currentUser = useAuthStore.getState().user;
@@ -100,103 +200,39 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       transports: ['websocket', 'polling'],
     });
 
-    newSocket.on('connect', () => {
-      reconnectAttemptsRef.current = 0;
-      newSocket.emit('join-user', currentUser.id);
-      if (currentUser.departmentId) {
-        newSocket.emit('join-department', currentUser.departmentId);
-      }
-    });
-
-    newSocket.on('disconnect', () => {
-    });
-
-    newSocket.on('connect_error', (err) => {
-      reconnectAttemptsRef.current++;
-    });
-
-    newSocket.on('new-ticket', (data: any) => {
-      addNotification({
-        title: langRef.current === 'ar' ? 'تذكرة جديدة' : 'New Ticket',
-        message: `${data.ticketNumber}: ${data.subject}`,
-        type: 'info',
-        link: `/tickets/${data.id}`
-      });
-    });
-
-    newSocket.on('ticket-status-updated', (data: any) => {
-      window.dispatchEvent(new CustomEvent('ws:ticket-status-updated', { detail: data }));
-      const isResolved = data.status === 'resolved';
-      addNotification({
-        title: langRef.current === 'ar' ? 'تحديث حالة التذكرة' : 'Ticket Status Updated',
-        message: `${data.ticketNumber} is now ${data.status}`,
-        type: 'success',
-        link: `/tickets/${data.id}${isResolved ? '?confirm=true' : ''}`,
-        ticketId: data.id,
-        status: data.status
-      });
-    });
-
-    newSocket.on('ticket-assigned', (data: any) => {
-      window.dispatchEvent(new CustomEvent('ws:ticket-assigned', { detail: data }));
-      addNotification({
-        title: langRef.current === 'ar' ? 'تم تعيين تذكرة لك' : 'Ticket Assigned to You',
-        message: `${data.ticketNumber}: ${data.subject}`,
-        type: 'warning',
-        link: `/tickets/${data.id}`
-      });
-    });
-
-    newSocket.on('new-comment', (data: any) => {
-      window.dispatchEvent(new CustomEvent('ws:new-comment', { detail: data }));
-      addNotification({
-        title: langRef.current === 'ar' ? 'تعليق جديد' : 'New Comment',
-        message: `${data.ticketNumber}: ${data.message.body?.substring(0, 50)}${data.message.body?.length > 50 ? '...' : ''}`,
-        type: 'info',
-        link: `/tickets/${data.ticketId}`
-      });
-    });
-
-    newSocket.on('sla-warning', (data: any) => {
-      addNotification({
-        title: langRef.current === 'ar' ? 'تنبيه SLA' : 'SLA Warning',
-        message: `${data.ticketNumber}: ${data.percentage}% of SLA time consumed!`,
-        type: 'warning',
-        link: `/tickets/${data.id}`
-      });
-    });
-
-    newSocket.on('sla-breach', (data: any) => {
-      addNotification({
-        title: langRef.current === 'ar' ? 'خرق SLA' : 'SLA Breach',
-        message: `${data.ticketNumber}: SLA has been breached!`,
-        type: 'error',
-        link: `/tickets/${data.id}`
-      });
-    });
+    registerSocketListeners(newSocket, currentUser);
 
     socketRef.current = newSocket;
-  }, [addNotification]);
+  }, [registerSocketListeners]);
 
   useEffect(() => {
     if (accessToken && user) {
-      connectSocket();
+      const socket = socketRef.current;
+      if (socket?.connected) {
+        socket.emit('reauthenticate', accessToken, (ok: boolean) => {
+          if (!ok) {
+            socket.disconnect();
+            connectSocket();
+          }
+        });
+      } else {
+        connectSocket();
+      }
     }
 
     return () => {
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current);
-        reconnectTimerRef.current = null;
+      for (const [, timer] of toastTimersRef.current) {
+        clearTimeout(timer);
       }
+      toastTimersRef.current.clear();
       if (socketRef.current) {
         socketRef.current.removeAllListeners();
         socketRef.current.disconnect();
         socketRef.current = null;
       }
     };
-  }, [accessToken, user?.id, user?.departmentId, connectSocket]);
+  }, [accessToken, user?.id, connectSocket]);
 
-  // Request notification permission on mount
   useEffect(() => {
     if (typeof window.Notification !== 'undefined' && Notification.permission === 'default') {
       Notification.requestPermission().catch(() => {});
