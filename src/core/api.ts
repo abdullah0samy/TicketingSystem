@@ -1,7 +1,30 @@
 import { useAuthStore } from '../store/authStore.ts';
 
+class ApiError extends Error {
+  status: number;
+  code: string;
+  timestamp: string;
+
+  constructor(status: number, code: string, message: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+    this.timestamp = new Date().toISOString();
+  }
+}
+
 let isRefreshing = false;
 let refreshPromise: Promise<string | null> | null = null;
+let logoutGuard = false;
+
+const broadcastChannel = typeof window !== 'undefined' ? new BroadcastChannel('auth_events') : null;
+
+broadcastChannel?.addEventListener('message', (e) => {
+  if (e.data?.type === 'logout') {
+    useAuthStore.getState().logout();
+  }
+});
 
 async function tryRefreshToken(): Promise<string | null> {
   if (isRefreshing && refreshPromise) {
@@ -46,45 +69,35 @@ async function executeFetch(url: string, options: RequestInit, token: string | n
 }
 
 export async function apiFetch(url: string, options: RequestInit = {}) {
-  const { accessToken, logout } = useAuthStore.getState();
+  const { accessToken } = useAuthStore.getState();
 
   try {
     let response = await executeFetch(url, options, accessToken);
 
-    if ((response.status === 401 || response.status === 403) && !(window as any)._isLoggingOut) {
+    if ((response.status === 401 || response.status === 403) && !logoutGuard) {
       const newToken = await tryRefreshToken();
       if (newToken) {
         response = await executeFetch(url, options, newToken);
       } else {
-        (window as any)._isLoggingOut = true;
-        console.warn('Session expired. Logging out...');
-        logout();
+        logoutGuard = true;
+        useAuthStore.getState().logout();
+        broadcastChannel?.postMessage({ type: 'logout' });
         window.dispatchEvent(new CustomEvent('navigate', { detail: '/login' }));
-        setTimeout(() => { (window as any)._isLoggingOut = false; }, 2000);
-        throw new Error('Session expired');
+        setTimeout(() => { logoutGuard = false; }, 2000);
+        throw new ApiError(401, 'SESSION_EXPIRED', 'Session expired');
       }
     } else if (response.status === 401 || response.status === 403) {
-      throw new Error('Session expired (logout in progress)');
+      throw new ApiError(401, 'LOGOUT_IN_PROGRESS', 'Session expired (logout in progress)');
     }
 
     const contentType = response.headers.get('content-type');
     if (!response.ok) {
       if (contentType && contentType.includes('application/json')) {
         const errorData = await response.json();
-        throw {
-          status: 'error',
-          code: errorData.code || 'UNKNOWN_ERROR',
-          message: errorData.message || 'API request failed',
-          timestamp: new Date().toISOString(),
-        };
+        throw new ApiError(response.status, errorData.code || 'UNKNOWN_ERROR', errorData.message || 'API request failed');
       } else {
         const errorText = await response.text();
-        throw {
-          status: 'error',
-          code: 'UNKNOWN_ERROR',
-          message: `API request failed with status ${response.status}: ${errorText.substring(0, 100)}`,
-          timestamp: new Date().toISOString(),
-        };
+        throw new ApiError(response.status, 'UNKNOWN_ERROR', `API request failed with status ${response.status}: ${errorText.substring(0, 100)}`);
       }
     }
 
@@ -94,17 +107,12 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
 
     return response;
   } catch (error) {
-    if (error instanceof Error && error.message === 'Session expired') throw error;
+    if (error instanceof ApiError) throw error;
     console.error(`API Fetch Error (${url}):`, error);
     if (error instanceof Error) {
-      throw {
-        status: 'error',
-        code: 'FETCH_ERROR',
-        message: error.message,
-        timestamp: new Date().toISOString(),
-      };
+      throw new ApiError(0, 'FETCH_ERROR', error.message);
     }
-    throw error;
+    throw new ApiError(0, 'UNKNOWN_ERROR', 'An unknown error occurred');
   }
 }
 

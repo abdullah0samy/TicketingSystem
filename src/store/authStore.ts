@@ -7,16 +7,30 @@ interface AuthState {
   logout: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  accessToken: localStorage.getItem('accessToken'),
+const persistedToken = typeof window !== 'undefined' ? sessionStorage.getItem('accessToken') : null;
+const persistedUser = typeof window !== 'undefined' && sessionStorage.getItem('user')
+  ? JSON.parse(sessionStorage.getItem('user')!) : null;
+
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user: persistedUser,
+  accessToken: persistedToken,
   setAuth: (user, accessToken) => {
-    localStorage.setItem('accessToken', accessToken);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('accessToken', accessToken);
+      sessionStorage.setItem('user', JSON.stringify(user));
+    }
     set({ user, accessToken });
   },
-  logout: () => {
-    localStorage.removeItem('accessToken');
+  logout: async () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('accessToken');
+      sessionStorage.removeItem('user');
+    }
     set({ user: null, accessToken: null });
-    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch {
+      // Ignore — server may be unreachable
+    }
   },
 }));

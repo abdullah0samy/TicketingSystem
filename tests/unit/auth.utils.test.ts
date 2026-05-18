@@ -2,13 +2,10 @@ import { describe, it, expect, beforeAll } from 'vitest';
 
 // Set env before importing modules
 process.env.JWT_ACCESS_SECRET = 'test-access-secret';
-process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
 
 import {
   generateAccessToken,
-  generateRefreshToken,
   verifyAccessToken,
-  verifyRefreshToken,
 } from '../../src/modules/auth/auth.utils.ts';
 
 describe('Auth Utils - Token Generation & Verification', () => {
@@ -23,7 +20,7 @@ describe('Auth Utils - Token Generation & Verification', () => {
       const token = generateAccessToken(mockUser);
       expect(token).toBeDefined();
       expect(typeof token).toBe('string');
-      expect(token.split('.')).toHaveLength(3); // JWT has 3 parts
+      expect(token.split('.')).toHaveLength(3);
     });
 
     it('should encode user id, role, and departmentId in the payload', () => {
@@ -44,24 +41,6 @@ describe('Auth Utils - Token Generation & Verification', () => {
     });
   });
 
-  describe('generateRefreshToken', () => {
-    it('should generate a valid JWT string', () => {
-      const token = generateRefreshToken(mockUser);
-      expect(token).toBeDefined();
-      expect(typeof token).toBe('string');
-      expect(token.split('.')).toHaveLength(3);
-    });
-
-    it('should only encode user id in the payload', () => {
-      const token = generateRefreshToken(mockUser);
-      const decoded = verifyRefreshToken(token) as any;
-      expect(decoded.id).toBe(1);
-      // Refresh token should NOT contain role or departmentId
-      expect(decoded.role).toBeUndefined();
-      expect(decoded.departmentId).toBeUndefined();
-    });
-  });
-
   describe('verifyAccessToken', () => {
     it('should verify a valid access token', () => {
       const token = generateAccessToken(mockUser);
@@ -73,36 +52,10 @@ describe('Auth Utils - Token Generation & Verification', () => {
       expect(() => verifyAccessToken('invalid.token.here')).toThrow();
     });
 
-    it('should throw for a token signed with wrong secret', () => {
-      // Generate a token, then try to verify with a differ env
+    it('should throw for a tampered token', () => {
       const token = generateAccessToken(mockUser);
-      // Tamper with the token
       const tamperedToken = token.slice(0, -5) + 'xxxxx';
       expect(() => verifyAccessToken(tamperedToken)).toThrow();
-    });
-
-    it('should NOT accept a refresh token as access token', () => {
-      const refreshToken = generateRefreshToken(mockUser);
-      // Refresh tokens are signed with REFRESH_SECRET, verifyAccessToken uses ACCESS_SECRET
-      expect(() => verifyAccessToken(refreshToken)).toThrow();
-    });
-  });
-
-  describe('verifyRefreshToken', () => {
-    it('should verify a valid refresh token', () => {
-      const token = generateRefreshToken(mockUser);
-      const decoded = verifyRefreshToken(token) as any;
-      expect(decoded.id).toBe(1);
-    });
-
-    it('should throw for an invalid token', () => {
-      expect(() => verifyRefreshToken('garbage')).toThrow();
-    });
-
-    it('should NOT accept an access token as refresh token', () => {
-      const accessToken = generateAccessToken(mockUser);
-      // Access tokens are signed with ACCESS_SECRET, verifyRefreshToken uses REFRESH_SECRET
-      expect(() => verifyRefreshToken(accessToken)).toThrow();
     });
   });
 });

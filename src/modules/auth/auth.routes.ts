@@ -1,10 +1,20 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 import prisma from '../../core/db.ts';
-import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from './auth.utils.ts';
+import { generateAccessToken } from './auth.utils.ts';
 
 const router = express.Router();
+
+const REFRESH_TOKEN_COOKIE_NAME = 'refreshToken';
+const REFRESH_TOKEN_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  path: '/',
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
 
 router.post('/login', async (req, res) => {
   const { identifier, password } = req.body;
@@ -13,12 +23,10 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ message: 'ID and password are required' });
   }
 
-  // BUG FIX: Cap password length to prevent bcrypt DoS (bcrypt truncates at 72 bytes anyway)
   if (typeof password !== 'string' || password.length > 128) {
     return res.status(400).json({ message: 'Invalid password format' });
   }
 
-  // Ensure identifier is safe (alphanumeric for username or numeric for badge)
   if (!/^[a-zA-Z0-9_.-]+$/.test(identifier)) {
     return res.status(400).json({ message: 'Invalid identifier format' });
   }
@@ -44,26 +52,25 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
+    const refreshTokenValue = crypto.randomBytes(40).toString('hex');
+    const refreshTokenHash = crypto.createHash('sha256').update(refreshTokenValue).digest('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    // Update last login
     await prisma.user.update({
       where: { id: user.id },
-      data: { lastLoginAt: new Date() }
+      data: {
+        lastLoginAt: new Date(),
+        refreshTokenHash,
+        refreshTokenExpiresAt: expiresAt,
+      }
     });
 
-    // Set refreshToken as httpOnly cookie for secure persistence
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+    const accessToken = generateAccessToken(user);
+
+    res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshTokenValue, REFRESH_TOKEN_COOKIE_OPTIONS);
 
     res.json({
       accessToken,
-      refreshToken,
       user: {
         id: user.id,
         badgeNumber: user.badgeNumber,
@@ -71,7 +78,8 @@ router.post('/login', async (req, res) => {
         fullNameAr: user.fullNameAr,
         fullNameEn: user.fullNameEn,
         role: user.role,
-        department: user.department
+        department: user.department,
+        forcePasswordChange: user.forcePasswordChange,
       }
     });
   } catch (error: any) {
@@ -81,39 +89,63 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/refresh', async (req, res) => {
-  const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
+  const refreshTokenValue = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME];
 
-  if (!refreshToken) {
+  if (!refreshTokenValue) {
     return res.status(401).json({ message: 'Refresh token required' });
   }
 
   try {
-    const decoded = verifyRefreshToken(refreshToken) as any;
-    
-    // BUG FIX: Verify decoded.id is valid before querying
-    if (!decoded || !decoded.id) {
-      return res.status(403).json({ message: 'Invalid refresh token payload' });
+    const tokenHash = crypto.createHash('sha256').update(refreshTokenValue).digest('hex');
+
+    const storedUser = await prisma.user.findFirst({
+      where: {
+        refreshTokenHash: tokenHash,
+        refreshTokenExpiresAt: { gt: new Date() },
+        isActive: true,
+      },
+    });
+
+    if (!storedUser) {
+      res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_OPTIONS);
+      return res.status(403).json({ message: 'Invalid or expired refresh token' });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+    const newRefreshTokenValue = crypto.randomBytes(40).toString('hex');
+    const newRefreshTokenHash = crypto.createHash('sha256').update(newRefreshTokenValue).digest('hex');
+    const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    if (!user || !user.isActive) {
-      return res.status(401).json({ message: 'Invalid refresh token or inactive account' });
-    }
+    await prisma.user.update({
+      where: { id: storedUser.id },
+      data: {
+        refreshTokenHash: newRefreshTokenHash,
+        refreshTokenExpiresAt: newExpiresAt,
+      }
+    });
 
-    const newAccessToken = generateAccessToken(user);
+    const newAccessToken = generateAccessToken(storedUser);
+
+    res.cookie(REFRESH_TOKEN_COOKIE_NAME, newRefreshTokenValue, REFRESH_TOKEN_COOKIE_OPTIONS);
+
     res.json({ accessToken: newAccessToken });
   } catch (error) {
+    res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_OPTIONS);
     res.status(403).json({ message: 'Invalid or expired refresh token' });
   }
 });
 
-router.post('/logout', (req, res) => {
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
-  });
+router.post('/logout', async (req, res) => {
+  const refreshTokenValue = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME];
+
+  if (refreshTokenValue) {
+    const tokenHash = crypto.createHash('sha256').update(refreshTokenValue).digest('hex');
+    await prisma.user.updateMany({
+      where: { refreshTokenHash: tokenHash },
+      data: { refreshTokenHash: null, refreshTokenExpiresAt: null }
+    }).catch(() => {});
+  }
+
+  res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_OPTIONS);
   res.json({ message: 'Logged out' });
 });
 

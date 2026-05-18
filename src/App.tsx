@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuthStore } from './store/authStore.ts';
 import { useSettingsStore } from './store/settingsStore.ts';
 import { translations } from './core/translations.ts';
+import { apiFetch } from './core/api.ts';
 import Login from './pages/Login.tsx';
 import BuildingsPage from './pages/admin/BuildingsPage.tsx';
 import FloorsPage from './pages/admin/FloorsPage.tsx';
@@ -112,19 +113,13 @@ function AppContent() {
       if (isFetching) return;
       setIsFetching(true);
       try {
-        const res = await fetch('/api/users/me', {
-          headers: { Authorization: `Bearer ${accessToken}` },
-          credentials: 'include',
-        });
+        const userData = await apiFetch('/api/users/me');
         if (cancelled) return;
-        if (res.ok) {
-          const userData = await res.json();
-          setAuth(userData, accessToken);
-        } else {
-          logout();
-        }
+        setAuth(userData, accessToken);
       } catch {
-        if (!cancelled) logout();
+        if (!cancelled) {
+          useAuthStore.setState({ user: null, accessToken: null });
+        }
       } finally {
         if (!cancelled) {
           setIsReady(true);
