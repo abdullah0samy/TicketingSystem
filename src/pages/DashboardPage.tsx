@@ -244,26 +244,28 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Knowledge Base Quick Search */}
-      <div className="bg-gradient-to-r from-primary-blue to-blue-700 p-6 rounded-2xl shadow-lg shadow-primary-blue/20 text-white">
-        <div className="max-w-2xl">
-          <h2 className="text-lg font-bold mb-1">{t.kbHelpTitle}</h2>
-          <p className="text-blue-100 mb-4 text-sm">{t.kbSearchDesc}</p>
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-white transition-colors" size={18} />
-            <input 
-              type="text"
-              placeholder={t.kbSearchPlaceholder}
-              className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder:text-blue-200 outline-none focus:ring-2 focus:ring-white/50 transition-all text-sm"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  window.dispatchEvent(new CustomEvent('navigate', { detail: `/knowledge?search=${(e.target as HTMLInputElement).value}` }));
-                }
-              }}
-            />
+      {/* Knowledge Base Quick Search — end_user only (admins/agents have header GlobalSearch) */}
+      {user?.role === 'end_user' && (
+        <div className="bg-gradient-to-r from-primary-blue to-blue-700 p-6 rounded-2xl shadow-lg shadow-primary-blue/20 text-white">
+          <div className="max-w-2xl">
+            <h2 className="text-lg font-bold mb-1">{t.kbHelpTitle}</h2>
+            <p className="text-blue-100 mb-4 text-sm">{t.kbSearchDesc}</p>
+            <div className="relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-white transition-colors" size={18} />
+              <input 
+                type="text"
+                placeholder={t.kbSearchPlaceholder}
+                className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder:text-blue-200 outline-none focus:ring-2 focus:ring-white/50 transition-all text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    window.dispatchEvent(new CustomEvent('navigate', { detail: `/knowledge?search=${(e.target as HTMLInputElement).value}` }));
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {activeTab === 'overview' ? (
         <>
@@ -289,7 +291,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1">{kpi.label}</p>
-                <h3 className="text-2xl font-bold text-[var(--text-main)]">{kpi.value}</h3>
+                <h3 className="text-2xl font-bold text-[var(--text-main)] font-mono">{kpi.value}</h3>
               </motion.div>
             ))}
           </div>

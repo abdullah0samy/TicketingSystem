@@ -397,14 +397,23 @@ function AppContent() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 ml-2 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 mx-2 shrink-0">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-bold text-[var(--text-main)] leading-tight">{language === 'ar' ? user.fullNameAr : user.fullNameEn}</p>
-              <p className="text-[9px] text-[var(--text-muted)] font-bold uppercase tracking-widest">{user.role.replace('_', ' ')}</p>
+              <p className="text-sm font-bold text-[var(--text-main)] leading-tight">
+                {language === 'ar' ? user.fullNameAr : user.fullNameEn}
+              </p>
+              <p className="text-[10px] text-[var(--text-muted)] font-medium leading-tight truncate max-w-[140px]">
+                {user.department
+                  ? (language === 'ar' ? user.department.nameAr : user.department.nameEn)
+                  : ''}
+              </p>
+              <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-primary-blue bg-primary-blue/10 px-1.5 py-0.5 rounded-full mt-0.5">
+                {user.role === 'super_admin' ? 'SUPER ADMIN' : user.role?.replace('_', ' ')}
+              </span>
             </div>
-            <div className="w-9 h-9 bg-[var(--border-dim)] rounded-full flex items-center justify-center border-2 border-[var(--border-dim)] overflow-hidden shrink-0">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-[var(--border-dim)] overflow-hidden shrink-0 bg-[var(--border-dim)]">
               {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               ) : (
                 <User className="text-primary-blue" size={16} />
               )}
