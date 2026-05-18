@@ -6,6 +6,13 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding ABCH Ticketing System database with large dataset...');
 
+  // Check if database is already seeded
+  const userCount = await prisma.user.count();
+  if (userCount > 0) {
+    console.log(`✅ Database already seeded (${userCount} users found). Skipping.`);
+    return;
+  }
+
   // --- CLEANUP ---
   console.log('🧹 Cleaning existing data...');
   await prisma.auditLog.deleteMany();
