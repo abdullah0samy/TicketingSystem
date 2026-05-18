@@ -10,3 +10,4 @@ coverage/
 pgdata/
 uploads/
 .npmrc
+dump.rdb
