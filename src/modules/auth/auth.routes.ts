@@ -16,6 +16,12 @@ const REFRESH_TOKEN_COOKIE_OPTIONS = {
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
+// In-memory failed login tracker (resets on restart)
+// Format: Map<identifier, { count: number, lockedUntil: Date | null }>
+const failedLoginAttempts = new Map<string, { count: number; lockedUntil: Date | null }>();
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
 router.post('/login', async (req, res) => {
   const { identifier, password } = req.body;
 
@@ -29,6 +35,16 @@ router.post('/login', async (req, res) => {
 
   if (!/^[a-zA-Z0-9_.-]+$/.test(identifier)) {
     return res.status(400).json({ message: 'Invalid identifier format' });
+  }
+
+  // SECURITY: Check account lockout
+  const attempt = failedLoginAttempts.get(identifier);
+  if (attempt && attempt.lockedUntil && attempt.lockedUntil > new Date()) {
+    const remaining = Math.ceil((attempt.lockedUntil.getTime() - Date.now()) / 60000);
+    return res.status(429).json({
+      message: `Account temporarily locked. Try again in ${remaining} minute(s).`,
+      code: 'ACCOUNT_LOCKED'
+    });
   }
 
   try {
@@ -49,8 +65,31 @@ router.post('/login', async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      // Track failed login attempt
+      const current = failedLoginAttempts.get(identifier) || { count: 0, lockedUntil: null };
+      const newCount = current.count + 1;
+
+      if (newCount >= MAX_FAILED_ATTEMPTS) {
+        failedLoginAttempts.set(identifier, {
+          count: newCount,
+          lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS)
+        });
+        return res.status(429).json({
+          message: `Too many failed attempts. Account locked for ${LOCKOUT_DURATION_MS / 60000} minutes.`,
+          code: 'ACCOUNT_LOCKED'
+        });
+      }
+
+      failedLoginAttempts.set(identifier, { count: newCount, lockedUntil: null });
+      const remaining = MAX_FAILED_ATTEMPTS - newCount;
+      return res.status(401).json({
+        message: `Invalid credentials. ${remaining} attempt(s) remaining.`,
+        attemptsRemaining: remaining
+      });
     }
+
+    // Successful login — clear failed attempts
+    failedLoginAttempts.delete(identifier);
 
     const refreshTokenValue = crypto.randomBytes(40).toString('hex');
     const refreshTokenHash = crypto.createHash('sha256').update(refreshTokenValue).digest('hex');

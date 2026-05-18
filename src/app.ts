@@ -12,6 +12,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import crypto from 'crypto';
 import prisma from './core/db.ts';
 import { UPLOADS_DIR, AVATARS_DIR } from './core/paths.ts';
 import fs from 'fs';
@@ -71,13 +72,14 @@ const globalLimiter = rateLimit({
   skip: (req) => req.path === '/api/health' || req.path === '/api/test-bigint'
 });
 
-// Auth
+// Auth — per-IP rate limiting to prevent brute force
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 50 : 1000000, 
+  max: process.env.NODE_ENV === 'production' ? 10 : 1000000,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Too many login attempts. Please try again in 15 minutes.' }
+  message: { message: 'Too many login attempts. Please try again in 15 minutes.' },
+  keyGenerator: (req) => req.ip || req.socket.remoteAddress || 'unknown'
 });
 
 // Analytics (env-configurable, default 300 per 15min)
@@ -135,6 +137,16 @@ app.use(cors({
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
+
+// Generate X-Request-ID for request tracing
+app.use((req, res, next) => {
+  if (!req.headers['x-request-id']) {
+    req.headers['x-request-id'] = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+  res.setHeader('X-Request-ID', req.headers['x-request-id'] as string);
+  next();
+});
+
 app.use('/api/', globalLimiter, requestLogger);
 
 // Serve static files from uploads
@@ -180,11 +192,13 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// API Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customSiteTitle: 'ABCH API Docs',
-  customfavIcon: '/favicon.ico',
-}));
+// API Documentation — disabled in production for security
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'ABCH API Docs',
+    customfavIcon: '/favicon.ico',
+  }));
+}
 
 // API Routes
 app.use('/api/auth', loginLimiter, authRoutes);
