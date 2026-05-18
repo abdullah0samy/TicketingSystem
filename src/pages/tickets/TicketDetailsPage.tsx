@@ -392,8 +392,9 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
     try {
       await apiFetch(`/api/tickets/${ticketId}/archive`, { method: 'PUT' });
       fetchTicket();
+      addNotification({ title: t.archiveAction, message: t.ticketArchived || 'Ticket archived', type: 'success' });
     } catch (error: any) {
-      alert(error?.message || 'Error archiving ticket');
+      addNotification({ title: t.error, message: error?.message || 'Error archiving ticket', type: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -402,7 +403,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      alert(t.linkCopied);
+      addNotification({ title: t.share, message: t.linkCopied, type: 'success' });
     } catch (err) {
       console.error('Failed to copy text: ', err);
     }
@@ -509,13 +510,8 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
       });
       fetchTicket();
     } catch (error: any) {
-      if (error?.code === 'ISSUE_TYPE_REQUIRED') {
-        alert(t.issueTypeRequired);
-      } else if (error?.message) {
-        alert(error.message);
-      } else {
-        console.error('Error updating status:', error);
-      }
+      const message = error?.message || 'Error updating status';
+      addNotification({ title: t.error, message, type: 'error' });
     }
   };
 
@@ -636,8 +632,8 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
 
             <button 
               onClick={handleArchive}
-              disabled={isLocked}
-              className="flex items-center gap-2 px-4 py-2 premium-card shadow-sm text-sm font-bold text-[var(--text-secondary)] hover:bg-danger-red/5 hover:text-danger-red hover:border-danger-red/20 transition-all disabled:opacity-50"
+              disabled={isLocked || (ticket.status !== 'resolved' && ticket.status !== 'closed')}
+              className="flex items-center gap-2 px-4 py-2 premium-card shadow-sm text-sm font-bold text-[var(--text-secondary)] hover:bg-danger-red/5 hover:text-danger-red hover:border-danger-red/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Archive size={18} />
               <span>{t.archiveAction}</span>
@@ -885,7 +881,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                 <button
                   onClick={() => {
                     if (!resolveTypeId) {
-                      alert(t.pleaseSelectIssueType);
+                      addNotification({ title: t.error, message: t.pleaseSelectIssueType, type: 'error' });
                       return;
                     }
                     setShowResolveModal(false);

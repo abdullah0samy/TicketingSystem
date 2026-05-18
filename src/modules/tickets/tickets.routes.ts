@@ -1741,6 +1741,14 @@ router.put('/:id/archive', async (req: AuthRequest, res: Response) => {
     const ticket = await prisma.ticket.findUnique({ where: { id: parseInt(id) } });
     if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
 
+    // BUSINESS RULE: Only resolved/closed tickets can be archived
+    if (ticket.status !== 'resolved' && ticket.status !== 'closed') {
+      return res.status(400).json({
+        message: 'لا يمكن أرشفة التذكرة إلا بعد أن يتم حلها بالكامل',
+        code: 'ARCHIVE_STATUS_REQUIRED'
+      });
+    }
+
     // Check permissions
     const hasPermission = await checkTicketPermission(
       req.user.id,
@@ -1877,6 +1885,12 @@ router.post('/bulk-archive', async (req: AuthRequest, res: Response) => {
       const failedIds: number[] = [];
 
       for (const ticket of tickets) {
+        // BUSINESS RULE: Only resolved/closed tickets can be archived
+        if (ticket.status !== 'resolved' && ticket.status !== 'closed') {
+          failedIds.push(ticket.id);
+          continue;
+        }
+
         const hasPermission = await checkTicketPermission(
           req.user!.id,
           req.user!.role,
