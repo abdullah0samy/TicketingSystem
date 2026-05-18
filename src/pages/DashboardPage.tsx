@@ -14,8 +14,6 @@ import {
   Users, 
   PlusCircle,
   Building2,
-  ArrowUpRight,
-  ArrowDownRight,
   Download,
   FileSpreadsheet,
   History,
@@ -23,7 +21,9 @@ import {
   ExternalLink,
   Search,
   BookOpen,
-  Package
+  Package,
+  Server,
+  AlertTriangle,
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -36,10 +36,6 @@ import {
   PieChart, 
   Pie, 
   Cell,
-  LineChart,
-  Line,
-  AreaChart,
-  Area
 } from 'recharts';
 import { motion } from 'motion/react';
 
@@ -107,6 +103,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'exports'>('overview');
   const [exportStartDate, setExportStartDate] = useState('');
   const [exportEndDate, setExportEndDate] = useState('');
+  const [systemHealth, setSystemHealth] = useState<{ status: string; responseTime: string } | null>(null);
 
   const { accessToken, user } = useAuthStore();
   const { language } = useSettingsStore();
@@ -155,6 +152,13 @@ export default function DashboardPage() {
       if (error.name === 'AbortError') return;
       setError(error?.message || 'Something went wrong');
       console.error('Error fetching AHT data:', error);
+    }
+
+    try {
+      const health = await apiFetch('/api/health', { signal });
+      setSystemHealth({ status: health.status, responseTime: health.responseTime });
+    } catch {
+      setSystemHealth({ status: 'error', responseTime: 'N/A' });
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
@@ -204,10 +208,10 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[var(--text-main)] mb-2">
-            {t.welcome}, {user?.fullNameEn || user?.fullNameAr} 👋
+          <h1 className="text-2xl font-bold text-[var(--text-main)] mb-1">
+            {t.welcome}, {user?.fullNameEn || user?.fullNameAr}
           </h1>
-          <p className="text-[var(--text-secondary)]">
+          <p className="text-sm text-[var(--text-secondary)]">
             {t.todayActivity}
           </p>
         </div>
@@ -227,31 +231,33 @@ export default function DashboardPage() {
             </button>
           </div>
           <div className="flex items-center gap-3 premium-card p-2 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-primary-blue/10 flex items-center justify-center text-primary-blue">
-              <Activity size={20} />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${systemHealth?.status === 'ok' ? 'bg-success-green/10 text-success-green' : 'bg-danger-red/10 text-danger-red'}`}>
+              {systemHealth?.status === 'ok' ? <Server size={20} /> : <AlertTriangle size={20} />}
             </div>
             <div className="pr-4">
               <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">{t.systemStatus}</p>
-              <p className="text-sm font-bold text-[var(--color-success-green)]">{t.operational}</p>
+              <p className={`text-sm font-bold ${systemHealth?.status === 'ok' ? 'text-[var(--color-success-green)]' : 'text-[var(--color-danger-red)]'}`}>
+                {systemHealth?.status === 'ok' ? `${t.operational} (${systemHealth.responseTime})` : 'Degraded'}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Knowledge Base Quick Search */}
-      <div className="bg-gradient-to-r from-primary-blue to-blue-700 p-8 rounded-[2rem] shadow-xl shadow-primary-blue/20 text-white">
+      <div className="bg-gradient-to-r from-primary-blue to-blue-700 p-6 rounded-2xl shadow-lg shadow-primary-blue/20 text-white">
         <div className="max-w-2xl">
-          <h2 className="text-2xl font-bold mb-2">{t.kbHelpTitle}</h2>
-          <p className="text-blue-100 mb-6">{t.kbSearchDesc}</p>
+          <h2 className="text-lg font-bold mb-1">{t.kbHelpTitle}</h2>
+          <p className="text-blue-100 mb-4 text-sm">{t.kbSearchDesc}</p>
           <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-white transition-colors" size={20} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300 group-focus-within:text-white transition-colors" size={18} />
             <input 
               type="text"
               placeholder={t.kbSearchPlaceholder}
-              className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder:text-blue-200 outline-none focus:ring-2 focus:ring-white/50 transition-all"
+              className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder:text-blue-200 outline-none focus:ring-2 focus:ring-white/50 transition-all text-sm"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  window.location.href = `/knowledge?search=${(e.target as HTMLInputElement).value}`;
+                  window.dispatchEvent(new CustomEvent('navigate', { detail: `/knowledge?search=${(e.target as HTMLInputElement).value}` }));
                 }
               }}
             />
@@ -262,85 +268,81 @@ export default function DashboardPage() {
       {activeTab === 'overview' ? (
         <>
           {/* KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {[
               { label: t.totalTickets, value: stats?.total, icon: Ticket, color: 'text-primary-blue', bg: 'bg-primary-blue/10' },
               { label: t.pending, value: stats?.pending, icon: Clock, color: 'text-warning-amber', bg: 'bg-warning-amber/10' },
               { label: t.resolved, value: stats?.resolved, icon: CheckCircle2, color: 'text-success-green', bg: 'bg-success-green/10' },
               { label: t.overdue, value: stats?.overdue, icon: AlertCircle, color: 'text-danger-red', bg: 'bg-danger-red/10' },
-              { label: t.avgResolution, value: `${stats?.avgResolutionTimeHours}h`, icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+              { label: t.avgResolution, value: `${stats?.avgResolutionTimeHours}h`, icon: TrendingUp, color: 'text-medical-teal', bg: 'bg-medical-teal/10' },
             ].map((kpi, i) => (
               <motion.div 
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="premium-card p-6 group"
+                transition={{ delay: i * 0.08 }}
+                className="premium-card p-5 group"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`w-12 h-12 rounded-2xl ${kpi.bg} flex items-center justify-center ${kpi.color}`}>
-                    <kpi.icon size={24} />
-                  </div>
-                  <div className="flex items-center gap-1 text-success-green text-xs font-bold">
-                    <ArrowUpRight size={14} />
-                    <span>12%</span>
+                <div className="flex items-center justify-between mb-3">
+                  <div className={`w-10 h-10 rounded-xl ${kpi.bg} flex items-center justify-center ${kpi.color}`}>
+                    <kpi.icon size={20} />
                   </div>
                 </div>
-                <p className="text-sm font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1">{kpi.label}</p>
-                <h3 className="text-3xl font-bold text-[var(--text-main)]">{kpi.value}</h3>
+                <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1">{kpi.label}</p>
+                <h3 className="text-2xl font-bold text-[var(--text-main)]">{kpi.value}</h3>
               </motion.div>
             ))}
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div 
               onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: '/tickets/new' }))}
-              className="premium-card p-6 group cursor-pointer"
+              className="premium-card p-5 group cursor-pointer"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl text-blue-600 group-hover:bg-primary-blue group-hover:text-white transition-all">
-                  <PlusCircle size={24} />
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-xl bg-primary-blue/10 text-primary-blue group-hover:bg-primary-blue group-hover:text-white transition-all">
+                  <PlusCircle size={20} />
                 </div>
               </div>
-              <div className="text-lg font-bold text-[var(--text-main)]">{t.newTicket}</div>
-              <div className="text-xs text-[var(--text-secondary)] mt-1">{t.newSupportTicket}</div>
+              <div className="text-base font-bold text-[var(--text-main)]">{t.newTicket}</div>
+              <div className="text-xs text-[var(--text-secondary)] mt-0.5">{t.newSupportTicket}</div>
             </div>
 
             <div 
               onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: '/team-feed' }))}
-              className="premium-card p-6 group cursor-pointer"
+              className="premium-card p-5 group cursor-pointer"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white transition-all">
-                  <Users size={24} />
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-xl bg-success-green/10 text-success-green group-hover:bg-success-green group-hover:text-white transition-all">
+                  <Users size={20} />
                 </div>
               </div>
-              <div className="text-lg font-bold text-[var(--text-main)]">{t.teamFeed}</div>
-              <div className="text-xs text-[var(--text-secondary)] mt-1">{t.teamFeedDesc}</div>
+              <div className="text-base font-bold text-[var(--text-main)]">{t.teamFeed}</div>
+              <div className="text-xs text-[var(--text-secondary)] mt-0.5">{t.teamFeedDesc}</div>
             </div>
 
             <div 
               onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: '/knowledge' }))}
-              className="premium-card p-6 group cursor-pointer"
+              className="premium-card p-5 group cursor-pointer"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-2xl text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-all">
-                  <BookOpen size={24} />
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-xl bg-warning-amber/10 text-warning-amber group-hover:bg-warning-amber group-hover:text-white transition-all">
+                  <BookOpen size={20} />
                 </div>
               </div>
-              <div className="text-lg font-bold text-[var(--text-main)]">{t.knowledgeBase}</div>
-              <div className="text-xs text-[var(--text-secondary)] mt-1">{t.knowledgeBaseDesc}</div>
+              <div className="text-base font-bold text-[var(--text-main)]">{t.knowledgeBase}</div>
+              <div className="text-xs text-[var(--text-secondary)] mt-0.5">{t.knowledgeBaseDesc}</div>
             </div>
           </div>
 
           {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Status Distribution */}
-            <div className="lg:col-span-2 premium-card p-6">
-              <div className="flex items-center justify-between mb-8">
+            <div className="lg:col-span-2 premium-card p-5">
+              <div className="flex items-center justify-between mb-5">
                 <h3 className="font-bold text-[var(--text-main)] flex items-center gap-2">
-                  <Activity size={18} className="text-primary-blue" />
+                  <Activity size={16} className="text-primary-blue" />
                   {t.statusDistribution}
                 </h3>
                 <select className="text-xs font-bold text-[var(--text-muted)] bg-transparent outline-none">
@@ -348,7 +350,7 @@ export default function DashboardPage() {
                   <option>{t.last30Days}</option>
                 </select>
               </div>
-              <div className="h-[300px]">
+              <div className="h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={statusDist}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-main)" />
@@ -565,8 +567,8 @@ export default function DashboardPage() {
                 </div>
               </div>
               <button 
-                onClick={() => window.location.href = '/admin/assets'}
-                className="w-full mt-6 py-3 rounded-xl border border-[var(--border-main)] text-sm font-bold text-[var(--text-secondary)] hover:bg-[var(--border-dim)] transition-all flex items-center justify-center gap-2"
+                onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: '/admin/assets' }))}
+                className="w-full mt-5 py-2.5 rounded-xl border border-[var(--border-main)] text-sm font-bold text-[var(--text-secondary)] hover:bg-[var(--border-dim)] transition-all flex items-center justify-center gap-2"
               >
                 {t.manageAssets}
                 <ExternalLink size={14} />
