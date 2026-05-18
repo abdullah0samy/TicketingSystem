@@ -172,7 +172,7 @@ export default function TransferredPage() {
                     className="hover:bg-[var(--border-dim)] cursor-pointer transition-colors"
                     onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: `/tickets/${ticket.id}` }))}
                   >
-                    <td className="px-4 py-3 text-sm font-medium text-blue-600 dark:text-blue-400">
+                    <td className="px-4 py-3 text-sm font-medium font-mono text-blue-600 dark:text-blue-400">
                       {ticket.ticketNumber}
                     </td>
                     <td className="px-4 py-3 text-sm text-[var(--text-main)] max-w-xs truncate">

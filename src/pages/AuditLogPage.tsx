@@ -456,7 +456,7 @@ export default function AuditLogPage() {
                     </div>
                     {selectedLog.ticket ? (
                       <>
-                        <p className="text-sm font-bold text-primary-blue">{selectedLog.ticket.ticketNumber}</p>
+                        <p className="text-sm font-bold font-mono text-primary-blue">{selectedLog.ticket.ticketNumber}</p>
                         <p className="text-xs text-[var(--text-secondary)] truncate mt-0.5">{selectedLog.ticket.subject}</p>
                       </>
                     ) : selectedLog.entityType ? (

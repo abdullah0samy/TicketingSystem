@@ -202,7 +202,7 @@ function AppContent() {
 
   const sidebar = (
     <aside className={`h-full bg-[var(--bg-surface)] border-r border-[var(--border-main)] flex flex-col transition-colors duration-300`}>
-      <div className="p-5 flex items-center gap-3 border-b border-[var(--border-dim)]">
+      <div className="px-4 py-5 flex items-center gap-3 border-b border-[var(--border-dim)]">
         <div className="w-9 h-9 flex items-center justify-center shrink-0">
           <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
         </div>
@@ -411,7 +411,7 @@ function AppContent() {
                 {user.role === 'super_admin' ? 'SUPER ADMIN' : user.role?.replace('_', ' ')}
               </span>
             </div>
-            <div className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-[var(--border-dim)] overflow-hidden shrink-0 bg-[var(--border-dim)]">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[var(--border-dim)] overflow-hidden shrink-0 bg-[var(--border-dim)]">
               {user.avatarUrl ? (
                 <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               ) : (
