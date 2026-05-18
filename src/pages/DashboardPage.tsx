@@ -178,21 +178,18 @@ export default function DashboardPage() {
         startDate: exportStartDate,
         endDate: exportEndDate
       });
-      const res = await fetch(`/api/analytics/export?${params}`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `tickets_report_${new Date().toISOString().split('T')[0]}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        fetchExportHistory();
-      }
-    } catch (error) {
+      const res = await apiFetch(`/api/analytics/export?${params}`);
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tickets_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      fetchExportHistory();
+    } catch (error: any) {
       setError(error?.message || 'Something went wrong');
       console.error('Export error:', error);
     }

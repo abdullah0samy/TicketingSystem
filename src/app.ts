@@ -111,7 +111,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"], // Vite handles inline scripts with proper nonces
+      scriptSrc: ["'self'", "'unsafe-inline'"], // Required for Vite HMR in dev mode
       styleSrc: ["'self'", "'unsafe-inline'"], // Tailwind requires this
       imgSrc: ["'self'", "data:", "blob:", "https://*"],
       connectSrc: ["'self'", "ws:", "wss:", process.env.FRONTEND_URL || "https://yourdomain.com"],

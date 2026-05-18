@@ -102,41 +102,38 @@ function AppContent() {
   }, [theme]);
 
   useEffect(() => {
-    const controller = new AbortController();
     let cancelled = false;
 
-    if (accessToken && !user && !isFetching) {
+    async function checkSession() {
+      if (!accessToken || user) {
+        setIsReady(true);
+        return;
+      }
+      if (isFetching) return;
       setIsFetching(true);
-      fetch('/api/users/me', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        credentials: 'include',
-        signal: controller.signal
-      })
-      .then(res => {
-        if (res.ok) return res.json();
-        throw new Error('Session expired');
-      })
-      .then(userData => {
-        if (!cancelled) setAuth(userData, accessToken);
-      })
-      .catch((err) => {
-        if (err?.name === 'AbortError') return;
+      try {
+        const res = await fetch('/api/users/me', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          credentials: 'include',
+        });
+        if (cancelled) return;
+        if (res.ok) {
+          const userData = await res.json();
+          setAuth(userData, accessToken);
+        } else {
+          logout();
+        }
+      } catch {
         if (!cancelled) logout();
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) {
           setIsReady(true);
           setIsFetching(false);
         }
-      });
-    } else if (!accessToken || user) {
-      setIsReady(true);
+      }
     }
 
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
+    checkSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, user]);
 

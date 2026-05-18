@@ -1,38 +1,68 @@
 import { useAuthStore } from '../store/authStore.ts';
 
+let isRefreshing = false;
+let refreshPromise: Promise<string | null> | null = null;
+
+async function tryRefreshToken(): Promise<string | null> {
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data.accessToken) return null;
+      const { user } = useAuthStore.getState();
+      useAuthStore.getState().setAuth(user, data.accessToken);
+      return data.accessToken;
+    } catch {
+      return null;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+  return refreshPromise;
+}
+
+async function executeFetch(url: string, options: RequestInit, token: string | null): Promise<Response> {
+  const isFormData = options.body instanceof FormData;
+  const headers: Record<string, string> = {
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers as Record<string, string>),
+  };
+  return fetch(url, {
+    credentials: 'include',
+    ...options,
+    headers,
+  });
+}
+
 export async function apiFetch(url: string, options: RequestInit = {}) {
   const { accessToken, logout } = useAuthStore.getState();
 
-  const isFormData = options.body instanceof FormData;
-
-  const headers: Record<string, string> = {
-    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    ...(options.headers as Record<string, string>),
-  };
-
   try {
-    const fetchOptions: RequestInit = {
-      credentials: 'include', // Includes httpOnly cookies for /refresh
-      ...options,
-      headers
-    };
-    const response = await fetch(url, fetchOptions);
-    
-    // Prevent multiple parallel logouts
-    const isLoggingOut = (window as any)._isLoggingOut;
+    let response = await executeFetch(url, options, accessToken);
 
-    if ((response.status === 401 || response.status === 403) && !isLoggingOut) {
-      // Token expired or unauthorized
-      (window as any)._isLoggingOut = true;
-      console.warn('Session expired or unauthorized. Logging out...');
-      logout();
-      window.dispatchEvent(new CustomEvent('navigate', { detail: '/login' }));
-      
-      // Clear flag after a delay to allow UI to settle
-      setTimeout(() => { (window as any)._isLoggingOut = false; }, 2000);
-      
-      throw new Error('Session expired');
+    if ((response.status === 401 || response.status === 403) && !(window as any)._isLoggingOut) {
+      const newToken = await tryRefreshToken();
+      if (newToken) {
+        response = await executeFetch(url, options, newToken);
+      } else {
+        (window as any)._isLoggingOut = true;
+        console.warn('Session expired. Logging out...');
+        logout();
+        window.dispatchEvent(new CustomEvent('navigate', { detail: '/login' }));
+        setTimeout(() => { (window as any)._isLoggingOut = false; }, 2000);
+        throw new Error('Session expired');
+      }
     } else if (response.status === 401 || response.status === 403) {
       throw new Error('Session expired (logout in progress)');
     }
@@ -61,9 +91,10 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
     if (contentType && contentType.includes('application/json')) {
       return await response.json();
     }
-    
+
     return response;
   } catch (error) {
+    if (error instanceof Error && error.message === 'Session expired') throw error;
     console.error(`API Fetch Error (${url}):`, error);
     if (error instanceof Error) {
       throw {
