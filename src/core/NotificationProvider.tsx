@@ -178,6 +178,18 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
       });
     });
+
+    socket.on('ticket-closed', (data: any) => {
+      handleEvent('ticket-closed', data, () => {
+        window.dispatchEvent(new CustomEvent('ws:ticket-closed', { detail: data }));
+        addNotification({
+          title: langRef.current === 'ar' ? 'تم إغلاق التذكرة' : 'Ticket Closed',
+          message: `${data.ticketNumber} has been closed`,
+          type: 'success',
+          link: `/tickets/${data.id}`
+        });
+      });
+    });
   }, [addNotification, deduplicateKey]);
 
   const connectSocket = useCallback(() => {
