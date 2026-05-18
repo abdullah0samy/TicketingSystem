@@ -110,11 +110,16 @@ export const initCron = () => {
       }
 
       // 2. Check for SLA Warnings (80% time consumed)
+      // OPTIMIZATION: Only check tickets created within last 7 days to avoid scanning stale data
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
       const pendingTickets = await prisma.ticket.findMany({
         where: {
           status: { notIn: ['resolved', 'closed'] },
           slaDeadline: { gt: now },
-          slaWarningSent: false
+          slaWarningSent: false,
+          createdAt: { gte: sevenDaysAgo }
         },
         select: { id: true, ticketNumber: true, subject: true, slaDeadline: true, createdAt: true, departmentId: true }
       });
@@ -190,10 +195,14 @@ export const initCron = () => {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     try {
+      // FIX: Use completedAt/closedAt instead of updatedAt — updatedAt changes on comments/reopens
       const ticketsToArchive = await prisma.ticket.findMany({
         where: {
           status: { in: ['resolved', 'closed'] },
-          updatedAt: { lt: thirtyDaysAgo },
+          OR: [
+            { completedAt: { lt: thirtyDaysAgo } },
+            { closedAt: { lt: thirtyDaysAgo } }
+          ],
           isArchived: false
         },
         select: { id: true, departmentId: true }

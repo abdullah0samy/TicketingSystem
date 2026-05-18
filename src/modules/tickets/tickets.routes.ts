@@ -218,6 +218,14 @@ router.post('/', validate(createTicketSchema), async (req: AuthRequest, res: Res
                     floorName: flr ? flr.nameEn : null
                   }
                 }
+              },
+              statusHistory: {
+                create: {
+                  changedById: fullUser.id,
+                  oldStatus: null,
+                  newStatus: 'pending',
+                  note: 'Ticket created'
+                }
               }
             }
           });
@@ -841,6 +849,17 @@ router.put('/:id/status', async (req: AuthRequest, res: Response) => {
         }
       });
 
+      // Write to TicketStatusHistory
+      await tx.ticketStatusHistory.create({
+        data: {
+          ticketId: t.id,
+          changedById: req.user!.id,
+          oldStatus,
+          newStatus: status,
+          note: comment || null
+        }
+      });
+
       // Add message if provided (as a note linked to audit log)
       if (comment) {
         await tx.ticketMessage.create({
@@ -910,10 +929,11 @@ router.put('/:id/assign', async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'You do not have permission to assign tickets' });
     }
 
-    // Agent Validation: Must exist and belong to the correct department (unless super_admin)
+    // Agent Validation: Must exist, be active, and belong to the correct department (unless super_admin)
     if (agentId) {
       const agent = await prisma.user.findUnique({ where: { id: parseInt(agentId) } });
       if (!agent) return res.status(404).json({ message: 'Agent not found' });
+      if (!agent.isActive) return res.status(400).json({ message: 'Agent is not active' });
       if (agent.departmentId !== ticket.departmentId && req.user.role !== 'super_admin') {
         return res.status(400).json({ message: 'Agent must belong to the same department as the ticket' });
       }
@@ -949,6 +969,19 @@ router.put('/:id/assign', async (req: AuthRequest, res: Response) => {
           }
         }
       });
+
+      // Write to TicketStatusHistory if status changed
+      if (ticket.status === 'pending' && t.status === 'in_progress') {
+        await tx.ticketStatusHistory.create({
+          data: {
+            ticketId: t.id,
+            changedById: req.user!.id,
+            oldStatus: 'pending',
+            newStatus: 'in_progress',
+            note: `Assigned to ${newAssignedTo?.fullNameEn || 'N/A'}`
+          }
+        });
+      }
 
       return t;
     });
@@ -1069,6 +1102,17 @@ router.put('/:id/transfer', async (req: AuthRequest, res: Response) => {
             performedBy: req.user!.fullNameEn,
             timestamp: new Date().toISOString()
           }
+        }
+      });
+
+      // Write to TicketStatusHistory — transfer always resets to 'pending'
+      await tx.ticketStatusHistory.create({
+        data: {
+          ticketId: t.id,
+          changedById: req.user!.id,
+          oldStatus: ticket.status,
+          newStatus: 'pending',
+          note: `Transferred from ${oldDept?.nameEn} to ${targetDept.nameEn}${reason ? `: ${reason}` : ''}`
         }
       });
 
@@ -1231,6 +1275,17 @@ router.put('/:id/confirm', async (req: AuthRequest, res: Response) => {
         }
       });
 
+      // Write to TicketStatusHistory
+      await tx.ticketStatusHistory.create({
+        data: {
+          ticketId: t.id,
+          changedById: req.user!.id,
+          oldStatus: 'resolved',
+          newStatus: 'closed',
+          note: feedback || null
+        }
+      });
+
       if (feedback) {
         await tx.ticketMessage.create({
           data: {
@@ -1326,6 +1381,17 @@ router.post('/bulk-update-status', async (req: AuthRequest, res: Response) => {
           }
         });
 
+        // Write to TicketStatusHistory
+        await tx.ticketStatusHistory.create({
+          data: {
+            ticketId: t.id,
+            changedById: req.user!.id,
+            oldStatus,
+            newStatus: status,
+            note: comment || 'Bulk update'
+          }
+        });
+
         updated.push(t);
       }
       return updated;
@@ -1354,6 +1420,10 @@ router.post('/bulk-assign', async (req: AuthRequest, res: Response) => {
 
   try {
     const newAssignedTo = agentId ? await prisma.user.findUnique({ where: { id: parseInt(agentId) } }) : null;
+
+    if (newAssignedTo && !newAssignedTo.isActive) {
+      return res.status(400).json({ message: 'Agent is not active' });
+    }
 
     const results = await prisma.$transaction(async (tx) => {
       const updated = [];
@@ -1406,6 +1476,19 @@ router.post('/bulk-assign', async (req: AuthRequest, res: Response) => {
             }
           }
         });
+
+        // Write to TicketStatusHistory if status changed
+        if (ticket.status === 'pending' && t.status === 'in_progress') {
+          await tx.ticketStatusHistory.create({
+            data: {
+              ticketId: t.id,
+              changedById: req.user!.id,
+              oldStatus: 'pending',
+              newStatus: 'in_progress',
+              note: `Bulk assigned to ${newAssignedTo?.fullNameEn || 'N/A'}`
+            }
+          });
+        }
 
         updated.push(t);
       }
