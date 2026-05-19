@@ -84,7 +84,6 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
     }
 
     if ((response.status === 401 || response.status === 403) && !logoutGuard) {
-      // Parse response body to distinguish auth failures from business logic 403s
       let errorBody: any = null;
       try {
         const contentType = response.headers.get('content-type');
@@ -93,10 +92,10 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
         }
       } catch { /* ignore */ }
 
-      // Business logic 403 (RBAC, permissions) — do NOT refresh, throw immediately
-      const isBusinessForbidden = response.status === 403 && (
-        errorBody?.message?.includes('Insufficient permissions') ||
-        errorBody?.message?.includes('permission') ||
+      // Business logic 403 (RBAC) — code: FORBIDDEN from authorize middleware
+      // Also catch other business-rule codes from ticket/kb/audit routes
+      const isBusinessForbidden = (
+        errorBody?.code === 'FORBIDDEN' ||
         errorBody?.code === 'RESOLUTION_DETAILS_REQUIRED' ||
         errorBody?.code === 'INVALID_TRANSITION' ||
         errorBody?.code === 'ASSIGNMENT_REQUIRED' ||
@@ -106,10 +105,19 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
       );
 
       if (isBusinessForbidden) {
-        throw new ApiError(403, errorBody?.code || 'FORBIDDEN', errorBody?.message || 'Forbidden');
+        throw new ApiError(403, errorBody.code, errorBody.message || 'Forbidden');
       }
 
-      // Auth-related 401/403 — try token refresh ONCE
+      // TOKEN_MISSING or TOKEN_INVALID — no point refreshing, logout immediately
+      if (errorBody?.code === 'TOKEN_MISSING' || errorBody?.code === 'TOKEN_INVALID') {
+        logoutGuard = true;
+        useAuthStore.getState().logout();
+        broadcastChannel?.postMessage({ type: 'logout' });
+        window.dispatchEvent(new CustomEvent('navigate', { detail: '/login' }));
+        throw new ApiError(401, errorBody.code, errorBody.message || 'Invalid token');
+      }
+
+      // TOKEN_EXPIRED or generic 401/403 — try refresh ONCE
       const newToken = await tryRefreshToken();
       if (newToken) {
         response = await executeFetch(url, options, newToken);
@@ -118,7 +126,6 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
         useAuthStore.getState().logout();
         broadcastChannel?.postMessage({ type: 'logout' });
         window.dispatchEvent(new CustomEvent('navigate', { detail: '/login' }));
-        setTimeout(() => { logoutGuard = false; }, 2000);
         throw new ApiError(401, 'SESSION_EXPIRED', 'Session expired');
       }
     } else if (response.status === 401 || response.status === 403) {
