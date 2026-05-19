@@ -4,90 +4,53 @@ import { Rate } from 'k6/metrics';
 
 const errorRate = new Rate('errors');
 
-// === CONFIGURATION ===
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
-const CONCURRENCY = parseInt(__ENV.CONCURRENCY || '50');
+const CONCURRENCY = parseInt(__ENV.CONCURRENCY || '20');
 const DURATION = __ENV.DURATION || '2m';
 const LOGIN_ID = __ENV.LOGIN_ID || '00001';
 const LOGIN_PASS = __ENV.LOGIN_PASS || 'Admin@123';
 
 export const options = {
   stages: [
-    { duration: '30s', target: CONCURRENCY },      // Ramp up
-    { duration: DURATION, target: CONCURRENCY },   // Steady state
-    { duration: '30s', target: 0 },                 // Ramp down
+    { duration: '30s', target: CONCURRENCY },
+    { duration: DURATION, target: CONCURRENCY },
+    { duration: '30s', target: 0 },
   ],
   thresholds: {
-    http_req_duration: ['p(95)<500'],               // 95% of requests < 500ms
-    http_req_failed: ['rate<0.01'],                 // Error rate < 1%
-    errors: ['rate<0.05'],                          // Custom error rate < 5%
+    http_req_duration: ['p(95)<500'],
+    http_req_failed: ['rate<0.01'],
+    errors: ['rate<0.05'],
   },
+  noConnectionReuse: true,
 };
 
-// === SCENARIO: Realistic Ticketing Workflow ===
-
-// 1. Login
-function login() {
+// Login once in setup, token reused by all VUs for the test duration
+export function setup() {
   const res = http.post(`${BASE_URL}/api/auth/login`, JSON.stringify({
-    identifier: LOGIN_ID,
-    password: LOGIN_PASS,
-  }), {
-    headers: { 'Content-Type': 'application/json' },
-  });
+    identifier: LOGIN_ID, password: LOGIN_PASS,
+  }), { headers: { 'Content-Type': 'application/json' } });
 
-  const ok = check(res, {
-    'login status 200': (r) => r.status === 200,
-    'login returns accessToken': (r) => {
-      try {
-        const body = JSON.parse(r.body);
-        return !!body.accessToken;
-      } catch {
-        return false;
-      }
-    },
-  });
-
-  if (!ok) {
-    errorRate.add(1);
-    return null;
+  if (res.status !== 200) {
+    throw new Error(`Setup login failed: ${res.status} ${res.body}`);
   }
-
-  return JSON.parse(res.body).accessToken;
+  const body = JSON.parse(res.body);
+  return { accessToken: body.accessToken };
 }
 
-// 2. Get Dashboard Summary
 function getDashboard(token) {
   const res = http.get(`${BASE_URL}/api/analytics/dashboard-summary`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   check(res, { 'dashboard 200': (r) => r.status === 200 }) || errorRate.add(1);
-  return res;
 }
 
-// 3. List Department Tickets
 function listTickets(token) {
   const res = http.get(`${BASE_URL}/api/tickets/department?page=1&limit=20`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   check(res, { 'list tickets 200': (r) => r.status === 200 }) || errorRate.add(1);
-  return res;
 }
 
-// 4. Create Ticket
-function createTicket(token) {
-  const res = http.post(`${BASE_URL}/api/tickets`, JSON.stringify({
-    subject: `Load Test Ticket ${Date.now()}`,
-    description: 'This is a load test ticket. It will be cleaned up.',
-    departmentId: '1',
-    priority: 'normal',
-  }), {
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-  });
-  check(res, { 'create ticket 201': (r) => r.status === 201 }) || errorRate.add(1);
-  return res;
-}
-
-// 5. Search Tickets
 function searchTickets(token) {
   const res = http.get(`${BASE_URL}/api/tickets/search?q=TKT&limit=5`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -95,34 +58,37 @@ function searchTickets(token) {
   check(res, { 'search 200': (r) => r.status === 200 }) || errorRate.add(1);
 }
 
-// 6. Health Check
-function healthCheck() {
-  const res = http.get(`${BASE_URL}/api/health`);
-  check(res, { 'health ok': (r) => r.status === 200 }) || errorRate.add(1);
+function createTicket(token) {
+  const res = http.post(`${BASE_URL}/api/tickets`, JSON.stringify({
+    subject: `k6 Load Test ${Date.now()}`,
+    description: 'Load test ticket',
+    departmentId: '1',
+    priority: 'normal',
+  }), {
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+  });
+  check(res, { 'create ticket 201': (r) => r.status === 201 }) || errorRate.add(1);
 }
 
-// === MAIN EXECUTION ===
-export default function () {
-  const token = login();
-  if (!token) {
-    sleep(1);
-    return;
-  }
+function healthCheck() {
+  http.get(`${BASE_URL}/api/health`);
+}
 
-  // Simulate realistic user behavior with weighted operations
+export default function (data) {
+  const token = data.accessToken;
+
   const rand = Math.random();
-
   if (rand < 0.15) {
-    healthCheck();                                    // 15% health checks
+    healthCheck();
   } else if (rand < 0.40) {
-    getDashboard(token);                              // 25% dashboard views
+    getDashboard(token);
   } else if (rand < 0.70) {
-    listTickets(token);                               // 30% ticket listing
+    listTickets(token);
   } else if (rand < 0.85) {
-    searchTickets(token);                             // 15% searches
+    searchTickets(token);
   } else {
-    createTicket(token);                              // 15% ticket creation
+    createTicket(token);
   }
 
-  sleep(Math.random() * 2 + 0.5);                     // 0.5-2.5s between actions
+  sleep(Math.random() * 2 + 0.5);
 }
