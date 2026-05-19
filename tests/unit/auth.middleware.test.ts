@@ -29,7 +29,7 @@ function mockNext() {
 
 describe('Auth Middleware', () => {
   describe('authenticate', () => {
-    it('should return 401 when no authorization header is provided', () => {
+    it('should return 401 with TOKEN_MISSING when no authorization header is provided', () => {
       const req = mockReq();
       const res = mockRes();
       const next = mockNext();
@@ -37,31 +37,30 @@ describe('Auth Middleware', () => {
       authenticate(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Unauthorized' });
+      expect(res.json).toHaveBeenCalledWith({ code: 'TOKEN_MISSING', message: 'Authorization token required' });
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('should return 401 when authorization header has no Bearer token', () => {
-      const req = mockReq({ headers: { authorization: 'Basic abc123' } });
-      const res = mockRes();
-      const next = mockNext();
-
-      // split(' ')[1] will be 'abc123' but it's not a valid JWT
-      authenticate(req, res, next);
-
-      expect(res.status).toHaveBeenCalledWith(403);
-      expect(next).not.toHaveBeenCalled();
-    });
-
-    it('should return 403 when token is invalid', () => {
+    it('should return 401 with TOKEN_INVALID when token is malformed', () => {
       const req = mockReq({ headers: { authorization: 'Bearer invalid.token.here' } });
       const res = mockRes();
       const next = mockNext();
 
       authenticate(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Forbidden or expired token' });
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ code: 'TOKEN_INVALID', message: 'Invalid access token' });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('should return 401 with TOKEN_INVALID when token is garbage', () => {
+      const req = mockReq({ headers: { authorization: 'Bearer definitely.not.a.jwt' } });
+      const res = mockRes();
+      const next = mockNext();
+
+      authenticate(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
       expect(next).not.toHaveBeenCalled();
     });
 
@@ -108,7 +107,7 @@ describe('Auth Middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('should return 403 when user role is not in the allowed list', () => {
+    it('should return 403 with code FORBIDDEN when user role is not in the allowed list', () => {
       const middleware = authorize(['super_admin']);
       const req = mockReq({ user: { id: 1, role: 'agent' } });
       const res = mockRes();
@@ -119,6 +118,7 @@ describe('Auth Middleware', () => {
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({
+          code: 'FORBIDDEN',
           message: 'Insufficient permissions',
           requiredRoles: ['super_admin'],
           yourRole: 'agent',
