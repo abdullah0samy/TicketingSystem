@@ -516,19 +516,27 @@ router.get('/recent-activity', authenticate, authorize(['super_admin']), async (
 // Agent performance
 router.get('/agent-performance', authenticate, authorize(['super_admin', 'supervisor']), async (req, res) => {
   try {
+    const { page = '1', limit = '20' } = req.query as any;
+    const MAX_AGENTS_PAGE = 100;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(parseInt(limit) || 20, MAX_AGENTS_PAGE);
+    const skip = (pageNum - 1) * limitNum;
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    const agents = await prisma.user.findMany({
-      where: { 
-        role: { in: ['agent', 'supervisor'] },
-        deletedAt: null
-      },
-      select: {
-        id: true,
-        fullNameEn: true,
-        fullNameAr: true,
-        department: { select: { nameEn: true, nameAr: true } },
+    const [agents, totalAgents] = await Promise.all([
+      prisma.user.findMany({
+        where: { 
+          role: { in: ['agent', 'supervisor'] },
+          deletedAt: null
+        },
+        skip,
+        take: limitNum,
+        select: {
+          id: true,
+          fullNameEn: true,
+          fullNameAr: true,
+          department: { select: { nameEn: true, nameAr: true } },
           ticketsAssigned: {
             where: { completedAt: { gte: ninetyDaysAgo } },
             select: {
@@ -541,7 +549,14 @@ router.get('/agent-performance', authenticate, authorize(['super_admin', 'superv
             }
           }
         }
-      });
+      }),
+      prisma.user.count({
+        where: {
+          role: { in: ['agent', 'supervisor'] },
+          deletedAt: null
+        }
+      })
+    ]);
 
     const performance = agents.map(agent => {
       const resolvedTickets = agent.ticketsAssigned.filter(t => t.status === 'resolved' || t.status === 'closed');
@@ -590,7 +605,15 @@ router.get('/agent-performance', authenticate, authorize(['super_admin', 'superv
       };
     });
 
-    res.json(performance);
+    res.json({
+      performance,
+      pagination: {
+        total: totalAgents,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(totalAgents / limitNum)
+      }
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching agent performance' });
   }

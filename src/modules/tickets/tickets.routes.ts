@@ -430,8 +430,9 @@ router.get('/search', searchLimiter, validateQuery(ticketSearchSchema), async (r
   if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
   
   const { q, page = '1', limit = '20' } = req.query as any;
-
-  const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+  const MAX_SEARCH_PAGE_SIZE = 100;
+  const safeLimit = Math.min(parseInt(limit as string) || 20, MAX_SEARCH_PAGE_SIZE);
+  const skip = (Math.max(1, parseInt(page as string) || 1) - 1) * safeLimit;
   const searchStr = q as string;
 
   // Base search criteria
@@ -473,7 +474,7 @@ router.get('/search', searchLimiter, validateQuery(ticketSearchSchema), async (r
         },
         orderBy: { createdAt: 'desc' },
         skip,
-        take: parseInt(limit as string)
+        take: safeLimit
       }),
       prisma.ticket.count({ where })
     ]);
@@ -482,9 +483,9 @@ router.get('/search', searchLimiter, validateQuery(ticketSearchSchema), async (r
       tickets,
       pagination: {
         total,
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-        pages: Math.ceil(total / parseInt(limit as string))
+        page: Math.max(1, parseInt(page as string) || 1),
+        limit: safeLimit,
+        pages: Math.ceil(total / safeLimit)
       }
     });
   } catch (error) {
@@ -503,7 +504,10 @@ router.get('/archived', async (req: AuthRequest, res: Response) => {
   const limitNum = Math.min(parseInt(limit as string) || 20, MAX_PAGE_SIZE);
   const skip = (pageNum - 1) * limitNum;
 
-  const where: any = { isArchived: true };
+  const where: any = { 
+    isArchived: true,
+    archivedAt: { gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) }
+  };
 
   if (req.user.role !== 'super_admin') {
     where.departmentId = req.user.departmentId;
