@@ -75,6 +75,31 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
     let response = await executeFetch(url, options, accessToken);
 
     if ((response.status === 401 || response.status === 403) && !logoutGuard) {
+      // Parse response body to distinguish auth failures from business logic 403s
+      let errorBody: any = null;
+      try {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          errorBody = await response.clone().json();
+        }
+      } catch { /* ignore */ }
+
+      // Business logic 403 (RBAC, permissions) — do NOT refresh, throw immediately
+      const isBusinessForbidden = response.status === 403 && (
+        errorBody?.message?.includes('Insufficient permissions') ||
+        errorBody?.message?.includes('permission') ||
+        errorBody?.code === 'RESOLUTION_DETAILS_REQUIRED' ||
+        errorBody?.code === 'INVALID_TRANSITION' ||
+        errorBody?.code === 'ASSIGNMENT_REQUIRED' ||
+        errorBody?.code === 'ISSUE_TYPE_REQUIRED' ||
+        errorBody?.code === 'REOPEN_FORBIDDEN'
+      );
+
+      if (isBusinessForbidden) {
+        throw new ApiError(403, errorBody?.code || 'FORBIDDEN', errorBody?.message || 'Forbidden');
+      }
+
+      // Auth-related 401/403 — try token refresh ONCE
       const newToken = await tryRefreshToken();
       if (newToken) {
         response = await executeFetch(url, options, newToken);

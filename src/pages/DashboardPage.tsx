@@ -272,11 +272,11 @@ export default function DashboardPage() {
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {[
-              { label: t.totalTickets, value: stats?.total, icon: Ticket, color: 'text-primary-blue', bg: 'bg-primary-blue/10' },
-              { label: t.pending, value: stats?.pending, icon: Clock, color: 'text-warning-amber', bg: 'bg-warning-amber/10' },
-              { label: t.resolved, value: stats?.resolved, icon: CheckCircle2, color: 'text-success-green', bg: 'bg-success-green/10' },
-              { label: t.overdue, value: stats?.overdue, icon: AlertCircle, color: 'text-danger-red', bg: 'bg-danger-red/10' },
-              { label: t.avgResolution, value: `${stats?.avgResolutionTimeHours}h`, icon: TrendingUp, color: 'text-medical-teal', bg: 'bg-medical-teal/10' },
+              { label: t.totalTickets, value: stats?.total ?? 0, icon: Ticket, color: 'text-primary-blue', bg: 'bg-primary-blue/10' },
+              { label: t.pending, value: stats?.pending ?? 0, icon: Clock, color: 'text-warning-amber', bg: 'bg-warning-amber/10' },
+              { label: t.resolved, value: stats?.resolved ?? 0, icon: CheckCircle2, color: 'text-success-green', bg: 'bg-success-green/10' },
+              { label: t.overdue, value: stats?.overdue ?? 0, icon: AlertCircle, color: 'text-danger-red', bg: 'bg-danger-red/10' },
+              { label: t.avgResolution, value: `${typeof stats?.avgResolutionTimeHours === 'number' && !isNaN(stats.avgResolutionTimeHours) ? stats.avgResolutionTimeHours : 0}h`, icon: TrendingUp, color: 'text-medical-teal', bg: 'bg-medical-teal/10' },
             ].map((kpi, i) => (
               <motion.div 
                 key={i}
@@ -510,7 +510,7 @@ export default function DashboardPage() {
                     <span className="text-sm font-bold text-[var(--text-secondary)]">
                       {t.overallAht}
                     </span>
-                    <span className="text-lg font-bold text-primary-blue">{ahtData.overallAhtHours}h</span>
+                    <span className="text-lg font-bold text-primary-blue">{typeof ahtData.overallAhtHours === 'number' && !isNaN(ahtData.overallAhtHours) ? `${ahtData.overallAhtHours}h` : '0h'}</span>
                   </div>
                   {ahtData.ahtByPriority.map((item, i) => {
                     const maxHours = Math.max(...ahtData.ahtByPriority.map(p => p.avgHours), 1);
@@ -524,7 +524,7 @@ export default function DashboardPage() {
                       <div key={i}>
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-xs font-bold text-[var(--text-secondary)] capitalize">{item.priority}</span>
-                          <span className="text-xs font-bold text-[var(--text-main)]">{item.avgHours}h ({item.count})</span>
+                          <span className="text-xs font-bold text-[var(--text-main)]">{typeof item.avgHours === 'number' && !isNaN(item.avgHours) ? `${item.avgHours}h` : '0h'} ({item.count ?? 0})</span>
                         </div>
                         <div className="w-full h-2 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
                           <motion.div 
@@ -609,20 +609,20 @@ export default function DashboardPage() {
                           <span className="text-sm font-bold text-[var(--text-secondary)]">{agent.resolvedCount}</span>
                         </td>
                         <td className="py-4">
-                          <span className="text-sm text-[var(--text-secondary)] font-medium">{agent.avgResponseTimeHours}h</span>
+                          <span className="text-sm text-[var(--text-secondary)] font-medium">{typeof agent.avgResponseTimeHours === 'number' && !isNaN(agent.avgResponseTimeHours) ? `${agent.avgResponseTimeHours}h` : '0h'}</span>
                         </td>
                         <td className="py-4">
-                          <span className="text-sm text-[var(--text-secondary)] font-medium">{agent.avgResolutionTimeHours}h</span>
+                          <span className="text-sm text-[var(--text-secondary)] font-medium">{typeof agent.avgResolutionTimeHours === 'number' && !isNaN(agent.avgResolutionTimeHours) ? `${agent.avgResolutionTimeHours}h` : '0h'}</span>
                         </td>
                         <td className="py-4">
                           <div className="flex items-center gap-2">
                             <div className="flex-1 h-1.5 bg-[var(--bg-elevated)] rounded-full overflow-hidden min-w-[60px]">
                               <div 
-                                className={`h-full rounded-full ${agent.slaAdherenceRate >= 90 ? 'bg-success-green' : agent.slaAdherenceRate >= 70 ? 'bg-warning-amber' : 'bg-danger-red'}`}
-                                style={{ width: `${agent.slaAdherenceRate}%` }}
+                                className={`h-full rounded-full ${(agent.slaAdherenceRate ?? 0) >= 90 ? 'bg-success-green' : (agent.slaAdherenceRate ?? 0) >= 70 ? 'bg-warning-amber' : 'bg-danger-red'}`}
+                                style={{ width: `${agent.slaAdherenceRate ?? 0}%` }}
                               />
                             </div>
-                            <span className="text-xs font-bold text-[var(--text-main)]">{agent.slaAdherenceRate}%</span>
+                            <span className="text-xs font-bold text-[var(--text-main)]">{agent.slaAdherenceRate ?? 0}%</span>
                           </div>
                         </td>
                       </tr>
