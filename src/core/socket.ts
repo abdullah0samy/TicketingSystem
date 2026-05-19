@@ -7,6 +7,19 @@ let io: Server;
 
 const SOCKET_TOKEN_TIMEOUT = 15000;
 
+// Per-socket rate limiter: enforces a minimum interval between calls for each event type.
+// Map is garbage-collected when the socket disconnects.
+function createSocketRateLimiter() {
+  const lastCall = new Map<string, number>();
+  return (key: string, minIntervalMs: number): boolean => {
+    const now = Date.now();
+    const last = lastCall.get(key);
+    if (last && now - last < minIntervalMs) return false;
+    lastCall.set(key, now);
+    return true;
+  };
+}
+
 export const initSocket = (server: HttpServer) => {
   const corsOrigins = process.env.NODE_ENV === 'production'
     ? [process.env.FRONTEND_URL || 'https://yourdomain.com']
@@ -39,21 +52,25 @@ export const initSocket = (server: HttpServer) => {
 
   io.on('connection', (socket) => {
     const user = socket.data.user;
+    const rateLimit = createSocketRateLimiter();
     console.log(`🔌 User connected: ${user.id} (${socket.id})`);
 
     socket.on('join-department', async (deptId: number) => {
+      if (!rateLimit('join-department', 100)) return;
       if (user.role === 'super_admin' || Number(user.departmentId) === Number(deptId)) {
         socket.join(`dept-${deptId}`);
       }
     });
 
     socket.on('join-user', async (userId: number) => {
+      if (!rateLimit('join-user', 100)) return;
       if (Number(user.id) === Number(userId)) {
         socket.join(`user-${userId}`);
       }
     });
 
     socket.on('join-ticket', async (ticketId: number) => {
+      if (!rateLimit('join-ticket', 200)) return;
       try {
         const ticket = await prisma.ticket.findUnique({
           where: { id: Number(ticketId) },
@@ -75,10 +92,12 @@ export const initSocket = (server: HttpServer) => {
     });
 
     socket.on('leave-ticket', (ticketId: number) => {
+      if (!rateLimit('leave-ticket', 100)) return;
       socket.leave(`ticket-${ticketId}`);
     });
 
     socket.on('reauthenticate', async (newToken: string, cb: (ok: boolean) => void) => {
+      if (!rateLimit('reauthenticate', 3000)) return cb(false);
       try {
         const decoded = verifyAccessToken(newToken) as any;
         if (Number(decoded.id) !== Number(user.id)) {
