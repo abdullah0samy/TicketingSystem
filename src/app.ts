@@ -72,15 +72,17 @@ const globalLimiter = rateLimit({
   skip: (req) => req.path === '/api/health' || req.path === '/api/test-bigint'
 });
 
-// Auth — per-IP rate limiting to prevent brute force
-const loginLimiter = rateLimit({
+// Auth — general protection for all auth endpoints (refresh, logout)
+const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 10 : 1000000,
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000000,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Too many login attempts. Please try again in 15 minutes.' },
-  keyGenerator: (req) => req.ip || req.socket.remoteAddress || 'unknown'
+  message: { message: 'Too many auth requests. Please try again later.' }
 });
+
+// Login — strict per-IP rate limiting to prevent brute force (applied directly in auth.routes.ts)
+// Only the /login endpoint uses this; /refresh and /logout use authLimiter above
 
 // Analytics (env-configurable, default 300 per 15min)
 const analyticsLimiter = rateLimit({
@@ -201,7 +203,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // API Routes
-app.use('/api/auth', loginLimiter, authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/tickets', ticketRoutes);

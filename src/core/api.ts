@@ -74,6 +74,15 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
   try {
     let response = await executeFetch(url, options, accessToken);
 
+    // RATE LIMITED — throw immediately, NEVER trigger refresh or retry
+    if (response.status === 429) {
+      let errorBody: any = null;
+      try {
+        errorBody = await response.clone().json();
+      } catch { /* ignore */ }
+      throw new ApiError(429, errorBody?.code || 'RATE_LIMITED', errorBody?.message || 'Too many requests');
+    }
+
     if ((response.status === 401 || response.status === 403) && !logoutGuard) {
       // Parse response body to distinguish auth failures from business logic 403s
       let errorBody: any = null;
@@ -92,7 +101,8 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
         errorBody?.code === 'INVALID_TRANSITION' ||
         errorBody?.code === 'ASSIGNMENT_REQUIRED' ||
         errorBody?.code === 'ISSUE_TYPE_REQUIRED' ||
-        errorBody?.code === 'REOPEN_FORBIDDEN'
+        errorBody?.code === 'REOPEN_FORBIDDEN' ||
+        errorBody?.code === 'ACCOUNT_LOCKED'
       );
 
       if (isBusinessForbidden) {

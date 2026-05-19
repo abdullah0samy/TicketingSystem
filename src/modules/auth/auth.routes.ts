@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import rateLimit from 'express-rate-limit';
 
 import prisma from '../../core/db.ts';
 import { generateAccessToken } from './auth.utils.ts';
@@ -19,7 +20,17 @@ const REFRESH_TOKEN_COOKIE_OPTIONS = {
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
-router.post('/login', async (req, res) => {
+// Strict per-IP rate limiter for login only (not shared with /refresh or /logout)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 10 : 1000000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many login attempts. Please try again in 15 minutes.' },
+  keyGenerator: (req) => req.ip || req.socket.remoteAddress || 'unknown'
+});
+
+router.post('/login', loginLimiter, async (req, res) => {
   const { identifier, password } = req.body;
 
   if (!identifier || !password) {
