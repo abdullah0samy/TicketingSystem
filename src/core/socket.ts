@@ -5,7 +5,9 @@ import prisma from './db.ts';
 
 let io: Server;
 
-const SOCKET_TOKEN_TIMEOUT = 15000;
+function isValidId(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
 
 // Per-socket rate limiter: enforces a minimum interval between calls for each event type.
 // Map is garbage-collected when the socket disconnects.
@@ -56,24 +58,27 @@ export const initSocket = (server: HttpServer) => {
     console.log(`🔌 User connected: ${user.id} (${socket.id})`);
 
     socket.on('join-department', async (deptId: number) => {
+      if (!isValidId(deptId)) return;
       if (!rateLimit('join-department', 100)) return;
-      if (user.role === 'super_admin' || Number(user.departmentId) === Number(deptId)) {
+      if (user.role === 'super_admin' || Number(user.departmentId) === deptId) {
         socket.join(`dept-${deptId}`);
       }
     });
 
     socket.on('join-user', async (userId: number) => {
+      if (!isValidId(userId)) return;
       if (!rateLimit('join-user', 100)) return;
-      if (Number(user.id) === Number(userId)) {
+      if (Number(user.id) === userId) {
         socket.join(`user-${userId}`);
       }
     });
 
     socket.on('join-ticket', async (ticketId: number) => {
+      if (!isValidId(ticketId)) return;
       if (!rateLimit('join-ticket', 200)) return;
       try {
         const ticket = await prisma.ticket.findUnique({
-          where: { id: Number(ticketId) },
+          where: { id: ticketId },
           select: { departmentId: true, createdById: true, assignedToId: true }
         });
         if (!ticket) return;
@@ -92,6 +97,7 @@ export const initSocket = (server: HttpServer) => {
     });
 
     socket.on('leave-ticket', (ticketId: number) => {
+      if (!isValidId(ticketId)) return;
       if (!rateLimit('leave-ticket', 100)) return;
       socket.leave(`ticket-${ticketId}`);
     });
@@ -128,13 +134,16 @@ export const getIO = () => {
 };
 
 export const emitToDept = (deptId: number, event: string, data: any) => {
+  if (!isValidId(deptId)) return;
   if (io) io.to(`dept-${deptId}`).emit(event, data);
 };
 
 export const emitToUser = (userId: number, event: string, data: any) => {
+  if (!isValidId(userId)) return;
   if (io) io.to(`user-${userId}`).emit(event, data);
 };
 
 export const emitToTicket = (ticketId: number, event: string, data: any) => {
+  if (!isValidId(ticketId)) return;
   if (io) io.to(`ticket-${ticketId}`).emit(event, data);
 };
