@@ -42,6 +42,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const socketRef = useRef<Socket | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const infiniteRetryRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const authRefreshAttemptedRef = useRef(false);
   const { user, accessToken } = useAuthStore();
   const { language } = useSettingsStore();
   const langRef = useRef(language);
@@ -101,6 +102,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       hasBeenConnectedRef.current = true;
       setConnectionStatus('connected');
       reconnectAttemptsRef.current = 0;
+      authRefreshAttemptedRef.current = false;
       if (infiniteRetryRef.current) {
         clearInterval(infiniteRetryRef.current);
         infiniteRetryRef.current = null;
@@ -115,7 +117,25 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setConnectionStatus(reason === 'io client disconnect' ? 'disconnected' : 'reconnecting');
     });
 
-    socket.on('connect_error', () => {
+    socket.on('connect_error', (err) => {
+      // Auth failure (expired/invalid token) — try refreshing ONCE per connection lifecycle
+      if ((err.message === 'Authentication required' || err.message === 'Invalid or expired token')
+          && !authRefreshAttemptedRef.current) {
+        authRefreshAttemptedRef.current = true;
+        socket.disconnect();
+        fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' })
+          .then(r => r.ok ? r.json() : null)
+          .then(data => {
+            if (data?.accessToken) {
+              const { user } = useAuthStore.getState();
+              if (user) {
+                useAuthStore.getState().setAuth(user, data.accessToken);
+              }
+            }
+          });
+        return;
+      }
+
       reconnectAttemptsRef.current++;
       setConnectionStatus('reconnecting');
       if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS && !infiniteRetryRef.current) {
