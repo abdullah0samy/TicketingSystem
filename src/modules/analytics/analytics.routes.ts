@@ -13,7 +13,7 @@ const router = express.Router();
 const analyticsAuth = (req: AuthRequest, res: any, next: any) => {
   if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
   getUserPermission(req.user.id, req.user.role, req.user.departmentId ?? null, 'canViewAnalytics').then(has => {
-    if (!has) return res.status(403).json({ message: 'Insufficient permissions' });
+    if (!has) return res.status(403).json({ code: 'FORBIDDEN', message: 'Insufficient permissions' });
     next();
   });
 };

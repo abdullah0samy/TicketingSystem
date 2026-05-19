@@ -12,7 +12,7 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
     const hasPerm = await getUserPermission(req.user.id, req.user.role, req.user.departmentId ?? null, 'canViewAuditLogs');
-    if (!hasPerm) return res.status(403).json({ message: 'Insufficient permissions' });
+    if (!hasPerm) return res.status(403).json({ code: 'FORBIDDEN', message: 'Insufficient permissions' });
 
     const { 
       userId, 
@@ -87,7 +87,7 @@ router.get('/actions', authenticate, async (req: AuthRequest, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
     const hasPerm = await getUserPermission(req.user.id, req.user.role, req.user.departmentId ?? null, 'canViewAuditLogs');
-    if (!hasPerm) return res.status(403).json({ message: 'Insufficient permissions' });
+    if (!hasPerm) return res.status(403).json({ code: 'FORBIDDEN', message: 'Insufficient permissions' });
     const actions = await prisma.auditLog.groupBy({
       by: ['action'],
     });

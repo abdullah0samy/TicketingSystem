@@ -101,7 +101,7 @@ router.post('/articles', authenticate, async (req: AuthRequest, res) => {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
     const hasPerm = await getUserPermission(req.user.id, req.user.role, req.user.departmentId || null, 'canManageKnowledgeBase');
-    if (!hasPerm) return res.status(403).json({ error: 'Insufficient permissions to manage Knowledge Base' });
+    if (!hasPerm) return res.status(403).json({ code: 'FORBIDDEN', error: 'Insufficient permissions to manage Knowledge Base' });
 
     // VALIDATION: Check required fields and max lengths
     if (!titleAr || !titleEn || !contentAr || !contentEn || !categoryId) {
@@ -157,7 +157,7 @@ router.put('/articles/:id', authenticate, async (req: AuthRequest, res) => {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
     const hasPerm = await getUserPermission(req.user.id, req.user.role, req.user.departmentId || null, 'canManageKnowledgeBase');
-    if (!hasPerm) return res.status(403).json({ error: 'Insufficient permissions to manage Knowledge Base' });
+    if (!hasPerm) return res.status(403).json({ code: 'FORBIDDEN', error: 'Insufficient permissions to manage Knowledge Base' });
 
     const oldArticle = await prisma.knowledgeArticle.findUnique({ where: { id: parseInt(id) } });
     if (!oldArticle) return res.status(404).json({ error: 'Article not found' });
@@ -221,7 +221,7 @@ router.delete('/articles/:id', authenticate, async (req: AuthRequest, res) => {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
     const hasPerm = await getUserPermission(req.user.id, req.user.role, req.user.departmentId || null, 'canManageKnowledgeBase');
-    if (!hasPerm) return res.status(403).json({ error: 'Insufficient permissions to manage Knowledge Base' });
+    if (!hasPerm) return res.status(403).json({ code: 'FORBIDDEN', error: 'Insufficient permissions to manage Knowledge Base' });
 
     const article = await prisma.knowledgeArticle.findUnique({ where: { id: parseInt(id) } });
     if (!article) return res.status(404).json({ error: 'Article not found' });
@@ -299,7 +299,7 @@ router.post('/categories', authenticate, async (req: AuthRequest, res) => {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
     const hasPerm = await getUserPermission(req.user.id, req.user.role, req.user.departmentId || null, 'canManageKnowledgeBase');
-    if (!hasPerm) return res.status(403).json({ error: 'Insufficient permissions' });
+    if (!hasPerm) return res.status(403).json({ code: 'FORBIDDEN', error: 'Insufficient permissions' });
 
     const category = await prisma.knowledgeCategory.create({
       data: { nameAr, nameEn }
@@ -328,7 +328,7 @@ router.put('/categories/:id', authenticate, async (req: AuthRequest, res) => {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
     const hasPerm = await getUserPermission(req.user.id, req.user.role, req.user.departmentId || null, 'canManageKnowledgeBase');
-    if (!hasPerm) return res.status(403).json({ error: 'Insufficient permissions' });
+    if (!hasPerm) return res.status(403).json({ code: 'FORBIDDEN', error: 'Insufficient permissions' });
 
     const oldCat = await prisma.knowledgeCategory.findUnique({ where: { id: parseInt(id) } });
     const category = await prisma.knowledgeCategory.update({
@@ -359,7 +359,7 @@ router.delete('/categories/:id', authenticate, async (req: AuthRequest, res) => 
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
     const hasPerm = await getUserPermission(req.user.id, req.user.role, req.user.departmentId || null, 'canManageKnowledgeBase');
-    if (!hasPerm) return res.status(403).json({ error: 'Insufficient permissions' });
+    if (!hasPerm) return res.status(403).json({ code: 'FORBIDDEN', error: 'Insufficient permissions' });
 
     const count = await prisma.knowledgeArticle.count({
       where: { categoryId: parseInt(id) }
