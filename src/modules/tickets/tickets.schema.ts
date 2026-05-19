@@ -14,7 +14,7 @@ export const createTicketSchema = z.object({
   creatorExtension: z.string().max(50).optional().nullable(),
   attachments: z.array(z.object({
     fileName: z.string(),
-    fileUrl: z.string().url(),
+    fileUrl: z.string(),
     fileSize: z.number(),
     mimeType: z.string(),
     isVoiceNote: z.boolean().optional(),
