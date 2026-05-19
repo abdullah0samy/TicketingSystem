@@ -282,6 +282,8 @@ model Ticket {
   @@index([status, assignedToId, createdAt])        // Agent workload queries
   @@index([completedAt])                             // Resolution time analytics
   @@index([inProgressAt])                            // AHT analytics
+  @@index([priority])                                // Priority filters & groupBy
+  @@index([isArchived, archivedAt])                  // Archived list ordered by date
   @@map("tickets")
 }
 
@@ -299,6 +301,7 @@ model TicketAttachment {
   ticket       Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@map("ticket_attachments")
+  @@index([ticketId])
 }
 
 model TicketMessage {
@@ -319,6 +322,7 @@ model TicketMessage {
   @@map("ticket_messages")
   @@index([senderId])
   @@index([ticketId, createdAt])
+  @@index([ticketId, isRead])
 }
 
 model MessageAttachment {
@@ -352,6 +356,7 @@ model TicketTransfer {
   ticket           Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@map("ticket_transfers")
+  @@index([ticketId])
   @@index([transferredById])
   @@index([fromDepartmentId])
   @@index([toDepartmentId])
