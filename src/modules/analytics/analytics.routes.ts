@@ -42,10 +42,6 @@ router.get('/dashboard-summary', authenticate, analyticsAuth, async (req: any, r
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
     const [
-      totalTickets,
-      pendingTickets,
-      resolvedTickets,
-      openTickets,
       overdueTickets,
       statusStats,
       priorityStats,
@@ -54,12 +50,9 @@ router.get('/dashboard-summary', authenticate, analyticsAuth, async (req: any, r
       agents,
       exportHistoryItems,
       assets,
-      slaBreached
+      slaBreached,
+      resolutionTypes
     ] = await Promise.all([
-      prisma.ticket.count({ where: baseWhere }),
-      prisma.ticket.count({ where: { ...baseWhere, status: 'pending' } }),
-      prisma.ticket.count({ where: { ...baseWhere, status: 'resolved' } }),
-      prisma.ticket.count({ where: { ...baseWhere, status: 'open' } }),
       prisma.ticket.count({
         where: {
           ...baseWhere,
@@ -99,8 +92,21 @@ router.get('/dashboard-summary', authenticate, analyticsAuth, async (req: any, r
       prisma.asset.findMany({ select: { id: true, status: true } }),
       prisma.ticket.count({
         where: { ...baseWhere, slaBreachSent: true }
+      }),
+      prisma.ticket.groupBy({
+        by: ['requiresExternalResource'],
+        where: { ...baseWhere, status: { in: ['resolved', 'closed'] } },
+        _count: { _all: true }
       })
     ]);
+
+    // Derive status counts from single groupBy
+    const statusCount = (status: string) =>
+      statusStats.find(s => s.status === status)?._count._all ?? 0;
+    const totalTickets = statusStats.reduce((sum, s) => sum + s._count._all, 0);
+    const pendingTickets = statusCount('pending');
+    const resolvedTickets = statusCount('resolved');
+    const openTickets = statusCount('open');
 
     // Average resolution time (AHT) — ITIL standard: inProgressAt→completedAt, fallback createdAt→completedAt
     const resolvedTicketsForAvg = await prisma.ticket.findMany({
@@ -139,15 +145,11 @@ router.get('/dashboard-summary', authenticate, analyticsAuth, async (req: any, r
       };
     });
 
-      // Resolution type breakdown
-      const resolvedInternal = await prisma.ticket.count({
-        where: { ...baseWhere, status: { in: ['resolved', 'closed'] }, requiresExternalResource: false }
-      });
-      const resolvedExternal = await prisma.ticket.count({
-        where: { ...baseWhere, status: { in: ['resolved', 'closed'] }, requiresExternalResource: true }
-      });
+    // Resolution type breakdown from consolidated groupBy
+    const resolvedInternal = resolutionTypes.find(r => r.requiresExternalResource === false)?._count._all ?? 0;
+    const resolvedExternal = resolutionTypes.find(r => r.requiresExternalResource === true)?._count._all ?? 0;
 
-      res.json({
+    res.json({
           stats: {
             total: totalTickets, pending: pendingTickets, resolved: resolvedTickets,
             open: openTickets, overdue: overdueTickets,
@@ -180,11 +182,21 @@ router.get('/stats', authenticate, analyticsAuth, async (req: any, res) => {
     const baseWhere = getBaseTicketFilter(req);
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-    const totalTickets = await prisma.ticket.count({ where: baseWhere });
-    const pendingTickets = await prisma.ticket.count({ where: { ...baseWhere, status: 'pending' } });
-    const resolvedTickets = await prisma.ticket.count({ where: { ...baseWhere, status: 'resolved' } });
-    const openTickets = await prisma.ticket.count({ where: { ...baseWhere, status: 'open' } });
-    
+    const [statusStats, resolvedWithTimes] = await Promise.all([
+      prisma.ticket.groupBy({ by: ['status'], where: baseWhere, _count: { _all: true } }),
+      prisma.ticket.findMany({
+        where: { ...baseWhere, completedAt: { not: null, gte: ninetyDaysAgo } },
+        select: { inProgressAt: true, createdAt: true, completedAt: true },
+        take: 10000
+      })
+    ]);
+    const statusCount = (status: string) =>
+      statusStats.find(s => s.status === status)?._count._all ?? 0;
+    const totalTickets = statusStats.reduce((sum, s) => sum + s._count._all, 0);
+    const pendingTickets = statusCount('pending');
+    const resolvedTickets = statusCount('resolved');
+    const openTickets = statusCount('open');
+
     // SLA Performance
     const overdueTickets = await prisma.ticket.count({
       where: {
@@ -192,12 +204,6 @@ router.get('/stats', authenticate, analyticsAuth, async (req: any, res) => {
         status: { notIn: ['resolved', 'closed'] },
         slaDeadline: { lt: new Date() }
       }
-    });
-
-    const resolvedWithTimes = await prisma.ticket.findMany({
-      where: { ...baseWhere, completedAt: { not: null, gte: ninetyDaysAgo } },
-      select: { inProgressAt: true, createdAt: true, completedAt: true },
-      take: 10000
     });
 
     let avgResolutionTimeHours = 0;
