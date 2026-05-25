@@ -1,7 +1,9 @@
 import { doubleCsrf } from 'csrf-csrf';
 import type { Request, Response, NextFunction } from 'express';
 
-const CSRF_SECRET = process.env.CSRF_SECRET;
+const CSRF_SECRET = process.env.CSRF_SECRET
+  ?? (process.env.NODE_ENV === 'test' ? 'test-csrf-secret-not-secure' : null);
+
 if (!CSRF_SECRET) {
   console.error(
     'CSRF_SECRET environment variable is required. ' +
