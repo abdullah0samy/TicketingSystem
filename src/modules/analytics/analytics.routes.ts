@@ -3,6 +3,7 @@ import type { Response } from 'express';
 import prisma from '../../core/db.ts';
 import { authenticate, authorize, type AuthRequest } from '../../core/middleware/auth.middleware.ts';
 import { getUserPermission } from '../../core/permissions.ts';
+import { assertPermission } from '../../core/middleware/permission.middleware.ts';
 import ExcelJS from 'exceljs';
 import fs from 'fs';
 import path from 'path';

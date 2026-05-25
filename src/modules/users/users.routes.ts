@@ -3,6 +3,7 @@ import { authenticate, type AuthRequest } from '../../core/middleware/auth.middl
 import prisma from '../../core/db.ts';
 import { AVATARS_DIR } from '../../core/paths.ts';
 import { uploadAvatar } from '../../core/middleware/upload.middleware.ts';
+import { validateAvatarFile, safeDeleteFile } from '../../core/middleware/fileValidation.middleware.ts';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
@@ -52,6 +53,9 @@ router.put('/avatar', authenticate, uploadAvatar.single('avatar'), async (req: A
 
   try {
     const originalPath = req.file.path;
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    await validateAvatarFile(originalPath, ext);
+
     const resizedFilename = `resized-${req.file.filename}`;
     const resizedPath = path.join(AVATARS_DIR, resizedFilename);
 

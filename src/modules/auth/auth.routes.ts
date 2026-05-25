@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 
 import prisma from '../../core/db.ts';
 import { generateAccessToken } from './auth.utils.ts';
+import { generateToken } from '../../core/middleware/csrf.middleware.ts';
 
 const router = express.Router();
 
@@ -131,8 +132,11 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshTokenValue, REFRESH_TOKEN_COOKIE_OPTIONS);
 
+    const csrfToken = generateToken(req, res);
+
     res.json({
       accessToken,
+      csrfToken,
       user: {
         id: user.id,
         badgeNumber: user.badgeNumber,
@@ -189,7 +193,8 @@ router.post('/refresh', async (req, res) => {
 
     res.cookie(REFRESH_TOKEN_COOKIE_NAME, newRefreshTokenValue, REFRESH_TOKEN_COOKIE_OPTIONS);
 
-    res.json({ accessToken: newAccessToken });
+    const csrfToken = generateToken(req, res);
+    res.json({ accessToken: newAccessToken, csrfToken });
   } catch (error) {
     res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_OPTIONS);
     res.status(403).json({ message: 'Invalid or expired refresh token' });

@@ -50,11 +50,11 @@ describe('Workflow & Integration E2E', () => {
     });
 
     deptA = await prisma.department.create({
-      data: { nameEn: 'IT', nameAr: 'تقنية المعلومات', defaultPermissionsId: deptPerms.id }
+      data: { nameEn: 'IT', nameAr: 'تقنية المعلومات', code: 'IT', defaultPermissions: { connect: { id: deptPerms.id } } }
     });
     
     deptB = await prisma.department.create({
-      data: { nameEn: 'Maintenance', nameAr: 'الصيانة', defaultPermissionsId: deptPerms.id }
+      data: { nameEn: 'Maintenance', nameAr: 'الصيانة', code: 'MAINT', defaultPermissions: { connect: { id: deptPerms.id } } }
     });
 
     ticketType = await prisma.ticketType.create({

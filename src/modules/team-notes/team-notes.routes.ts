@@ -118,11 +118,31 @@ router.post('/:id/comments', authenticate, async (req: any, res) => {
   const noteId = parseInt(req.params.id);
 
   try {
+    const note = await prisma.teamNote.findUnique({
+      where: { id: noteId },
+      select: { departmentId: true },
+    });
+    if (!note) return res.status(404).json({ message: 'Note not found' });
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { departmentId: true, role: true },
+    });
+    if (!user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const isDeptMember = note.departmentId === null || user.departmentId === note.departmentId;
+    if (!isDeptMember && user.role !== 'super_admin') {
+      return res.status(403).json({
+        message: 'You can only comment on notes in your own department',
+        code: 'CROSS_DEPT_FORBIDDEN',
+      });
+    }
+
     const comment = await prisma.teamNoteComment.create({
       data: {
         body,
         authorId: req.user.id,
-        noteId
+        noteId,
       },
       include: {
         author: {
@@ -130,10 +150,10 @@ router.post('/:id/comments', authenticate, async (req: any, res) => {
             id: true,
             fullNameAr: true,
             fullNameEn: true,
-            avatarUrl: true
-          }
-        }
-      }
+            avatarUrl: true,
+          },
+        },
+      },
     });
 
     res.status(201).json(comment);
@@ -149,6 +169,26 @@ router.post('/:id/like', authenticate, async (req: any, res) => {
   const userId = req.user.id;
 
   try {
+    const note = await prisma.teamNote.findUnique({
+      where: { id: noteId },
+      select: { departmentId: true },
+    });
+    if (!note) return res.status(404).json({ message: 'Note not found' });
+
+    if (req.user.role !== 'super_admin') {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { departmentId: true },
+      });
+      const isDeptMember = note.departmentId === null || user?.departmentId === note.departmentId;
+      if (!isDeptMember) {
+        return res.status(403).json({
+          message: 'You can only interact with notes in your own department',
+          code: 'CROSS_DEPT_FORBIDDEN',
+        });
+      }
+    }
+
     const existingLike = await prisma.teamNoteLike.findUnique({
       where: {
         noteId_userId: { noteId, userId }

@@ -141,24 +141,29 @@ router.delete('/floors/:id', authorize(['super_admin']), async (req, res) => {
 });
 
 // --- DEPARTMENTS ---
-router.get('/departments', async (req, res) => {
+router.get('/departments', async (req: any, res) => {
   try {
+    const isSuperAdmin = req.user?.role === 'super_admin';
     const departments = await prisma.department.findMany({
-      include: { 
-        defaultPermissions: true,
-        _count: { select: { users: true } }
+      include: {
+        ...(isSuperAdmin ? { defaultPermissions: true, _count: { select: { users: true } } } : {}),
       },
       orderBy: { nameEn: 'asc' }
     });
-    res.json(departments);
+
+    const safe = departments.map((d) => {
+      const { defaultPermissions, _count, ...rest } = d as any;
+      return isSuperAdmin ? d : rest;
+    });
+    res.json(safe);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching departments' });
   }
 });
 
 router.post('/departments', authorize(['super_admin']), async (req, res) => {
-  const { nameAr, nameEn, descriptionAr, descriptionEn, deptType, isActive, slaHours } = req.body;
-  if (!nameAr || !nameEn) return res.status(400).json({ message: 'Names are required' });
+  const { nameAr, nameEn, code, descriptionAr, descriptionEn, deptType, isActive, slaHours } = req.body;
+  if (!nameAr || !nameEn || !code) return res.status(400).json({ message: 'Names and code are required' });
 
   try {
     // Create default permissions first
@@ -166,6 +171,7 @@ router.post('/departments', authorize(['super_admin']), async (req, res) => {
 
     const department = await prisma.department.create({
       data: {
+        code,
         nameAr,
         nameEn,
         descriptionAr,
@@ -173,7 +179,7 @@ router.post('/departments', authorize(['super_admin']), async (req, res) => {
         deptType: deptType || 'RECEIVER_ONLY',
         isActive: isActive ?? true,
         slaHours: slaHours ? parseInt(slaHours) : 24,
-        defaultPermissionsId: permissions.id
+        defaultPermissions: { connect: { id: permissions.id } }
       },
       include: { defaultPermissions: true }
     });

@@ -57,6 +57,7 @@ import teamNoteRoutes from './modules/team-notes/team-notes.routes.ts';
 import auditRoutes from './modules/audit/audit.routes.ts';
 import profileRoutes from './modules/profile/profile.routes.ts';
 import { requestLogger } from './core/middleware/request_logger.ts';
+import { doubleCsrfProtection, csrfErrorHandler, csrfTokenEndpoint } from './core/middleware/csrf.middleware.ts';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './core/swagger.ts';
 
@@ -134,7 +135,7 @@ app.use(cors({
   origin: corsOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
 }));
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
@@ -150,6 +151,24 @@ app.use((req, res, next) => {
 });
 
 app.use('/api/', globalLimiter, requestLogger);
+
+// CSRF token endpoint (no CSRF protection needed for GET)
+app.get('/api/auth/csrf-token', csrfTokenEndpoint);
+
+// CSRF protection for all state-changing routes (defense-in-depth)
+// Skip GET/HEAD/OPTIONS which are read-only
+app.use('/api', (req, res, next) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    next();
+    return;
+  }
+  if (req.path === '/auth/login') {
+    next();
+    return;
+  }
+  doubleCsrfProtection(req, res, next);
+});
+app.use('/api', csrfErrorHandler);
 
 // Serve static files from uploads
 app.use('/uploads', express.static(UPLOADS_DIR));
@@ -227,22 +246,23 @@ app.use('/api/*', (req, res) => {
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: any) => {
-  // Log full error for server logs
   console.error('Unhandled Error:', {
     message: err.message,
-    stack: err.stack,
+    stack: err.stack?.slice(0, 500),
     path: req.path,
-    method: req.method
+    method: req.method,
+    code: err.code
   });
 
-  const status = err.status || 500;
+  const status = err.httpStatus || err.status || (err.code === 'LIMIT_FILE_SIZE' ? 400 : 500);
   const isProd = process.env.NODE_ENV === 'production';
 
   res.status(status).json({
     message: isProd && status === 500 
       ? 'An unexpected error occurred. Please contact IT support.' 
       : err.message || 'Internal Server Error',
-    error: isProd ? {} : err, // Never expose details in production
+    code: err.code || undefined,
+    error: isProd ? {} : (status === 500 ? err.message : err),
     requestId: req.headers['x-request-id'] || undefined
   });
 });

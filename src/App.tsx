@@ -113,9 +113,13 @@ function AppContent() {
       if (isFetching) return;
       setIsFetching(true);
       try {
-        const userData = await apiFetch('/api/users/me');
+        const [userData, csrfRes] = await Promise.all([
+          apiFetch('/api/users/me'),
+          fetch('/api/auth/csrf-token', { credentials: 'include' }),
+        ]);
         if (cancelled) return;
-        setAuth(userData, accessToken);
+        const csrfData = csrfRes.ok ? await csrfRes.json() : { csrfToken: null };
+        setAuth(userData, accessToken, csrfData.csrfToken);
       } catch {
         if (!cancelled) {
           useAuthStore.setState({ user: null, accessToken: null });

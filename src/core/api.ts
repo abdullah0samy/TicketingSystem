@@ -1,5 +1,12 @@
 import { useAuthStore } from '../store/authStore.ts';
 
+const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+function getCsrfFromCookie(): string | null {
+  const match = document.cookie.match(/(?:^|;\s*)x-csrf-token=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 class ApiError extends Error {
   status: number;
   code: string;
@@ -42,7 +49,7 @@ async function tryRefreshToken(): Promise<string | null> {
       const data = await res.json();
       if (!data.accessToken) return null;
       const { user } = useAuthStore.getState();
-      useAuthStore.getState().setAuth(user, data.accessToken);
+      useAuthStore.getState().setAuth(user, data.accessToken, data.csrfToken);
       return data.accessToken;
     } catch {
       return null;
@@ -56,11 +63,24 @@ async function tryRefreshToken(): Promise<string | null> {
 
 async function executeFetch(url: string, options: RequestInit, token: string | null): Promise<Response> {
   const isFormData = options.body instanceof FormData;
+  const method = (options.method || 'GET').toUpperCase();
+
+  const { csrfToken: storeToken, setCsrfToken } = useAuthStore.getState();
+  const effectiveCsrf = storeToken || getCsrfFromCookie();
+  if (!storeToken && effectiveCsrf) {
+    setCsrfToken(effectiveCsrf);
+  }
+
   const headers: Record<string, string> = {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers as Record<string, string>),
   };
+
+  if (!CSRF_SAFE_METHODS.has(method) && effectiveCsrf) {
+    headers['X-CSRF-Token'] = effectiveCsrf;
+  }
+
   return fetch(url, {
     credentials: 'include',
     ...options,
@@ -144,7 +164,11 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
     }
 
     if (contentType && contentType.includes('application/json')) {
-      return await response.json();
+      const data = await response.json();
+      if (data.csrfToken) {
+        useAuthStore.getState().setCsrfToken(data.csrfToken);
+      }
+      return data;
     }
 
     return response;
@@ -157,4 +181,3 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
     throw new ApiError(0, 'UNKNOWN_ERROR', 'An unknown error occurred');
   }
 }
-

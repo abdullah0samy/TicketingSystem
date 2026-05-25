@@ -8,8 +8,10 @@ import { ALLOWED_TRANSITIONS, TICKET_PRIORITIES } from './workflow.constants.ts'
 import { calculateSLADeadline } from './sla.utils.ts';
 import { validate, validateQuery } from '../../core/utils/api.utils.ts';
 import { createTicketSchema, ticketSearchSchema } from './tickets.schema.ts';
-import { invalidatePermissionCache } from '../../core/permissionCache.ts';
+import { getCachedPermissions, setCachedPermissions, invalidatePermissionCache } from '../../core/permissionCache.ts';
 import { getUserPermission } from '../../core/permissions.ts';
+import { generateTicketNumber } from './ticketNumber.utils.ts';
+import { checkTicketAccess, checkUserPermission, PermissionError } from '../../core/middleware/permission.middleware.ts';
 
 const router = express.Router();
 
@@ -50,35 +52,8 @@ async function checkTicketPermission(
 }
 
 // --- TICKET NUMBER GENERATOR ---
-// BUG FIX: Wrap in serializable transaction with retry to prevent race condition
-async function generateTicketNumber(txClient: any = prisma): Promise<string> {
-  const now = new Date();
-  const dateStr = now.toISOString().slice(2, 10).replace(/-/g, ''); // YYMMDD
-  
-  const prefix = 'TKT';
-  
-  const lastTicket = await txClient.ticket.findFirst({
-    where: {
-      ticketNumber: {
-        startsWith: `${prefix}-${dateStr}-`
-      }
-    },
-    orderBy: {
-      ticketNumber: 'desc'
-    }
-  });
-
-  let sequence = 1;
-  if (lastTicket) {
-    const parts = lastTicket.ticketNumber.split('-');
-    const lastSeq = parseInt(parts[parts.length - 1]);
-    if (!isNaN(lastSeq)) {
-      sequence = lastSeq + 1;
-    }
-  }
-
-  return `${prefix}-${dateStr}-${sequence.toString().padStart(3, '0')}`;
-}
+// See ticketNumber.utils.ts for the atomic PostgreSQL-level implementation.
+// Uses INSERT ... ON CONFLICT DO UPDATE RETURNING for race-condition-safe generation.
 
 // --- CREATE TICKET ---
 /**
@@ -143,6 +118,21 @@ router.post('/', createLimiter, validate(createTicketSchema), async (req: AuthRe
     if (!fullUser) return res.status(404).json({ message: 'User not found' });
     if (!targetDept) return res.status(404).json({ message: 'Target department not found' });
 
+    // PERMISSION CHECK: User must have canSendTickets in their own department (unless super_admin)
+    if (req.user.role !== 'super_admin') {
+      const canSend = await checkUserPermission(
+        req.user.id,
+        fullUser.departmentId ?? null,
+        'canSendTickets'
+      );
+      if (!canSend) {
+        return res.status(403).json({
+          message: 'You do not have permission to create tickets',
+          code: 'CANNOT_SEND_TICKETS',
+        });
+      }
+    }
+
     // Calculate SLA Deadline
     const ticketType = ticketTypeId && !isNaN(parseInt(ticketTypeId)) ? await prisma.ticketType.findUnique({ where: { id: parseInt(ticketTypeId) } }) : null;
     const baseSlaHours = ticketType?.slaHours || targetDept.slaHours || 24;
@@ -154,7 +144,7 @@ router.post('/', createLimiter, validate(createTicketSchema), async (req: AuthRe
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
         ticket = await prisma.$transaction(async (tx) => {
-          const tn = await generateTicketNumber(tx);
+          const tn = await generateTicketNumber(parseInt(departmentId), tx);
           return tx.ticket.create({
             data: {
               ticketNumber: tn,
@@ -1139,6 +1129,12 @@ router.post('/:id/comments', async (req: AuthRequest, res: Response) => {
     const ticket = await prisma.ticket.findUnique({ where: { id: parseInt(id) } });
     if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
 
+    // ACCESS CHECK: User must have access to the ticket
+    const hasCommentAccess = await checkTicketAccess(req, ticket);
+    if (!hasCommentAccess) {
+      return res.status(403).json({ message: 'You do not have access to this ticket' });
+    }
+
     // Lock check for comments:
     // - 'closed' tickets: LOCKED for everyone except super_admin.
     // - 'resolved' tickets: agents and supervisors CAN still add notes (pre-confirmation period).
@@ -1622,7 +1618,14 @@ router.post('/:id/link', async (req: AuthRequest, res: Response) => {
 
     if (!ticket || !target) return res.status(404).json({ message: 'One or both tickets not found' });
 
-    // BUG FIX: Missing closed-ticket lock check on link endpoint
+    // ACCESS CHECK: User must have access to both tickets
+    const hasSourceAccess = await checkTicketAccess(req, ticket);
+    const hasTargetAccess = await checkTicketAccess(req, target);
+    if (!hasSourceAccess || !hasTargetAccess) {
+      return res.status(403).json({ message: 'You do not have access to one or both tickets' });
+    }
+
+    // LOCK CHECK: Closed or resolved tickets cannot be modified
     if ((ticket.status === 'closed' || ticket.status === 'resolved') && req.user!.role !== 'super_admin') {
       return res.status(403).json({ message: 'Closed or resolved tickets cannot be modified' });
     }
@@ -1680,6 +1683,13 @@ router.post('/:id/unlink', async (req: AuthRequest, res: Response) => {
     const target = await prisma.ticket.findUnique({ where: { id: parseInt(targetTicketId) } });
 
     if (!ticket || !target) return res.status(404).json({ message: 'One or both tickets not found' });
+
+    // ACCESS CHECK: User must have access to both tickets
+    const hasUnlinkSourceAccess = await checkTicketAccess(req, ticket);
+    const hasUnlinkTargetAccess = await checkTicketAccess(req, target);
+    if (!hasUnlinkSourceAccess || !hasUnlinkTargetAccess) {
+      return res.status(403).json({ message: 'You do not have access to one or both tickets' });
+    }
 
     // Lock check: Only Super Admin can modify closed or resolved tickets
     if ((ticket.status === 'closed' || ticket.status === 'resolved') && req.user.role !== 'super_admin') {

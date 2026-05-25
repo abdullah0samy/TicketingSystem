@@ -60,6 +60,7 @@ model Department {
   id                     Int                     @id @default(autoincrement())
   nameAr                 String                  @map("name_ar")
   nameEn                 String                  @map("name_en")
+  code                   String                  @unique @map("code")
   descriptionAr          String?                 @map("description_ar")
   descriptionEn          String?                 @map("description_en")
   deptType               String                  @default("RECEIVER_ONLY") @map("dept_type")
@@ -69,6 +70,7 @@ model Department {
   createdAt              DateTime                @default(now()) @map("created_at")
   updatedAt              DateTime                @updatedAt @map("updated_at")
   deletedAt              DateTime?               @map("deleted_at")
+  ticketCounters         TicketCounter[]
   auditLogs              AuditLog[]
   defaultPermissions     DeptPermissions         @relation(fields: [defaultPermissionsId], references: [id])
   allowedTransferSources DeptTransferAllowlist[] @relation("TargetDept")
@@ -285,6 +287,19 @@ model Ticket {
   @@index([priority])                                // Priority filters & groupBy
   @@index([isArchived, archivedAt])                  // Archived list ordered by date
   @@map("tickets")
+}
+
+model TicketCounter {
+  id           Int        @id @default(autoincrement())
+  year         Int
+  departmentId Int        @map("department_id")
+  counter      Int        @default(0)
+  department   Department @relation(fields: [departmentId], references: [id])
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  @@unique([year, departmentId])
+  @@map("ticket_counters")
 }
 
 model TicketAttachment {
