@@ -4,41 +4,64 @@ services:
   app:
     build: .
     ports:
-      - "3001:3000"
+      - "3005:3000"
     environment:
-      - DATABASE_URL=postgresql://johndoe:randompassword@db:5432/abch_db?schema=public
+      - DATABASE_URL=${DATABASE_URL:-postgresql://johndoe:${POSTGRES_PASSWORD:-randompassword}@db:5432/abch_db?schema=public&connection_limit=20&pool_timeout=30&connect_timeout=10}
       - REDIS_URL=redis://redis:6379
-      - JWT_ACCESS_SECRET=change-this-in-production
-      - JWT_REFRESH_SECRET=change-this-refresh-secret
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - NODE_ENV=production
-      - FRONTEND_URL=https://yourdomain.com
+      - FRONTEND_URL=${FRONTEND_URL:-https://yourdomain.com}
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
-      - ./uploads:/app/uploads
+      - uploads_data:/app/uploads
     restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   db:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_USER=johndoe
-      - POSTGRES_PASSWORD=randompassword
-      - POSTGRES_DB=abch_db
-    ports:
-      - "5433:5432"
+      - POSTGRES_USER=${POSTGRES_USER:-johndoe}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-randompassword}
+      - POSTGRES_DB=${POSTGRES_DB:-abch_db}
+    # SECURITY FIX: Remove public port exposure — only accessible internally by app service
+    # ports:
+    #   - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-johndoe} -d ${POSTGRES_DB:-abch_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6380:6379"
+    # SECURITY FIX: Remove public port exposure — only accessible internally by app service
+    # ports:
+    #   - "6385:6379"
     volumes:
       - redis_data:/data
     restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:

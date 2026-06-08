@@ -7,3 +7,7 @@ coverage/
 .env*
 !.env.example
 *.sql
+pgdata/
+uploads/
+.npmrc
+dump.rdb
