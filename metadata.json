@@ -1,0 +1,8 @@
+{
+  "name": "ABC Hospital Help Desk",
+  "description": "Enterprise-grade Help Desk System for ABC Hospital with real-time clinical support and SLA tracking.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
