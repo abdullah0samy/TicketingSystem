@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/dom';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 import { NotificationProvider } from '../../src/core/NotificationProvider.tsx';
