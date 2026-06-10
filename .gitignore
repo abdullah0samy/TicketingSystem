@@ -8,6 +8,6 @@ coverage/
 !.env.example
 *.sql
 pgdata/
-uploads/
+/uploads/
 .npmrc
 dump.rdb
