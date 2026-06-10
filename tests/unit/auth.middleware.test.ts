@@ -37,7 +37,7 @@ describe('Auth Middleware', () => {
       authenticate(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Unauthorized' });
+      expect(res.json).toHaveBeenCalledWith({ error: 'Unauthorized', code: 'MISSING_TOKEN' });
       expect(next).not.toHaveBeenCalled();
     });
 
