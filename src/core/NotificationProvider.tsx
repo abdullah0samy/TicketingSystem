@@ -116,6 +116,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     });
 
     newSocket.on('new-ticket', (data: any) => {
+      window.dispatchEvent(new CustomEvent('ws:ticket-created', { detail: data }));
       addNotification({
         title: langRef.current === 'ar' ? 'تذكرة جديدة' : 'New Ticket',
         message: `${data.ticketNumber}: ${data.subject}`,

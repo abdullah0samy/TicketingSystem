@@ -577,11 +577,15 @@ router.get('/transferred', async (req: AuthRequest, res: Response) => {
   const limitNum = Math.min(parseInt(limit as string) || 20, MAX_PAGE_SIZE);
   const skip = (pageNum - 1) * limitNum;
 
+  const userDeptId = req.user.role === 'super_admin' ? undefined : req.user.departmentId;
   const where: any = {
     transfers: {
-      some: {
-        toDepartmentId: req.user.role === 'super_admin' ? undefined : req.user.departmentId
-      }
+      some: userDeptId ? {
+        OR: [
+          { toDepartmentId: userDeptId },
+          { fromDepartmentId: userDeptId }
+        ]
+      } : undefined
     }
   };
 
@@ -622,8 +626,16 @@ router.get('/transferred', async (req: AuthRequest, res: Response) => {
       prisma.ticket.count({ where })
     ]);
 
+    const ticketsWithDirection = tickets.map(t => ({
+      ...t,
+      transfers: t.transfers.map(tr => ({
+        ...tr,
+        direction: userDeptId && tr.toDepartmentId === userDeptId ? 'inbound' : 'outbound'
+      }))
+    }));
+
     res.json({
-      tickets,
+      tickets: ticketsWithDirection,
       pagination: { total, page: pageNum, limit: limitNum, pages: Math.ceil(total / limitNum) }
     });
   } catch (error) {
@@ -1666,6 +1678,10 @@ router.put('/:id/archive', async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'You do not have permission to archive this ticket' });
     }
 
+    if (ticket.status !== 'resolved' && ticket.status !== 'closed') {
+      return res.status(400).json({ message: 'Only resolved or closed tickets can be archived' });
+    }
+
     const updatedTicket = await prisma.ticket.update({
       where: { id: parseInt(id) },
       data: { 
@@ -1788,6 +1804,10 @@ router.post('/bulk-archive', async (req: AuthRequest, res: Response) => {
         );
 
         if (hasPermission) {
+          if (ticket.status !== 'resolved' && ticket.status !== 'closed') {
+            failedIds.push(ticket.id);
+            continue;
+          }
           await tx.ticket.update({
             where: { id: ticket.id },
             data: { isArchived: true, archivedAt: new Date() }

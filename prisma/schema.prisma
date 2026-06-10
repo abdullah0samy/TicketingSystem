@@ -506,6 +506,7 @@ model Asset {
   warrantyExpiry DateTime?  @map("warranty_expiry")
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
+  deletedAt      DateTime?  @map("deleted_at")
   tickets        Ticket[]
   department     Department? @relation(fields: [departmentId], references: [id])
 

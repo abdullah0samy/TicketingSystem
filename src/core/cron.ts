@@ -173,7 +173,7 @@ export const initCron = () => {
       const ticketsToArchive = await prisma.ticket.findMany({
         where: {
           status: { in: ['resolved', 'closed'] },
-          updatedAt: { lt: thirtyDaysAgo },
+          completedAt: { lt: thirtyDaysAgo },
           isArchived: false
         }
       });

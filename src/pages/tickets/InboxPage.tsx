@@ -267,7 +267,7 @@ export default function InboxPage() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'bg-danger-red/10 text-danger-red dark:bg-danger-red/20 dark:text-rose-400';
+      case 'critical': return 'bg-danger-red/10 text-danger-red dark:bg-danger-red/20 dark:text-rose-400';
       case 'high': return 'bg-orange-500/10 text-orange-500 dark:bg-orange-500/20 dark:text-orange-400';
       case 'normal': return 'bg-primary-blue/10 text-primary-blue dark:bg-primary-blue/20 dark:text-medical-blue';
       default: return 'bg-[var(--bg-elevated)] text-[var(--text-secondary)]';
@@ -333,7 +333,7 @@ export default function InboxPage() {
             <option value="low">Low</option>
             <option value="normal">Normal</option>
             <option value="high">High</option>
-            <option value="urgent">Urgent</option>
+            <option value="critical">Critical</option>
           </select>
 
           <div className="flex items-center gap-2">

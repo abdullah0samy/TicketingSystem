@@ -104,6 +104,7 @@ export default function DashboardPage() {
   const [exportHistory, setExportHistory] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState<'overview' | 'exports'>('overview');
   const [exportStartDate, setExportStartDate] = useState('');
   const [exportEndDate, setExportEndDate] = useState('');
@@ -126,6 +127,18 @@ export default function DashboardPage() {
     return () => {
       controller.abort();
       isMounted = false;
+    };
+  }, [refreshKey]);
+
+  useEffect(() => {
+    const handleRefresh = () => setRefreshKey(k => k + 1);
+    window.addEventListener('ws:ticket-created', handleRefresh);
+    window.addEventListener('ws:ticket-status-updated', handleRefresh);
+    window.addEventListener('ws:ticket-assigned', handleRefresh);
+    return () => {
+      window.removeEventListener('ws:ticket-created', handleRefresh);
+      window.removeEventListener('ws:ticket-status-updated', handleRefresh);
+      window.removeEventListener('ws:ticket-assigned', handleRefresh);
     };
   }, []);
 
@@ -516,7 +529,7 @@ export default function DashboardPage() {
                   {ahtData.ahtByPriority.map((item, i) => {
                     const maxHours = Math.max(...ahtData.ahtByPriority.map(p => p.avgHours), 1);
                     const barPercent = (item.avgHours / maxHours) * 100;
-                    const barColor = item.priority === 'high' || item.priority === 'urgent' 
+                    const barColor = item.priority === 'high' || item.priority === 'critical' 
                       ? 'bg-danger-red' 
                       : item.priority === 'medium' 
                         ? 'bg-warning-amber' 

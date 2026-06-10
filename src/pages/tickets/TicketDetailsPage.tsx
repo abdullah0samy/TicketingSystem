@@ -1408,7 +1408,7 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                   <span>{t.priority}</span>
                 </div>
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${
-                  ticket.priority === 'urgent' ? 'bg-danger-red/10 text-danger-red dark:bg-danger-red/20' : 
+                  ticket.priority === 'critical' ? 'bg-danger-red/10 text-danger-red dark:bg-danger-red/20' : 
                   ticket.priority === 'high' ? 'bg-orange-500/10 text-orange-500' :
                   'bg-[var(--bg-elevated)] text-[var(--text-secondary)]'
                 }`}>

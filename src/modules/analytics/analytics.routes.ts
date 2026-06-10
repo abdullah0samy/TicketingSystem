@@ -42,7 +42,6 @@ router.get('/dashboard-summary', authenticate, async (req: any, res) => {
       agents,
       exportHistoryItems,
       assets,
-      slaBreached
     ] = await Promise.all([
       prisma.ticket.count({ where: baseWhere }),
       prisma.ticket.count({ where: { ...baseWhere, status: 'pending' } }),
@@ -85,10 +84,14 @@ router.get('/dashboard-summary', authenticate, async (req: any, res) => {
         include: { exportedBy: { select: { fullNameAr: true, fullNameEn: true } } }
       }),
       prisma.asset.findMany({}),
-      prisma.ticket.count({
-        where: { ...baseWhere, slaBreachSent: true }
-      })
     ]);
+
+    // SLA breaches: open past-deadline + resolved/closed completed after deadline
+    const breachedResolved = await prisma.ticket.findMany({
+      where: { ...baseWhere, status: { in: ['resolved', 'closed'] }, completedAt: { not: null }, slaDeadline: { not: null } },
+      select: { slaDeadline: true, completedAt: true }
+    });
+    const slaBreached = overdueTickets + breachedResolved.filter(t => t.completedAt! > t.slaDeadline!).length;
 
     // Average resolution time - scoped to user's department/role
     const resolvedTicketsForAvg = await prisma.ticket.findMany({
@@ -459,27 +462,59 @@ router.get('/agent-performance', authenticate, authorize(['super_admin', 'superv
 });
 
 // --- AHT (Average Handling Time) Metrics ---
+// Uses TicketStatusHistory to sum only time spent in 'in_progress' status.
 router.get('/aht', authenticate, async (req: any, res) => {
   try {
     const baseWhere = getBaseTicketFilter(req);
 
-    // Overall AHT (all resolved/closed tickets)
     const resolvedTickets = await prisma.ticket.findMany({
       where: { ...baseWhere, completedAt: { not: null }, status: { in: ['resolved', 'closed'] } },
-      select: { createdAt: true, completedAt: true, status: true, priority: true, departmentId: true }
+      select: { id: true, priority: true, departmentId: true }
     });
+
+    const ticketIds = resolvedTickets.map(t => t.id);
+    const historyEntries = await prisma.ticketStatusHistory.findMany({
+      where: { ticketId: { in: ticketIds } },
+      orderBy: [{ ticketId: 'asc' }, { createdAt: 'asc' }],
+      select: { ticketId: true, oldStatus: true, newStatus: true, createdAt: true },
+    });
+
+    const handlingMsByTicket = new Map<number, number>();
+    let currentTicketId = -1;
+    let inProgressStart: Date | null = null;
+
+    for (const h of historyEntries) {
+      if (h.ticketId !== currentTicketId) {
+        if (inProgressStart && currentTicketId !== -1) {
+          const prev = handlingMsByTicket.get(currentTicketId) || 0;
+          handlingMsByTicket.set(currentTicketId, prev + Date.now() - inProgressStart.getTime());
+        }
+        currentTicketId = h.ticketId;
+        inProgressStart = null;
+      }
+      if (h.newStatus === 'in_progress' && h.oldStatus !== 'in_progress') {
+        inProgressStart = h.createdAt;
+      } else if (h.oldStatus === 'in_progress' && h.newStatus !== 'in_progress' && inProgressStart) {
+        const prev = handlingMsByTicket.get(currentTicketId) || 0;
+        handlingMsByTicket.set(currentTicketId, prev + h.createdAt.getTime() - inProgressStart.getTime());
+        inProgressStart = null;
+      }
+    }
+    if (inProgressStart && currentTicketId !== -1) {
+      const prev = handlingMsByTicket.get(currentTicketId) || 0;
+      handlingMsByTicket.set(currentTicketId, prev + Date.now() - inProgressStart.getTime());
+    }
 
     let overallAhtHours = 0;
     if (resolvedTickets.length > 0) {
-      const totalMs = resolvedTickets.reduce((acc, t) => acc + (t.completedAt!.getTime() - t.createdAt.getTime()), 0);
+      const totalMs = resolvedTickets.reduce((acc, t) => acc + (handlingMsByTicket.get(t.id) || 0), 0);
       overallAhtHours = (totalMs / resolvedTickets.length) / (1000 * 60 * 60);
     }
 
-    // AHT by priority
     const priorityGroups: Record<string, { total: number; count: number }> = {};
     resolvedTickets.forEach(t => {
       if (!priorityGroups[t.priority]) priorityGroups[t.priority] = { total: 0, count: 0 };
-      priorityGroups[t.priority].total += t.completedAt!.getTime() - t.createdAt.getTime();
+      priorityGroups[t.priority].total += handlingMsByTicket.get(t.id) || 0;
       priorityGroups[t.priority].count++;
     });
     const ahtByPriority = Object.entries(priorityGroups).map(([priority, data]) => ({
@@ -488,13 +523,12 @@ router.get('/aht', authenticate, async (req: any, res) => {
       count: data.count
     }));
 
-    // AHT by department (super_admin only)
     let ahtByDepartment: any[] = [];
     if (req.user.role === 'super_admin') {
       const deptGroups: Record<number, { total: number; count: number }> = {};
       resolvedTickets.forEach(t => {
         if (!deptGroups[t.departmentId]) deptGroups[t.departmentId] = { total: 0, count: 0 };
-        deptGroups[t.departmentId].total += t.completedAt!.getTime() - t.createdAt.getTime();
+        deptGroups[t.departmentId].total += handlingMsByTicket.get(t.id) || 0;
         deptGroups[t.departmentId].count++;
       });
       const deptIds = Object.keys(deptGroups).map(Number);

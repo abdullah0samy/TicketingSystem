@@ -313,7 +313,7 @@ export default function MyTicketsPage() {
                     {visibleColumns.includes('priority') && (
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${
-                          ticket.priority === 'urgent' ? 'bg-danger-red/10 text-danger-red' : 
+                          ticket.priority === 'critical' ? 'bg-danger-red/10 text-danger-red' : 
                           ticket.priority === 'high' ? 'bg-warning-amber/10 text-warning-amber' : 'bg-[var(--bg-elevated)] text-[var(--text-secondary)]'
                         }`}>
                           {ticket.priority}
@@ -404,12 +404,12 @@ export default function MyTicketsPage() {
                   </div>
                   
                   <div className={`flex items-center gap-2 px-2 py-1 rounded-lg ${
-                    ticket.priority === 'urgent' ? 'bg-danger-red/10 text-danger-red dark:bg-danger-red/20' : 
+                    ticket.priority === 'critical' ? 'bg-danger-red/10 text-danger-red dark:bg-danger-red/20' : 
                     ticket.priority === 'high' ? 'bg-orange-500/10 text-orange-500 dark:bg-orange-500/20' : 
                     'bg-[var(--bg-elevated)] text-[var(--text-secondary)]'
                   }`}>
                     <div className={`w-1.5 h-1.5 rounded-full ${
-                      ticket.priority === 'urgent' ? 'bg-danger-red' : 
+                      ticket.priority === 'critical' ? 'bg-danger-red' : 
                       ticket.priority === 'high' ? 'bg-orange-500' : 'bg-slate-400'
                     }`} />
                     <span className="text-[10px] font-bold uppercase tracking-widest">{ticket.priority}</span>

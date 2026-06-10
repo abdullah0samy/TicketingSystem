@@ -37,6 +37,9 @@ export default function NewTicketPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<any>(null);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [formData, setFormData] = useState({
     subject: '',
@@ -119,6 +122,25 @@ export default function NewTicketPage() {
       setFloors([]);
     }
   }, [formData.buildingId]);
+
+  // Debounced KB suggestion search on subject/description change
+  useEffect(() => {
+    const query = `${formData.subject} ${formData.description}`.trim();
+    if (query.length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    if (suggestTimerRef.current) clearTimeout(suggestTimerRef.current);
+    suggestTimerRef.current = setTimeout(async () => {
+      try {
+        const data = await apiFetch(`/api/knowledge/suggest?q=${encodeURIComponent(query)}`);
+        setSuggestions(data);
+        setShowSuggestions(data.length > 0);
+      } catch { setSuggestions([]); }
+    }, 300);
+    return () => { if (suggestTimerRef.current) clearTimeout(suggestTimerRef.current); };
+  }, [formData.subject, formData.description]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -416,14 +438,14 @@ export default function NewTicketPage() {
             <div>
               <label className="block text-sm font-bold text-[var(--text-secondary)] mb-2">{t.priority}</label>
               <div className="grid grid-cols-4 gap-4">
-                {['low', 'normal', 'high', 'urgent'].map((p) => (
+                {['low', 'normal', 'high', 'critical'].map((p) => (
                   <button
                     key={p}
                     type="button"
                     onClick={() => setFormData({ ...formData, priority: p })}
                     className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all border ${
                       formData.priority === p 
-                        ? (p === 'urgent' ? 'bg-danger-red text-white border-danger-red' : 'bg-primary-blue text-white border-primary-blue')
+                        ? (p === 'critical' ? 'bg-danger-red text-white border-danger-red' : 'bg-primary-blue text-white border-primary-blue')
                         : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border-[var(--border-main)]'
                     }`}
                   >
@@ -454,10 +476,30 @@ export default function NewTicketPage() {
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onFocus={() => setShowSuggestions(suggestions.length > 0)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 className="w-full px-4 py-3 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] text-[var(--text-main)] outline-none focus:ring-2 focus:ring-primary-blue min-h-[150px]"
                 placeholder={t.descriptionPlaceholder}
                 required
               />
+              {showSuggestions && (
+                <div className="mt-2 rounded-xl border border-[var(--border-main)] bg-[var(--bg-surface)] shadow-xl overflow-hidden">
+                  <div className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] border-b border-[var(--border-dim)]">
+                    {language === 'ar' ? 'مقالات مقترحة' : 'Suggested Articles'}
+                  </div>
+                  {suggestions.map((a: any) => (
+                    <a
+                      key={a.id}
+                      href={`/knowledge`}
+                      onClick={(e) => { e.preventDefault(); window.dispatchEvent(new CustomEvent('navigate', { detail: '/knowledge' })); }}
+                      className="block px-4 py-3 hover:bg-[var(--border-dim)] transition-all border-b border-[var(--border-dim)] last:border-0"
+                    >
+                      <p className="text-sm font-bold text-[var(--text-main)]">{language === 'ar' ? a.titleAr : a.titleEn}</p>
+                      <p className="text-xs text-[var(--text-secondary)] mt-0.5 line-clamp-2">{language === 'ar' ? a.snippetAr : a.snippetEn}</p>
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Attachments */}
