@@ -104,6 +104,15 @@ describe('Ticket Validation Schemas', () => {
       };
       await expect(createTicketSchema.parseAsync(ticket)).rejects.toThrow();
     });
+
+    it('should default subject to No Subject when empty string', async () => {
+      const result = await createTicketSchema.parseAsync({
+        subject: '',
+        description: 'Some issue here',
+        departmentId: '1',
+      });
+      expect(result.subject).toBe('No Subject');
+    });
   });
 
   describe('ticketSearchSchema', () => {

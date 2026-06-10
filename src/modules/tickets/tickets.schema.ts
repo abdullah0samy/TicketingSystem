@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const createTicketSchema = z.object({
-  subject: z.string().min(3).max(200).optional().default('No Subject'),
+  subject: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(3).max(200).optional().default('No Subject')),
   description: z.string().min(5),
   departmentId: z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]),
   ticketTypeId: z.union([z.number(), z.string().regex(/^\d+$/).transform(Number)]).optional().nullable(),
