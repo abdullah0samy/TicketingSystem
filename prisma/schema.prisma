@@ -1,0 +1,547 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Connection pool tuning is done via DATABASE_URL query params:
+  // ?connection_limit=20&pool_timeout=30&connect_timeout=10
+}
+
+model DeptPermissions {
+  id                    Int          @id @default(autoincrement())
+  canReceiveTickets     Boolean      @default(true) @map("can_receive_tickets")
+  canSendTickets        Boolean      @default(false) @map("can_send_tickets")
+  canViewAllDeptTickets Boolean      @default(true) @map("can_view_all_dept_tickets")
+  canAssignTickets      Boolean      @default(true) @map("can_assign_tickets")
+  canChangeStatus       Boolean      @default(true) @map("can_change_status")
+  canTransferTickets    Boolean      @default(true) @map("can_transfer_tickets")
+  canArchiveTickets     Boolean      @default(true) @map("can_archive_tickets")
+  canExportData         Boolean      @default(true) @map("can_export_data")
+  canViewAnalytics      Boolean      @default(true) @map("can_view_analytics")
+  canManageTeamNotes    Boolean      @default(true) @map("can_manage_team_notes")
+  canManageDeptUsers    Boolean      @default(false) @map("can_manage_dept_users")
+  canViewAuditLogs      Boolean      @default(false) @map("can_view_audit_logs")
+  canManageKnowledgeBase Boolean     @default(false) @map("can_manage_knowledge_base")
+  departments           Department[]
+
+  @@map("dept_permissions")
+}
+
+model Building {
+  id        Int      @id @default(autoincrement())
+  nameAr    String   @map("name_ar")
+  nameEn    String   @map("name_en")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  floors    Floor[]
+  tickets   Ticket[]
+
+  @@map("buildings")
+}
+
+model Floor {
+  id         Int      @id @default(autoincrement())
+  nameAr     String   @map("name_ar")
+  nameEn     String   @map("name_en")
+  buildingId Int      @map("building_id")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  tickets    Ticket[]
+
+  @@unique([buildingId, nameAr])
+  @@map("floors")
+}
+
+model Department {
+  id                     Int                     @id @default(autoincrement())
+  nameAr                 String                  @map("name_ar")
+  nameEn                 String                  @map("name_en")
+  descriptionAr          String?                 @map("description_ar")
+  descriptionEn          String?                 @map("description_en")
+  deptType               String                  @default("RECEIVER_ONLY") @map("dept_type")
+  defaultPermissionsId   Int                     @map("default_permissions_id")
+  slaHours               Int                     @default(24) @map("sla_hours")
+  isActive               Boolean                 @default(true) @map("is_active")
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+  deletedAt              DateTime?               @map("deleted_at")
+  auditLogs              AuditLog[]
+  defaultPermissions     DeptPermissions         @relation(fields: [defaultPermissionsId], references: [id])
+  allowedTransferSources DeptTransferAllowlist[] @relation("TargetDept")
+  allowedTransferTargets DeptTransferAllowlist[] @relation("SourceDept")
+  exports                ExportHistory[]
+  teamNotes              TeamNote[]
+  transfersTo            TicketTransfer[]        @relation("TransferTo")
+  transfersFrom          TicketTransfer[]        @relation("TransferFrom")
+  ticketTypes            TicketType[]
+  ticketsIn              Ticket[]                @relation("TicketDepartment")
+  users                  User[]
+  assets                 Asset[]
+
+  @@map("departments")
+}
+
+model DeptTransferAllowlist {
+  id           Int        @id @default(autoincrement())
+  sourceDeptId Int        @map("source_dept_id")
+  targetDeptId Int        @map("target_dept_id")
+  isActive     Boolean    @default(true) @map("is_active")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  targetDept   Department @relation("TargetDept", fields: [targetDeptId], references: [id])
+  sourceDept   Department @relation("SourceDept", fields: [sourceDeptId], references: [id])
+
+  @@unique([sourceDeptId, targetDeptId])
+  @@map("dept_transfer_allowlist")
+}
+
+model User {
+  id                  Int                     @id @default(autoincrement())
+  badgeNumber         String                  @unique @map("badge_number")
+  username            String                  @unique
+  email               String?                 @unique
+  passwordHash        String                  @map("password_hash")
+  fullNameAr          String                  @map("full_name_ar")
+  fullNameEn          String?                 @map("full_name_en")
+  role                String                  @default("end_user")
+  roleId              Int?                    @map("role_id")
+  departmentId        Int?                    @map("department_id")
+  avatarUrl           String?                 @map("avatar_url")
+  about               String?                 @map("about")
+  langPref            String                  @default("ar") @map("lang_pref")
+  isActive            Boolean                 @default(true) @map("is_active")
+  forcePasswordChange Boolean                 @default(false) @map("force_password_change")
+  lastLoginAt         DateTime?               @map("last_login_at")
+  lastLoginIp         String?                 @map("last_login_ip")
+  failedLoginAttempts Int                     @default(0) @map("failed_login_attempts")
+  lockUntil           DateTime?               @map("lock_until")
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
+  deletedAt           DateTime?               @map("deleted_at")
+  auditLogs           AuditLog[]
+  exports             ExportHistory[]
+  notifications       Notification[]
+  pushSubs            PushSubscription[]
+  teamNotes           TeamNote[]
+  messages            TicketMessage[]
+  statusHistory       TicketStatusHistory[]
+  transfers           TicketTransfer[]
+  teamNoteComments    TeamNoteComment[]
+  teamNoteLikes       TeamNoteLike[]
+  ticketsArchived     Ticket[]                @relation("TicketArchiver")
+  ticketsAssigned     Ticket[]                @relation("TicketAssignee")
+  ticketsCreated      Ticket[]                @relation("TicketCreator")
+  knowledgeArticles   KnowledgeArticle[]
+  permissionsOverride UserPermissionOverride?
+  department          Department?             @relation(fields: [departmentId], references: [id])
+  userRole            Role?                   @relation(fields: [roleId], references: [id])
+
+  @@map("users")
+}
+
+model Role {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  description String?
+  permissions Permission[]
+  users       User[]
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  @@map("roles")
+}
+
+model Permission {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  roles       Role[]
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("permissions")
+}
+
+model UserPermissionOverride {
+  id                     Int      @id @default(autoincrement())
+  userId                 Int      @unique @map("user_id")
+  canReceiveTickets      Boolean? @map("can_receive_tickets")
+  canSendTickets         Boolean? @map("can_send_tickets")
+  canViewAllDeptTickets  Boolean? @map("can_view_all_dept_tickets")
+  canAssignTickets       Boolean? @map("can_assign_tickets")
+  canChangeStatus        Boolean? @map("can_change_status")
+  canTransferTickets     Boolean? @map("can_transfer_tickets")
+  canArchiveTickets      Boolean? @map("can_archive_tickets")
+  canExportData          Boolean? @map("can_export_data")
+  canViewAnalytics       Boolean? @map("can_view_analytics")
+  canManageTeamNotes     Boolean? @map("can_manage_team_notes")
+  canManageDeptUsers     Boolean? @map("can_manage_dept_users")
+  canViewAuditLogs       Boolean? @map("can_view_audit_logs")
+  canManageKnowledgeBase Boolean? @map("can_manage_knowledge_base")
+  allowedTransferDeptIds String?  @map("allowed_transfer_dept_ids")
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_permission_overrides")
+}
+
+model TicketType {
+  id           Int         @id @default(autoincrement())
+  nameAr       String      @map("name_ar")
+  nameEn       String      @map("name_en")
+  departmentId Int?        @map("department_id")
+  color        String      @default("#6B7280")
+  slaHours     Int?        @map("sla_hours")
+  isActive     Boolean     @default(true) @map("is_active")
+  displayOrder Int         @default(0) @map("display_order")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  department   Department? @relation(fields: [departmentId], references: [id])
+  tickets      Ticket[]
+
+  @@map("ticket_types")
+}
+
+model Ticket {
+  id                       Int                   @id @default(autoincrement())
+  ticketNumber             String                @unique @map("ticket_number")
+  subject                  String?
+  createdById              Int                   @map("created_by")
+  creatorName              String                @map("creator_name")
+  creatorPhone             String?               @map("creator_phone")
+  creatorExtension         String?               @map("creator_extension")
+  creatorDeptId            Int?                  @map("creator_dept_id")
+  creatorDeptName          String?               @map("creator_dept_name")
+  buildingId               Int?                  @map("building_id")
+  buildingName             String?               @map("building_name")
+  floorId                  Int?                  @map("floor_id")
+  floorName                String?               @map("floor_name")
+  roomExtension            String?               @map("room_extension")
+  description              String
+  departmentId             Int                   @map("department_id")
+  assignedToId             Int?                  @map("assigned_to")
+  ticketTypeId             Int?                  @map("ticket_type_id")
+  status                   String                @default("pending")
+  priority                 String                @default("normal")
+  holdingStatus            String                @default("internal") @map("holding_status")
+  slaDeadline              DateTime?             @map("sla_deadline")
+  slaWarningSent           Boolean               @default(false) @map("sla_warning_sent")
+  slaBreachSent            Boolean               @default(false) @map("sla_breach_sent")
+  dueDate                  DateTime?             @map("due_date")
+  relatedTickets           String?               @map("related_tickets") // Stored as JSON array string
+  currentQueueEntryAt      DateTime              @default(now()) @map("current_queue_entry_at")
+  firstResponseAt          DateTime?             @map("first_response_at")
+  completedAt              DateTime?             @map("completed_at")
+  closedAt                 DateTime?             @map("closed_at")
+  requiresExternalResource Boolean               @default(false) @map("requires_external_resource")
+  externalResourceCost     Float?                @map("external_resource_cost")
+  externalResourceNote     String?               @map("external_resource_note")
+  isArchived               Boolean               @default(false) @map("is_archived")
+  archivedAt               DateTime?             @map("archived_at")
+  archivedById             Int?                  @map("archived_by")
+  rating                   Int?
+  feedback                 String?
+  assetId                  Int?                  @map("asset_id")
+  createdAt                DateTime              @default(now()) @map("created_at")
+  updatedAt                DateTime              @updatedAt @map("updated_at")
+  deletedAt                DateTime?             @map("deleted_at")
+  auditLogs                AuditLog[]
+  notifications            Notification[]
+  attachments              TicketAttachment[]
+  messages                 TicketMessage[]
+  statusHistory            TicketStatusHistory[]
+  transfers                TicketTransfer[]
+  asset                    Asset?                @relation(fields: [assetId], references: [id])
+  floor                    Floor?                @relation(fields: [floorId], references: [id])
+  building                 Building?             @relation(fields: [buildingId], references: [id])
+  ticketType               TicketType?           @relation(fields: [ticketTypeId], references: [id])
+  archivedBy               User?                 @relation("TicketArchiver", fields: [archivedById], references: [id])
+  assignedTo               User?                 @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  department               Department            @relation("TicketDepartment", fields: [departmentId], references: [id])
+  createdBy                User                  @relation("TicketCreator", fields: [createdById], references: [id])
+
+  @@index([status, createdAt])
+  @@index([departmentId, status])
+  @@index([assignedToId, status])
+  @@index([isArchived])
+  @@index([createdById])
+  @@index([ticketTypeId])
+  @@index([slaDeadline])                          // SLA cron job scans every 5 min
+  @@index([departmentId, createdAt])               // Date-filtered dept queries
+  @@index([departmentId, isArchived, status])       // Inbox compound filter pattern
+  @@map("tickets")
+}
+
+model TicketAttachment {
+  id           Int      @id @default(autoincrement())
+  ticketId     Int      @map("ticket_id")
+  uploadedById Int      @map("uploaded_by")
+  fileName     String   @map("file_name")
+  fileUrl      String   @map("file_url")
+  fileSize     BigInt?  @map("file_size")
+  mimeType     String?  @map("mime_type")
+  isVoiceNote  Boolean  @default(false) @map("is_voice_note")
+  voiceDuration Int?    @map("voice_duration")
+  createdAt    DateTime @default(now()) @map("created_at")
+  ticket       Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_attachments")
+}
+
+model TicketMessage {
+  id            Int                 @id @default(autoincrement())
+  ticketId      Int                 @map("ticket_id")
+  senderId      Int                 @map("sender_id")
+  messageType   String              @default("public") @map("message_type")
+  body          String?
+  voiceUrl      String?             @map("voice_url")
+  voiceDuration Int?                @map("voice_duration")
+  isRead        Boolean             @default(false) @map("is_read")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  deletedAt     DateTime?           @map("deleted_at")
+  attachments   MessageAttachment[]
+  sender        User                @relation(fields: [senderId], references: [id])
+  ticket        Ticket              @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_messages")
+}
+
+model MessageAttachment {
+  id           Int           @id @default(autoincrement())
+  messageId    Int           @map("message_id")
+  uploadedById Int           @map("uploaded_by")
+  fileName     String        @map("file_name")
+  fileUrl      String        @map("file_url")
+  fileSize     BigInt?       @map("file_size")
+  mimeType     String?       @map("mime_type")
+  isVoiceNote  Boolean       @default(false) @map("is_voice_note")
+  voiceDuration Int?         @map("voice_duration")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  message      TicketMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("message_attachments")
+}
+
+model TicketTransfer {
+  id               Int        @id @default(autoincrement())
+  ticketId         Int        @map("ticket_id")
+  transferredById  Int        @map("transferred_by")
+  fromDepartmentId Int        @map("from_department_id")
+  toDepartmentId   Int        @map("to_department_id")
+  reason           String?
+  transferredAt    DateTime   @default(now()) @map("transferred_at")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  toDepartment     Department @relation("TransferTo", fields: [toDepartmentId], references: [id])
+  fromDepartment   Department @relation("TransferFrom", fields: [fromDepartmentId], references: [id])
+  transferredBy    User       @relation(fields: [transferredById], references: [id])
+  ticket           Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_transfers")
+}
+
+model TicketStatusHistory {
+  id          Int      @id @default(autoincrement())
+  ticketId    Int      @map("ticket_id")
+  changedById Int      @map("changed_by")
+  oldStatus   String?  @map("old_status")
+  newStatus   String   @map("new_status")
+  note        String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  changedBy   User     @relation(fields: [changedById], references: [id])
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_status_history")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  ticketId  Int?     @map("ticket_id")
+  eventType String   @map("event_type")
+  titleAr   String?  @map("title_ar")
+  titleEn   String?  @map("title_en")
+  bodyAr    String?  @map("body_ar")
+  bodyEn    String?  @map("body_en")
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+  ticket    Ticket?  @relation(fields: [ticketId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([ticketId])
+  @@map("notifications")
+}
+
+model TeamNote {
+  id           Int                  @id @default(autoincrement())
+  departmentId Int?                 @map("department_id")
+  authorId     Int                  @map("author_id")
+  body         String
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+  deletedAt    DateTime?            @map("deleted_at")
+  attachments  TeamNoteAttachment[]
+  comments     TeamNoteComment[]
+  likes        TeamNoteLike[]
+  author       User                 @relation(fields: [authorId], references: [id])
+  department   Department?          @relation(fields: [departmentId], references: [id])
+
+  @@map("team_notes")
+}
+
+model TeamNoteComment {
+  id        Int      @id @default(autoincrement())
+  noteId    Int      @map("note_id")
+  authorId  Int      @map("author_id")
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  note      TeamNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@map("team_note_comments")
+}
+
+model TeamNoteLike {
+  id        Int      @id @default(autoincrement())
+  noteId    Int      @map("note_id")
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  note      TeamNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([noteId, userId])
+  @@map("team_note_likes")
+}
+
+model TeamNoteAttachment {
+  id            Int      @id @default(autoincrement())
+  noteId        Int      @map("note_id")
+  fileName      String   @map("file_name")
+  fileUrl       String   @map("file_url")
+  fileSize      BigInt?  @map("file_size")
+  mimeType      String?  @map("mime_type")
+  isVoiceNote   Boolean  @default(false) @map("is_voice_note")
+  voiceDuration Int?     @map("voice_duration")
+  createdAt     DateTime @default(now()) @map("created_at")
+  note          TeamNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@map("team_note_attachments")
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  endpoint  String
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@map("push_subscriptions")
+}
+
+model AuditLog {
+  id           Int         @id @default(autoincrement())
+  userId       Int?        @map("user_id")
+  action       String
+  entityType   String?     @map("entity_type")
+  entityId     Int?        @map("entity_id")
+  departmentId Int?        @map("department_id")
+  ticketId     Int?        @map("ticket_id")
+  oldData      Json?       @map("old_data")
+  newData      Json?       @map("new_data")
+  ipAddress    String?     @map("ip_address")
+  userAgent    String?     @map("user_agent")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  ticket       Ticket?     @relation(fields: [ticketId], references: [id])
+  department   Department? @relation(fields: [departmentId], references: [id])
+  user         User?       @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([ticketId, createdAt])
+  @@index([action, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model SystemSetting {
+  key         String   @id
+  value       String?
+  description String?
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedById Int?     @map("updated_by")
+
+  @@map("system_settings")
+}
+
+model ExportHistory {
+  id           Int         @id @default(autoincrement())
+  exportedById Int         @map("exported_by")
+  departmentId Int?        @map("department_id")
+  dateFrom     DateTime    @map("date_from")
+  dateTo       DateTime    @map("date_to")
+  fileName     String      @map("file_name")
+  fileUrl      String      @map("file_url")
+  fileSize     BigInt?     @map("file_size")
+  ticketCount  Int         @default(0) @map("ticket_count")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  expiresAt    DateTime    @map("expires_at")
+  deletedAt    DateTime?   @map("deleted_at")
+  department   Department? @relation(fields: [departmentId], references: [id])
+  exportedBy   User        @relation(fields: [exportedById], references: [id])
+
+  @@map("export_history")
+}
+
+model Asset {
+  id             Int        @id @default(autoincrement())
+  name           String
+  serialNumber   String?    @unique @map("serial_number")
+  type           String // e.g., "Medical Device", "IT Hardware"
+  location       String?
+  departmentId   Int?       @map("department_id")
+  status         String     @default("active") // active, maintenance, retired
+  purchaseDate   DateTime?  @map("purchase_date")
+  warrantyExpiry DateTime?  @map("warranty_expiry")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+  deletedAt      DateTime?  @map("deleted_at")
+  tickets        Ticket[]
+  department     Department? @relation(fields: [departmentId], references: [id])
+
+  @@map("assets")
+}
+
+model KnowledgeCategory {
+  id        Int                @id @default(autoincrement())
+  nameAr    String             @map("name_ar")
+  nameEn    String             @map("name_en")
+  articles  KnowledgeArticle[]
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  @@map("knowledge_categories")
+}
+
+model KnowledgeArticle {
+  id         Int               @id @default(autoincrement())
+  titleAr    String            @map("title_ar")
+  titleEn    String            @map("title_en")
+  contentAr  String            @map("content_ar")
+  contentEn  String            @map("content_en")
+  categoryId Int               @map("category_id")
+  authorId   Int               @map("author_id")
+  views      Int               @default(0)
+  isActive   Boolean           @default(true) @map("is_active")
+  createdAt  DateTime          @default(now()) @map("created_at")
+  updatedAt  DateTime          @updatedAt @map("updated_at")
+  category   KnowledgeCategory @relation(fields: [categoryId], references: [id])
+  author     User              @relation(fields: [authorId], references: [id])
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([views])
+  @@map("knowledge_articles")
+}

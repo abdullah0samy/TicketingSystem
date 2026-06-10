@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+uploads/*
+!uploads/.gitkeep
+pgdata/
+dump.rdb
+.env
+*.log
