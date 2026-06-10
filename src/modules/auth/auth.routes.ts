@@ -38,20 +38,42 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials or inactive account' });
     }
 
+    // Check if account is locked due to too many failed attempts
+    if ((user as any).lockUntil && new Date((user as any).lockUntil) > new Date()) {
+      return res.status(423).json({ message: 'Account locked. Too many failed attempts.', lockUntil: (user as any).lockUntil });
+    }
+
+    // Reset lock if lockUntil is in the past
+    if ((user as any).lockUntil && new Date((user as any).lockUntil) <= new Date()) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 0, lockUntil: null }
+      });
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
+      const newAttempts = ((user as any).failedLoginAttempts || 0) + 1;
+      const lockData: any = { failedLoginAttempts: newAttempts };
+      if (newAttempts >= 5) {
+        lockData.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+      }
+      await prisma.user.update({
+        where: { id: user.id },
+        data: lockData
+      });
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
-
-    // Update last login
+    // Reset failed attempts on successful login
     await prisma.user.update({
       where: { id: user.id },
-      data: { lastLoginAt: new Date() }
+      data: { failedLoginAttempts: 0, lockUntil: null, lastLoginAt: new Date() }
     });
+
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
 
     // Set refreshToken as httpOnly cookie for secure persistence
     res.cookie('refreshToken', refreshToken, {
@@ -114,6 +136,7 @@ router.post('/logout', (req, res) => {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict'
   });
+  res.json({ message: 'Logged out successfully' });
 });
 
 export default router;

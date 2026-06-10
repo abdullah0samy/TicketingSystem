@@ -921,10 +921,11 @@ router.put('/:id/assign', async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'You do not have permission to assign tickets' });
     }
 
-    // Agent Validation: Must exist and belong to the correct department (unless super_admin)
+    // Agent Validation: Must exist, be active, and belong to the correct department (unless super_admin)
     if (agentId) {
       const agent = await prisma.user.findUnique({ where: { id: parseInt(agentId) } });
       if (!agent) return res.status(404).json({ message: 'Agent not found' });
+      if (!agent.isActive) return res.status(400).json({ message: 'Cannot assign ticket to an inactive agent' });
       if (agent.departmentId !== ticket.departmentId && req.user.role !== 'super_admin') {
         return res.status(400).json({ message: 'Agent must belong to the same department as the ticket' });
       }

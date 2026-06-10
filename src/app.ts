@@ -74,7 +74,7 @@ const globalLimiter = rateLimit({
 // Auth
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 50 : 1000000, 
+  max: parseInt(process.env.LOGIN_RATE_LIMIT_MAX || (process.env.NODE_ENV === 'production' ? '50' : '1000000'), 10),
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many login attempts. Please try again in 15 minutes.' }

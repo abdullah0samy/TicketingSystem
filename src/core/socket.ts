@@ -101,3 +101,7 @@ export const emitToTicket = (ticketId: number, event: string, data: any) => {
     io.to(`ticket-${ticketId}`).emit(event, data);
   }
 };
+
+export const setIO = (mockIo: any) => { io = mockIo; };
+
+export const getIOOrThrow = () => { if (!io) throw new Error('Socket.io not initialized'); return io; };
