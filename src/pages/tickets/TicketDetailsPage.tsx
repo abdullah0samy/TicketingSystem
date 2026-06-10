@@ -339,9 +339,10 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
 
   const fetchAgents = async (ticketData: any, signal?: AbortSignal) => {
     try {
-      const data = await apiFetch('/api/admin/users', { signal });
+      const res = await apiFetch('/api/admin/users', { signal });
+      const users = Array.isArray(res) ? res : res.data;
       if (ticketData && !signal?.aborted) {
-        setAgents(data.filter((u: any) => u.departmentId === ticketData.departmentId));
+        setAgents(users.filter((u: any) => u.departmentId === ticketData.departmentId));
       }
     } catch (error: any) {
       if (error.name === 'AbortError') return;

@@ -68,12 +68,13 @@ export default function InboxPage() {
     let isMounted = true;
     const fetchAgents = async () => {
       try {
-        const data = await apiFetch('/api/admin/users');
+        const res = await apiFetch('/api/admin/users');
+        const users = Array.isArray(res) ? res : res.data;
         if (isMounted) {
           if (user?.role !== 'super_admin') {
-            setAgents(data.filter((u: any) => u.departmentId === user?.departmentId));
+            setAgents(users.filter((u: any) => u.departmentId === user?.departmentId));
           } else {
-            setAgents(data);
+            setAgents(users);
           }
         }
       } catch (error: any) {
