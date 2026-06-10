@@ -149,8 +149,8 @@ export default function KnowledgeBasePage() {
       }).toString();
       
       const data = await apiFetch(`/api/knowledge/articles?${query}`, { signal });
-      setArticles(data.articles);
-      setTotalPages(data.pagination.totalPages);
+      setArticles(data.data);
+      setTotalPages(data.pagination.pages);
     } catch (error: any) {
       if (error.name === 'AbortError') return;
       setError(error?.message || 'Something went wrong');
