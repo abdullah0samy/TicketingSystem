@@ -262,7 +262,7 @@ router.get('/search', authenticate, async (req, res) => {
   const skip = (pageNum - 1) * limitNum;
 
   try {
-    const where = {
+    const where: any = {
       isActive: true,
       OR: [
         { titleAr: { contains: searchStr, mode: 'insensitive' } },
