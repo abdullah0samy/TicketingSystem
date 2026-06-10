@@ -15,7 +15,7 @@ async function startServer() {
   initSocket(httpServer);
 
   // Initialize Cron Jobs
-  initCron();
+  await initCron();
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {

@@ -673,7 +673,7 @@ export default function InboxPage() {
                             </span>
                           </div>
                         ) : (
-                          <span className="text-xs text-[var(--text-muted)] italic">Unassigned</span>
+                          <span className="text-xs text-[var(--text-muted)] italic">{language === 'ar' ? 'غير معين' : 'Unassigned'}</span>
                         )}
                       </td>
                     )}

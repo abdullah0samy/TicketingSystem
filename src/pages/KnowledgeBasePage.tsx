@@ -208,7 +208,7 @@ export default function KnowledgeBasePage() {
   };
 
   const handleDeleteArticle = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this article?')) return;
+    if (!window.confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذه المقالة؟' : 'Are you sure you want to delete this article?')) return;
     try {
       await apiFetch(`/api/knowledge/articles/${id}`, {
         method: 'DELETE'
@@ -241,7 +241,7 @@ export default function KnowledgeBasePage() {
   };
 
   const handleDeleteCategory = async (id: number) => {
-    if (!window.confirm('Delete this category? This only works if it has no articles.')) return;
+    if (!window.confirm(language === 'ar' ? 'حذف هذه الفئة؟ يعمل هذا فقط إذا لم تحتوي على مقالات.' : 'Delete this category? This only works if it has no articles.')) return;
     try {
       await apiFetch(`/api/knowledge/categories/${id}`, {
         method: 'DELETE'

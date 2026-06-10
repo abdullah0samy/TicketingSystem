@@ -5,6 +5,19 @@ import fs from 'fs';
 import { authenticate } from '../../core/middleware/auth.middleware.ts';
 import { UPLOADS_DIR } from '../../core/paths.ts';
 
+const MAGIC_BYTES: Record<string, (buf: Buffer) => boolean> = {
+  'image/jpeg': (b) => b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF,
+  'image/png': (b) => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47,
+  'application/pdf': (b) => b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46,
+  'application/msword': (b) => b[0] === 0xD0 && b[1] === 0xCF && b[2] === 0x11 && b[3] === 0xE0,
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': (b) => b[0] === 0x50 && b[1] === 0x4B && b[2] === 0x03 && b[3] === 0x04,
+  'application/vnd.ms-excel': (b) => b[0] === 0xD0 && b[1] === 0xCF && b[2] === 0x11 && b[3] === 0xE0,
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': (b) => b[0] === 0x50 && b[1] === 0x4B && b[2] === 0x03 && b[3] === 0x04,
+  'audio/wav': (b) => b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46,
+  'audio/mpeg': (b) => (b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) || (b[0] === 0xFF && (b[1] & 0xE0) === 0xE0),
+  'audio/webm': (b) => b[0] === 0x1A && b[1] === 0x45 && b[2] === 0xDF && b[3] === 0xA3,
+};
+
 const router = express.Router();
 
 // Ensure uploads directory exists
@@ -49,6 +62,18 @@ const upload = multer({
 router.post('/', authenticate as any, upload.single('file'), (req: any, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No file uploaded' });
+  }
+
+  const validateMagic = MAGIC_BYTES[req.file.mimetype];
+  if (validateMagic) {
+    const buf = Buffer.alloc(8);
+    const fd = fs.openSync(req.file.path, 'r');
+    fs.readSync(fd, buf, 0, 8, 0);
+    fs.closeSync(fd);
+    if (!validateMagic(buf)) {
+      fs.unlinkSync(req.file.path);
+      return res.status(422).json({ message: 'File content does not match declared MIME type' });
+    }
   }
 
   const fileUrl = `/uploads/${req.file.filename}`;

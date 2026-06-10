@@ -89,7 +89,7 @@ export default function FloorsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this floor?')) return;
+    if (!confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا الطابق؟' : 'Are you sure you want to delete this floor?')) return;
     try {
       const res = await fetch(`/api/admin/floors/${id}`, {
         method: 'DELETE',

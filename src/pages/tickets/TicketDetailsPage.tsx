@@ -1313,15 +1313,15 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
             <div className="space-y-4">
               <div className="flex items-center gap-3 text-sm">
                 <Phone size={16} className="text-[var(--text-muted)]" />
-                <span className="text-[var(--text-secondary)]">{ticket.creatorPhone || 'N/A'}</span>
+                <span className="text-[var(--text-secondary)]">{ticket.creatorPhone || (language === 'ar' ? 'غير متوفر' : 'N/A')}</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <Hash size={16} className="text-[var(--text-muted)]" />
-                <span className="text-[var(--text-secondary)]">{ticket.creatorExtension || 'N/A'}</span>
+                <span className="text-[var(--text-secondary)]">{ticket.creatorExtension || (language === 'ar' ? 'غير متوفر' : 'N/A')}</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <Building2 size={16} className="text-[var(--text-muted)]" />
-                <span className="text-[var(--text-secondary)]">{ticket.creatorDeptName || 'N/A'}</span>
+                <span className="text-[var(--text-secondary)]">{ticket.creatorDeptName || (language === 'ar' ? 'غير متوفر' : 'N/A')}</span>
               </div>
             </div>
           </div>
@@ -1335,21 +1335,21 @@ export default function TicketDetailsPage({ ticketId }: { ticketId: number }) {
                   <Building2 size={16} />
                   <span>{t.building}</span>
                 </div>
-                <span className="font-bold text-[var(--text-main)]">{ticket.buildingName || 'N/A'}</span>
+                <span className="font-bold text-[var(--text-main)]">{ticket.buildingName || (language === 'ar' ? 'غير متوفر' : 'N/A')}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-3 text-[var(--text-muted)]">
                   <Layers size={16} />
                   <span>{t.floor}</span>
                 </div>
-                <span className="font-bold text-[var(--text-main)]">{ticket.floorName || 'N/A'}</span>
+                <span className="font-bold text-[var(--text-main)]">{ticket.floorName || (language === 'ar' ? 'غير متوفر' : 'N/A')}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-3 text-[var(--text-muted)]">
                   <Hash size={16} />
                   <span>{t.room}</span>
                 </div>
-                <span className="font-bold text-[var(--text-main)]">{ticket.roomExtension || 'N/A'}</span>
+                <span className="font-bold text-[var(--text-main)]">{ticket.roomExtension || (language === 'ar' ? 'غير متوفر' : 'N/A')}</span>
               </div>
             </div>
           </div>

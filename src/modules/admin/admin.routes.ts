@@ -343,16 +343,31 @@ router.delete('/ticket-types/:id', authorize(['super_admin']), async (req, res) 
 // --- USERS / AGENTS ---
 router.get('/users', authorize(['super_admin']), async (req, res) => {
   try {
-    const users = await prisma.user.findMany({
-      where: { deletedAt: null },
-      include: { 
-        department: true,
-        userRole: true,
-        permissionsOverride: true
-      },
-      orderBy: { fullNameEn: 'asc' }
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const where = { deletedAt: null };
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        include: { 
+          department: true,
+          userRole: true,
+          permissionsOverride: true
+        },
+        orderBy: { fullNameEn: 'asc' }
+      }),
+      prisma.user.count({ where })
+    ]);
+
+    res.json({
+      data: users,
+      pagination: { total, page, limit, pages: Math.ceil(total / limit) }
     });
-    res.json(users);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching users' });
   }

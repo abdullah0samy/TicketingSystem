@@ -6,8 +6,8 @@ services:
     ports:
       - "3007:3007"
     environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql://johndoe:${POSTGRES_PASSWORD:-randompassword}@db:5445/abch_db?schema=public&connection_limit=20&pool_timeout=30&connect_timeout=10}
-      - REDIS_URL=redis://redis:6369
+      - DATABASE_URL=${DATABASE_URL:-postgresql://johndoe:${POSTGRES_PASSWORD:-randompassword}@db:5432/abch_db?schema=public&connection_limit=20&pool_timeout=30&connect_timeout=10}
+      - REDIS_URL=redis://redis:6379
       - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - NODE_ENV=production

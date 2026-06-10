@@ -102,7 +102,7 @@ export default function TicketTypesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this ticket type?')) return;
+    if (!confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا النوع؟' : 'Are you sure you want to delete this ticket type?')) return;
     try {
       const res = await fetch(`/api/admin/ticket-types/${id}`, {
         method: 'DELETE',

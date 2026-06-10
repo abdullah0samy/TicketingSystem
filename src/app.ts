@@ -111,8 +111,8 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"], // Vite handles inline scripts with proper nonces
-      styleSrc: ["'self'", "'unsafe-inline'"], // Tailwind requires this
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "blob:", "https://*"],
       connectSrc: ["'self'", "ws:", "wss:", process.env.FRONTEND_URL || "https://yourdomain.com"],
       objectSrc: ["'none'"],
@@ -125,6 +125,10 @@ app.use(helmet({
     includeSubDomains: true,
     preload: true
   } : false,
+  noSniff: true,
+  frameguard: { action: 'deny' },
+  xssFilter: true,
+  referrerPolicy: { policy: 'same-origin' },
 }));
 app.use(cors({
   origin: corsOrigins,
@@ -209,7 +213,6 @@ app.use('/api/*', (req, res) => {
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: any) => {
-  // Log full error for server logs
   console.error('Unhandled Error:', {
     message: err.message,
     stack: err.stack,
@@ -221,10 +224,9 @@ app.use((err: any, req: Request, res: Response, next: any) => {
   const isProd = process.env.NODE_ENV === 'production';
 
   res.status(status).json({
-    message: isProd && status === 500 
-      ? 'An unexpected error occurred. Please contact IT support.' 
+    message: isProd
+      ? 'An unexpected error occurred. Please contact IT support.'
       : err.message || 'Internal Server Error',
-    error: isProd ? {} : err, // Never expose details in production
     requestId: req.headers['x-request-id'] || undefined
   });
 });

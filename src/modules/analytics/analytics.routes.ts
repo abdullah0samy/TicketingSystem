@@ -297,16 +297,31 @@ router.get('/export', authenticate as any, async (req: any, res: Response) => {
 // Get Export History
 router.get('/exports', authenticate as any, async (req: any, res: Response) => {
   try {
-    const exports = await prisma.exportHistory.findMany({
-      where: {
-        exportedById: req.user.role === 'super_admin' ? undefined : req.user.id
-      },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        exportedBy: { select: { fullNameAr: true, fullNameEn: true } }
-      }
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const where = {
+      exportedById: req.user.role === 'super_admin' ? undefined : req.user.id
+    };
+
+    const [exports, total] = await Promise.all([
+      prisma.exportHistory.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        include: {
+          exportedBy: { select: { fullNameAr: true, fullNameEn: true } }
+        }
+      }),
+      prisma.exportHistory.count({ where })
+    ]);
+
+    res.json({
+      data: exports,
+      pagination: { total, page, limit, pages: Math.ceil(total / limit) }
     });
-    res.json(exports);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching export history' });
   }

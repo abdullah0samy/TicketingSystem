@@ -250,13 +250,13 @@ export default function AssetManagementPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                       <MapPin size={14} />
-                      {asset.location || 'N/A'}
+                      {asset.location || (language === 'ar' ? 'غير متوفر' : 'N/A')}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                       <Building2 size={14} />
-                      {language === 'ar' ? asset.department?.nameAr : asset.department?.nameEn || 'N/A'}
+                      {(language === 'ar' ? asset.department?.nameAr : asset.department?.nameEn) || (language === 'ar' ? 'غير متوفر' : 'N/A')}
                     </div>
                   </td>
                   <td className="px-6 py-4">

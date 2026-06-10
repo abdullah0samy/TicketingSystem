@@ -8,6 +8,10 @@ import { ALLOWED_TRANSITIONS, TICKET_PRIORITIES } from './workflow.constants.ts'
 import { calculateSLADeadline } from './sla.utils.ts';
 import { validate, validateQuery } from '../../core/utils/api.utils.ts';
 import { createTicketSchema, ticketSearchSchema } from './tickets.schema.ts';
+
+function normalizeArabic(s: string): string {
+  return s.replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/[\u064B-\u065F]/g, '');
+}
 import { getCachedPermissions, setCachedPermissions, invalidatePermissionCache } from '../../core/permissionCache.ts';
 
 const router = express.Router();
@@ -259,7 +263,7 @@ router.get('/my', async (req: AuthRequest, res: Response) => {
   const where: any = { createdById: req.user.id, isArchived: false };
   if (status && status !== 'all') where.status = status;
   if (search) {
-    const searchStr = search as string;
+    const searchStr = normalizeArabic(search as string);
     where.OR = [
       { ticketNumber: { contains: searchStr } },
       { subject: { contains: searchStr } }
@@ -392,7 +396,7 @@ router.get('/department', async (req: AuthRequest, res: Response) => {
   // BUG FIX: search was overwriting RBAC OR clause from canViewAllDeptTickets check.
   // Merge using AND to preserve the access-control filter.
   if (search) {
-    const searchStr = search as string;
+    const searchStr = normalizeArabic(search as string);
     const searchCondition = {
       OR: [
         { ticketNumber: { contains: searchStr } },
@@ -452,7 +456,7 @@ router.get('/search', searchLimiter, validateQuery(ticketSearchSchema), async (r
   const { q, page = '1', limit = '20' } = req.query as any;
 
   const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
-  const searchStr = q as string;
+  const searchStr = normalizeArabic(q as string);
 
   // Base search criteria
   const searchWhere: any = {
@@ -530,7 +534,7 @@ router.get('/archived', async (req: AuthRequest, res: Response) => {
   }
 
   if (search) {
-    const searchStr = search as string;
+    const searchStr = normalizeArabic(search as string);
     where.AND = [
       { OR: [
         { ticketNumber: { contains: searchStr } },
@@ -590,7 +594,7 @@ router.get('/transferred', async (req: AuthRequest, res: Response) => {
   };
 
   if (search) {
-    const searchStr = search as string;
+    const searchStr = normalizeArabic(search as string);
     where.AND = [
       { OR: [
         { ticketNumber: { contains: searchStr } },

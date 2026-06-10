@@ -2,6 +2,10 @@ import { Router } from 'express';
 import prisma from '../../core/db.ts';
 import { authenticate, authorize, type AuthRequest } from '../../core/middleware/auth.middleware.ts';
 
+function normalizeArabic(s: string): string {
+  return s.replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/[\u064B-\u065F]/g, '');
+}
+
 const router = Router();
 
 // Helper to check for Knowledge Base management permission
@@ -36,13 +40,14 @@ router.get('/articles', authenticate, async (req, res) => {
   try {
     const { 
       page = 1, 
-      limit = 12, 
+      limit = 20, 
       search = '', 
       categoryId 
     } = req.query;
 
-    const skip = (Number(page) - 1) * Number(limit);
-    const take = Number(limit);
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.min(100, Math.max(1, Number(limit)));
+    const skip = (pageNum - 1) * limitNum;
     const searchStr = search as string;
 
     const where: any = { isActive: true };
@@ -73,18 +78,18 @@ router.get('/articles', authenticate, async (req, res) => {
         },
         orderBy: { createdAt: 'desc' },
         skip,
-        take
+        take: limitNum
       }),
       prisma.knowledgeArticle.count({ where })
     ]);
 
     res.json({
-      articles,
+      data: articles,
       pagination: {
         total,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil(total / Number(limit))
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum)
       }
     });
   } catch (error) {
@@ -248,29 +253,43 @@ router.post('/articles/:id/view', authenticate, async (req, res) => {
 
 // Search articles
 router.get('/search', authenticate, async (req, res) => {
-  const { q } = req.query;
-  if (!q) return res.json([]);
+  const { q, page = 1, limit = 20 } = req.query;
+  if (!q) return res.json({ data: [], pagination: { total: 0, page: 1, limit: Number(limit), pages: 0 } });
 
-  const searchStr = q as string;
+  const searchStr = normalizeArabic(q as string);
+  const pageNum = Math.max(1, Number(page));
+  const limitNum = Math.min(100, Math.max(1, Number(limit)));
+  const skip = (pageNum - 1) * limitNum;
 
   try {
-    const articles = await prisma.knowledgeArticle.findMany({
-      where: {
-        isActive: true,
-        OR: [
-          { titleAr: { contains: searchStr, mode: 'insensitive' } },
-          { titleEn: { contains: searchStr, mode: 'insensitive' } },
-          { contentAr: { contains: searchStr, mode: 'insensitive' } },
-          { contentEn: { contains: searchStr, mode: 'insensitive' } },
-        ]
-      },
-      include: {
-        category: true,
-        author: { select: { fullNameAr: true, fullNameEn: true } }
-      },
-      take: 20
+    const where = {
+      isActive: true,
+      OR: [
+        { titleAr: { contains: searchStr, mode: 'insensitive' } },
+        { titleEn: { contains: searchStr, mode: 'insensitive' } },
+        { contentAr: { contains: searchStr, mode: 'insensitive' } },
+        { contentEn: { contains: searchStr, mode: 'insensitive' } },
+      ]
+    };
+
+    const [articles, total] = await Promise.all([
+      prisma.knowledgeArticle.findMany({
+        where,
+        include: {
+          category: true,
+          author: { select: { fullNameAr: true, fullNameEn: true } }
+        },
+        skip,
+        take: limitNum,
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.knowledgeArticle.count({ where })
+    ]);
+
+    res.json({
+      data: articles,
+      pagination: { total, page: pageNum, limit: limitNum, pages: Math.ceil(total / limitNum) }
     });
-    res.json(articles);
   } catch (error) {
     res.status(500).json({ error: 'Search failed' });
   }
@@ -383,7 +402,7 @@ router.get('/suggest', authenticate, async (req, res) => {
     return res.json([]);
   }
 
-  const searchStr = q.trim();
+  const searchStr = normalizeArabic(q.trim());
 
   try {
     // Extract meaningful words (4+ chars) to build a relevance-oriented search

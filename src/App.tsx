@@ -177,6 +177,10 @@ function AppContent() {
   ];
 
   const renderContent = () => {
+    const adminPaths = ['/admin/buildings', '/admin/floors', '/admin/departments', '/admin/ticket-types', '/admin/users', '/admin/roles', '/admin/assets', '/admin/audit'];
+    const cleanPath = currentPath.split('?')[0];
+    if (adminPaths.includes(cleanPath) && user.role !== 'super_admin') return <DashboardPage />;
+
     if (currentPath.startsWith('/tickets/')) {
       const pathParts = currentPath.split('?')[0].split('/');
       const idPart = pathParts[2];
@@ -186,7 +190,7 @@ function AppContent() {
       if (!isNaN(id)) return <TicketDetailsPage ticketId={id} />;
     }
 
-    switch (currentPath.split('?')[0]) {
+    switch (cleanPath) {
       case '/dashboard': return <DashboardPage />;
       case '/admin/buildings': return <BuildingsPage />;
       case '/admin/floors': return <FloorsPage />;

@@ -169,7 +169,7 @@ export const UserManagementPage: React.FC = () => {
   };
 
   const toggleUserStatus = async (user: User) => {
-    if (!confirm(`Are you sure you want to ${user.isActive ? 'deactivate' : 'activate'} this user?`)) return;
+    if (!confirm(language === 'ar' ? `هل أنت متأكد من ${user.isActive ? 'إلغاء تنشيط' : 'تنشيط'} هذا المستخدم؟` : `Are you sure you want to ${user.isActive ? 'deactivate' : 'activate'} this user?`)) return;
     
     try {
       const res = await fetch(`/api/admin/users/${user.id}`, {

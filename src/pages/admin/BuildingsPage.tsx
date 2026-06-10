@@ -78,7 +78,7 @@ export default function BuildingsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this building?')) return;
+    if (!confirm(language === 'ar' ? 'هل أنت متأكد من حذف هذا المبنى؟' : 'Are you sure you want to delete this building?')) return;
     try {
       const res = await fetch(`/api/admin/buildings/${id}`, {
         method: 'DELETE',
