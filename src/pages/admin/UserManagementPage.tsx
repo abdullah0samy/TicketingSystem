@@ -95,7 +95,10 @@ export const UserManagementPage: React.FC = () => {
         fetch('/api/admin/departments', { headers: { Authorization: `Bearer ${accessToken}` }, signal })
       ]);
 
-      if (usersRes.ok) setUsers(await usersRes.json());
+      if (usersRes.ok) {
+        const json = await usersRes.json();
+        setUsers(Array.isArray(json) ? json : json.data);
+      }
       if (rolesRes.ok) setRoles(await rolesRes.json());
       if (deptsRes.ok) setDepartments(await deptsRes.json());
     } catch (error: any) {

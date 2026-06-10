@@ -176,8 +176,8 @@ export default function DashboardPage() {
 
   const fetchExportHistory = async (signal?: AbortSignal) => {
     try {
-      const data = await apiFetch('/api/analytics/exports', { signal });
-      setExportHistory(data);
+      const res = await apiFetch('/api/analytics/exports', { signal });
+      setExportHistory(Array.isArray(res) ? res : res.data);
     } catch (error: any) {
       if (error.name === 'AbortError') return;
       setError(error?.message || 'Something went wrong');
