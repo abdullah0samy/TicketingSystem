@@ -12,7 +12,7 @@ FROM node:22-alpine AS frontend-builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN npx vite build
 
 # --- Step 3: Production Image ---
 FROM node:22-alpine

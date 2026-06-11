@@ -7,7 +7,7 @@
     "dev": "tsx server.ts",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
-    "build": "nest build && vite build",
+    "build": "vite build",
     "build:nest": "nest build",
     "build:front": "vite build",
     "lint": "tsc --noEmit",

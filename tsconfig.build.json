@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "outDir": "./dist"
+  },
+  "include": ["src/modules", "src/gateways", "src/prisma", "src/common", "src/app.module.ts", "src/main.ts"],
+  "exclude": ["src/**/*.tsx", "src/**/*.test.ts", "src/**/*.spec.ts"]
+}
