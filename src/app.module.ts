@@ -38,6 +38,8 @@ import { GatewaysModule } from './gateways/gateways.module';
     BullModule.forRoot({
       connection: {
         url: process.env.REDIS_URL || 'redis://localhost:6379',
+        retryStrategy: (times: number) => Math.min(times * 100, 3000),
+        maxRetriesPerRequest: null,
       },
     }),
     PrismaModule,

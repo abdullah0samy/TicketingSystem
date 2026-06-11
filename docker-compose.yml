@@ -6,7 +6,7 @@ services:
     ports:
       - "3007:3007"
     environment:
-      - NEST_PORT=3007
+      - PORT=3007
       - DATABASE_URL=postgresql://johndoe:c3fd17a5eb730219e324f8a6556c678baaf41b176f5ddee1790ab9299e043613@db:5432/abch_db?schema=public&connection_limit=20&pool_timeout=30&connect_timeout=10
       - REDIS_URL=redis://redis:6379
       - JWT_ACCESS_SECRET=291faf0fb06b714d9978e5029b5c1bad974f54428e529b0cab331343df13d4833fefe42affd8ee2579c0df1474503217056eaa420dc02b4ef60e57b4f4036c5c

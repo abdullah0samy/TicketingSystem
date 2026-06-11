@@ -14,7 +14,7 @@ async function startServer() {
   const app = await NestFactory.create(AppModule);
   const expressApp = app.getHttpAdapter().getInstance() as express.Application;
 
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = Number(process.env.NEST_PORT) || Number(process.env.PORT) || 3000;
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
