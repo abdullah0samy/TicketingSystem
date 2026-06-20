@@ -78,6 +78,33 @@ export class TicketsService {
     return `${prefix}-${dateStr}-${sequence.toString().padStart(3, '0')}`;
   }
 
+  // --- FORM DATA (for ticket creation form — accessible to all roles) ---
+  async getFormData() {
+    const [departments, buildings, floors, ticketTypes] = await Promise.all([
+      this.prisma.department.findMany({
+        where: { isActive: true, deletedAt: null },
+        select: { id: true, nameAr: true, nameEn: true, deptType: true },
+        orderBy: { nameEn: 'asc' },
+      }),
+      this.prisma.building.findMany({
+        where: { isActive: true },
+        select: { id: true, nameAr: true, nameEn: true },
+        orderBy: { nameEn: 'asc' },
+      }),
+      this.prisma.floor.findMany({
+        where: { isActive: true },
+        select: { id: true, nameAr: true, nameEn: true, buildingId: true },
+        orderBy: [{ buildingId: 'asc' }, { nameEn: 'asc' }],
+      }),
+      this.prisma.ticketType.findMany({
+        where: { isActive: true },
+        select: { id: true, nameAr: true, nameEn: true, departmentId: true, color: true },
+        orderBy: { displayOrder: 'asc' },
+      }),
+    ]);
+    return { departments, buildings, floors, ticketTypes };
+  }
+
   // --- CREATE TICKET ---
   async create(userId: number, body: any) {
     const { subject, description, departmentId, ticketTypeId, priority, buildingId, floorId, assetId, roomExtension, creatorPhone, creatorExtension, attachments } = body;
@@ -91,6 +118,16 @@ export class TicketsService {
 
     if (!fullUser) throw new NotFoundException({ message: 'User not found' });
     if (!targetDept) throw new NotFoundException({ message: 'Target department not found' });
+
+    // C-6: Supervisors and agents can only create tickets for their own department
+    if ((fullUser.role === 'supervisor' || fullUser.role === 'agent') && fullUser.departmentId !== parseInt(departmentId)) {
+      throw new ForbiddenException({ message: 'You can only create tickets for your own department', code: 'CROSS_DEPT_FORBIDDEN' });
+    }
+
+    // F-1: Cross-validate building/floor combination
+    if (buildingId && floorId && flr && flr.buildingId !== parseInt(buildingId)) {
+      throw new BadRequestException({ message: 'Selected floor does not belong to the selected building', code: 'FLOOR_BUILDING_MISMATCH' });
+    }
 
     const ticketType = ticketTypeId && !isNaN(parseInt(ticketTypeId))
       ? await this.prisma.ticketType.findUnique({ where: { id: parseInt(ticketTypeId) } })
@@ -351,6 +388,23 @@ export class TicketsService {
       throw new ForbiddenException({ message: 'Access denied to this ticket' });
     }
 
+    // C-5: If user is a dept member but canViewAllDeptTickets=false, restrict to own assigned/created tickets
+    if (isDeptMember && !isCreator && !isAssigned && !isAdmin) {
+      const userOverride = await this.prisma.userPermissionOverride.findUnique({ where: { userId } });
+      let canViewAll = true;
+      if (userOverride && userOverride.canViewAllDeptTickets !== null) {
+        canViewAll = Boolean(userOverride.canViewAllDeptTickets);
+      } else {
+        const dept = await this.prisma.department.findUnique({ where: { id: Number(userDeptId) }, include: { defaultPermissions: true } });
+        if (dept?.defaultPermissions && dept.defaultPermissions.canViewAllDeptTickets !== null) {
+          canViewAll = Boolean(dept.defaultPermissions.canViewAllDeptTickets);
+        }
+      }
+      if (!canViewAll) {
+        throw new ForbiddenException({ message: 'Access denied to this ticket' });
+      }
+    }
+
     return ticket;
   }
 
@@ -542,7 +596,9 @@ export class TicketsService {
       return t;
     });
 
+    // C-7: Notify BOTH source and destination departments on transfer
     this.ticketGateway.emitToDept(parseInt(targetDeptId), 'new-ticket', { id: ticket.id, ticketNumber: ticket.ticketNumber, subject: ticket.subject, priority: ticket.priority });
+    this.ticketGateway.emitToDept(oldDeptId, 'ticket-transferred', { id: ticket.id, ticketNumber: ticket.ticketNumber, toDepartmentId: parseInt(targetDeptId), reason });
     return updatedTicket;
   }
 

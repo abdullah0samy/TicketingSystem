@@ -30,13 +30,14 @@ export class KnowledgeService {
     const where: any = { isActive: true };
     if (categoryId) where.categoryId = categoryId;
     if (search.trim()) {
+      const normalizedSearch = normalizeArabic(search.trim());
       where.OR = [
-        { titleAr: { contains: search, mode: 'insensitive' } },
-        { titleEn: { contains: search, mode: 'insensitive' } },
-        { contentAr: { contains: search, mode: 'insensitive' } },
-        { contentEn: { contains: search, mode: 'insensitive' } },
-        { category: { nameAr: { contains: search, mode: 'insensitive' } } },
-        { category: { nameEn: { contains: search, mode: 'insensitive' } } },
+        { titleAr: { contains: normalizedSearch, mode: 'insensitive' } },
+        { titleEn: { contains: normalizedSearch, mode: 'insensitive' } },
+        { contentAr: { contains: normalizedSearch, mode: 'insensitive' } },
+        { contentEn: { contains: normalizedSearch, mode: 'insensitive' } },
+        { category: { nameAr: { contains: normalizedSearch, mode: 'insensitive' } } },
+        { category: { nameEn: { contains: normalizedSearch, mode: 'insensitive' } } },
       ];
     }
     const [articles, total] = await Promise.all([

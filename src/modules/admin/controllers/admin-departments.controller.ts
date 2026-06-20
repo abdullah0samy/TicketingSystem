@@ -14,6 +14,8 @@ export class AdminDepartmentsController {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles('super_admin', 'supervisor', 'agent')
   async findAll() {
     return this.prisma.department.findMany({
       include: { defaultPermissions: true, _count: { select: { users: true } } },

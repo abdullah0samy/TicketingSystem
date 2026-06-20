@@ -6,8 +6,9 @@ import fs from 'fs';
 
 function getBaseTicketFilter(userRole: string, userId: number, userDeptId: number | null | undefined): any {
   if (userRole === 'super_admin') return {};
+  // F-7: Agents see dept tickets (same as supervisor), not just tickets they created
   if (userRole === 'agent' || userRole === 'supervisor') {
-    return { OR: [{ departmentId: userDeptId || -1 }, { assignedToId: userId }, { createdById: userId }] };
+    return { departmentId: userDeptId || -1 };
   }
   return { createdById: userId };
 }
@@ -137,9 +138,14 @@ export class AnalyticsService {
     return activities.map((a: any) => ({ ...a, id: a.id.toString() }));
   }
 
-  async getAgentPerformance() {
+  async getAgentPerformance(userRole?: string, userDeptId?: number | null) {
+    // C-4: Supervisors only see agents in their own department
+    const deptFilter = (userRole === 'supervisor' && userDeptId)
+      ? { departmentId: userDeptId }
+      : {};
+
     const users = await this.prisma.user.findMany({
-      where: { role: { in: ['agent', 'supervisor'] }, deletedAt: null },
+      where: { role: { in: ['agent', 'supervisor'] }, deletedAt: null, ...deptFilter },
       select: { id: true, fullNameEn: true, fullNameAr: true, department: { select: { nameEn: true } },
         ticketsAssigned: { where: { status: { in: ['resolved', 'closed'] } }, select: { createdAt: true, completedAt: true, firstResponseAt: true, slaDeadline: true, status: true } } },
     });
@@ -249,6 +255,25 @@ export class AnalyticsService {
   }
 
   async exportExcel(userId: number, userRole: string, userDeptId: number | null | undefined, startDate?: string, endDate?: string) {
+    // C-3: Check canExportData permission before generating export
+    if (userRole !== 'super_admin') {
+      const userOverride = await this.prisma.userPermissionOverride.findUnique({ where: { userId } });
+      let canExport: boolean | null = null;
+      if (userOverride && userOverride.canExportData !== null) {
+        canExport = userOverride.canExportData;
+      } else if (userDeptId) {
+        const dept = await this.prisma.department.findUnique({
+          where: { id: Number(userDeptId) },
+          include: { defaultPermissions: true },
+        });
+        canExport = dept?.defaultPermissions?.canExportData ?? null;
+      }
+      // Default: supervisors can export; agents cannot unless explicitly granted
+      if (canExport === false || (canExport === null && userRole === 'agent')) {
+        throw new (await import('@nestjs/common')).ForbiddenException({ message: 'You do not have permission to export data', code: 'EXPORT_FORBIDDEN' });
+      }
+    }
+
     const ExcelJS = await import('exceljs');
 
     const baseWhere: any = getBaseTicketFilter(userRole, userId, userDeptId);

@@ -84,4 +84,15 @@ export class TeamNotesService {
     await this.prisma.teamNoteLike.create({ data: { noteId, userId } });
     return { liked: true };
   }
+
+  async remove(userId: number, userRole: string, noteId: number) {
+    const note = await this.prisma.teamNote.findUnique({ where: { id: noteId } });
+    if (!note || note.deletedAt) {
+      throw new (await import('@nestjs/common').then(m => m.NotFoundException))('Team note not found');
+    }
+    if (note.authorId !== userId && userRole !== 'super_admin') {
+      throw new (await import('@nestjs/common').then(m => m.ForbiddenException))('Only the author or a super admin can delete this note');
+    }
+    await this.prisma.teamNote.update({ where: { id: noteId }, data: { deletedAt: new Date() } });
+  }
 }

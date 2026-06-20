@@ -152,18 +152,19 @@ function AppContent() {
   if (!isReady) return <div className="min-h-screen flex items-center justify-center bg-[var(--bg-main)] text-[var(--text-muted)] font-sans text-lg font-semibold">Loading...</div>;
   if (!user) return <Login />;
 
-  const sidebarItems = [
-    { icon: LayoutDashboard, label: t.dashboard, path: '/dashboard' },
-    { icon: PlusCircle, label: t.newTicket, path: '/tickets/new' },
-    { icon: Inbox, label: t.incoming, path: '/inbox' },
-    { icon: Send, label: t.outgoing, path: '/my-tickets' },
-    { icon: RefreshCw, label: t.transferred, path: '/transferred' },
-    { icon: Archive, label: t.archive, path: '/archive' },
-    { icon: BarChart3, label: t.analytics, path: '/analytics' },
-    { icon: Users, label: language === 'ar' ? 'ساحة الفريق' : 'Team Feed', path: '/team-feed' },
-    { icon: BookOpen, label: language === 'ar' ? 'المركز المعرفي' : 'Knowledge Base', path: '/knowledge' },
-    { icon: User, label: language === 'ar' ? 'الملف الشخصي' : 'Profile', path: '/profile' },
+  const allSidebarItems = [
+    { icon: LayoutDashboard, label: t.dashboard, path: '/dashboard', roles: ['super_admin', 'supervisor', 'agent', 'end_user'] },
+    { icon: PlusCircle, label: t.newTicket, path: '/tickets/new', roles: ['super_admin', 'supervisor', 'agent', 'end_user'] },
+    { icon: Inbox, label: t.incoming, path: '/inbox', roles: ['super_admin', 'supervisor', 'agent'] },
+    { icon: Send, label: t.outgoing, path: '/my-tickets', roles: ['super_admin', 'supervisor', 'agent', 'end_user'] },
+    { icon: RefreshCw, label: t.transferred, path: '/transferred', roles: ['super_admin', 'supervisor', 'agent'] },
+    { icon: Archive, label: t.archive, path: '/archive', roles: ['super_admin', 'supervisor', 'agent'] },
+    { icon: BarChart3, label: t.analytics, path: '/analytics', roles: ['super_admin', 'supervisor', 'agent'] },
+    { icon: Users, label: language === 'ar' ? 'ساحة الفريق' : 'Team Feed', path: '/team-feed', roles: ['super_admin', 'supervisor', 'agent'] },
+    { icon: BookOpen, label: language === 'ar' ? 'المركز المعرفي' : 'Knowledge Base', path: '/knowledge', roles: ['super_admin', 'supervisor', 'agent', 'end_user'] },
+    { icon: User, label: language === 'ar' ? 'الملف الشخصي' : 'Profile', path: '/profile', roles: ['super_admin', 'supervisor', 'agent', 'end_user'] },
   ];
+  const sidebarItems = allSidebarItems.filter(item => item.roles.includes(user.role));
 
   const adminItems = [
     { icon: Building2, label: language === 'ar' ? 'المباني' : 'Buildings', path: '/admin/buildings' },

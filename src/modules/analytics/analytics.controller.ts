@@ -53,8 +53,8 @@ export class AnalyticsController {
   @Get('agent-performance')
   @UseGuards(RolesGuard)
   @Roles('super_admin', 'supervisor')
-  async getAgentPerformance() {
-    return this.analyticsService.getAgentPerformance();
+  async getAgentPerformance(@Req() req: any) {
+    return this.analyticsService.getAgentPerformance(req.user.role, req.user.departmentId ?? null);
   }
 
   @Get('aht')

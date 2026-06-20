@@ -14,6 +14,8 @@ export class AssetsController {
   constructor(@Inject(AssetsService) private readonly assetsService: AssetsService) {}
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles('super_admin', 'supervisor', 'agent')
   async findAll() {
     return this.assetsService.findAll();
   }

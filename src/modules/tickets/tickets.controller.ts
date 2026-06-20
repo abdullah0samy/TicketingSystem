@@ -51,6 +51,11 @@ export class TicketsController {
     return this.ticketsService.findTransferred(req.user.id, req.user.role, req.user.departmentId ?? null, query);
   }
 
+  @Get('form-data')
+  async getFormData() {
+    return this.ticketsService.getFormData();
+  }
+
   @Get(':id')
   async findById(@Param('id') id: string, @Req() req: any) {
     return this.ticketsService.findById(parseInt(id), req.user.id, req.user.role, req.user.departmentId ?? null);

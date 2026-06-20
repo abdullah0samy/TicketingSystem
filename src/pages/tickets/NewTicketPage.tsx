@@ -55,7 +55,7 @@ export default function NewTicketPage() {
     creatorExtension: ''
   });
 
-  const { accessToken } = useAuthStore();
+  const { accessToken, user } = useAuthStore();
   const { language } = useSettingsStore();
   const t = translations[language];
   const isMounted = useRef(true);
@@ -82,18 +82,18 @@ export default function NewTicketPage() {
 
   const fetchInitialData = async () => {
     try {
-      const [bData, dData, tData, aData] = await Promise.all([
-        apiFetch('/api/admin/buildings'),
-        apiFetch('/api/admin/departments'),
-        apiFetch('/api/admin/ticket-types'),
-        apiFetch('/api/assets')
-      ]);
-      
+      const data = await apiFetch('/api/tickets/form-data');
       if (!isMounted.current) return;
-      setBuildings(bData.filter((b: any) => b.isActive));
-      setDepartments(dData.filter((d: any) => d.isActive && (d.deptType === 'RECEIVER_ONLY' || d.deptType === 'BOTH')));
-      setTicketTypes(tData.filter((tt: any) => tt.isActive));
-      setAssets(aData.filter((a: any) => a.status === 'active'));
+      setBuildings(data.buildings);
+      setDepartments(data.departments.filter((d: any) => d.deptType === 'RECEIVER_ONLY' || d.deptType === 'BOTH'));
+      setTicketTypes(data.ticketTypes);
+      // Assets are only available to staff roles
+      if (user && user.role !== 'end_user') {
+        try {
+          const aData = await apiFetch('/api/assets');
+          if (isMounted.current) setAssets(aData.filter((a: any) => a.status === 'active'));
+        } catch { /* non-staff: skip assets silently */ }
+      }
     } catch (err) {
       if (!isMounted.current) return;
       console.error('Error fetching initial data:', err);
@@ -105,19 +105,11 @@ export default function NewTicketPage() {
 
   useEffect(() => {
     if (formData.buildingId) {
-      const controller = new AbortController();
-      const selectedBuildingId = formData.buildingId;
-      apiFetch(`/api/admin/floors`, { signal: controller.signal })
+      apiFetch('/api/tickets/form-data')
         .then(data => {
-          if (!controller.signal.aborted) {
-            setFloors(data.filter((f: any) => f.buildingId === parseInt(selectedBuildingId) && f.isActive));
-          }
+          setFloors(data.floors.filter((f: any) => f.buildingId === parseInt(formData.buildingId)));
         })
-        .catch(err => {
-          if (err?.name === 'AbortError') return;
-          console.error('Error fetching floors:', err);
-        });
-      return () => controller.abort();
+        .catch(err => console.error('Error fetching floors:', err));
     } else {
       setFloors([]);
     }

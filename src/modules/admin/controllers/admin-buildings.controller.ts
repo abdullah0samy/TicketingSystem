@@ -14,6 +14,8 @@ export class AdminBuildingsController {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles('super_admin', 'supervisor', 'agent')
   async findAll() {
     return this.prisma.building.findMany({
       include: { _count: { select: { floors: true } } },

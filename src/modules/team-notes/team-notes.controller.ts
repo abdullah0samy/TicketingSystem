@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, UseGuards, Inject, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, UseGuards, Inject, HttpCode, Req } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { TeamNotesService } from './team-notes.service';
@@ -32,5 +32,11 @@ export class TeamNotesController {
   @HttpCode(200)
   async toggleLike(@CurrentUser('id') userId: number, @Param('id') id: string) {
     return this.teamNotesService.toggleLike(userId, parseInt(id));
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  async remove(@CurrentUser('id') userId: number, @Req() req: any, @Param('id') id: string) {
+    await this.teamNotesService.remove(userId, req.user.role, parseInt(id));
   }
 }
