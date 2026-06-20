@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: johndoe
+      POSTGRES_PASSWORD: c3fd17a5eb730219e324f8a6556c678baaf41b176f5ddee1790ab9299e043613
+      POSTGRES_DB: abch_db
+    ports:
+      - "5445:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U johndoe -d abch_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "9396:6379"
+    volumes:
+      - ./dump.rdb:/data/dump.rdb
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3007:4000"
+    environment:
+      - DATABASE_URL=postgresql://johndoe:c3fd17a5eb730219e324f8a6556c678baaf41b176f5ddee1790ab9299e043613@postgres:5432/abch_db?schema=public&connection_limit=20&pool_timeout=30&connect_timeout=10
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_ACCESS_SECRET=291faf0fb06b714d9978e5029b5c1bad974f54428e529b0cab331343df13d4833fefe42affd8ee2579c0df1474503217056eaa420dc02b4ef60e57b4f4036c5c
+      - JWT_REFRESH_SECRET=ff537592bf8529bfca95e9c32d9d6fd35d8f62a602d163b5b460ef17a59ddd0ad5327e54695da1b576bacc9f3f89434524f041ec9d93a844a31062e802350f2b
+      - NEST_PORT=4000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
