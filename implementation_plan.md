@@ -114,14 +114,4 @@ grep for "Synrt" returned zero results. `translations.ts` uses "ABCH"/"ABC Hospi
 | User Management | ✅ Correct | /me endpoint returns department |
 | Admin (Buildings/Floors/Depts/Types) | ✅ Correct | |
 
-## Git History
 
-| Commit | Description |
-|--------|-------------|
-| `ef810e2` | Fix AnalyticsPage export raw fetch → apiFetch; remove unused useAuthStore |
-| `2e78975` | Fix 5 high-severity bugs: search rate limiter, ticket number race condition, bulk notifications, raw fetch→apiFetch in TicketDetailsPage, supervisor lock mismatch |
-| `6cb51fe` | Refactor AuditLogPage: professional UI, stats bar, entity/metadata cards, fix action filter bug |
-| `d793bf8` | Fix ticket assignment: agents list not populating, no error feedback on assign failure |
-| `7a043fc` | Fix profile avatar upload, add knowledge base seed script |
-| `5b0a8e0` | Fix voice note flow: webm upload, DB persistence, audio player, voice recording |
-| `dfaa4aa` | Profile page, voice recording on new ticket, audit detail modal, i18n conversions |

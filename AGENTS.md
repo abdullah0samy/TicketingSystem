@@ -1,6 +1,6 @@
 # Agent Rules — ABCH Hospital Ticketing CRM
 
-Stack: React 19 + TypeScript (frontend), Express/Node.js + TypeScript (backend),
+Stack: React 19 + TypeScript (frontend), nest/Node.js + TypeScript (backend),
 Prisma + PostgreSQL, Socket.io, BullMQ/Redis.
 
 ## Operating Rules — follow without exception
